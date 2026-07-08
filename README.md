@@ -1,43 +1,59 @@
 # Sandhi Ninja
 
-Sandhi Ninja is a Sanskrit sandhi practice web app built with React, Phaser, Vite, and a same-repo TypeScript backend.
+Live website: [https://sandhi-ninja.vercel.app](https://sandhi-ninja.vercel.app)
 
-It currently includes:
+Sandhi Ninja is a Sanskrit sandhi practice web app built with React, Phaser, Vite, and a same-repo TypeScript backend. The current version combines fast gameplay, guided feedback, and a separate sandhi analysis section for trying supported chedas on new samasta padams.
 
-- `Arcade Slice`: quick gameplay for cutting at the correct sandhi boundary
-- `Full Split`: recursive splitting mode for words with multiple valid cuts
-- `Sandhi Explorer`: enter a samasta padam in IAST, Devanagari, or Telugu and inspect supported svara-sandhi chedas step by step
-- `Custom Builder`: save analyzer results into the local game bank or create custom practice words
+## What The Current Version Includes
 
-## Supported Svara-Sandhi Reversal Rules
+- `Arcade Slice`: fast rounds focused on choosing the correct sandhi and cutting at the correct split point
+- `Full Split`: recursive play for words that can be split more than once
+- `Practice mode`: the solved word stays on screen until the user clicks `Next word`
+- `Timed` and `Untimed` play modes
+- Randomized word order on refresh and across sessions
+- Rule-aware feedback that tells the learner whether:
+  - both the split place and sandhi were correct
+  - the place was correct but the sandhi was wrong
+  - the sandhi was valid but at a different place
+  - both were wrong
+- `Sandhi Explorer`: a separate section where the user can enter a word in `IAST`, `Devanagari`, or `Telugu` and inspect supported svara-sandhi analyses step by step
+- `Custom Builder`: analyzer results can be saved into the local game bank for future practice
+- Multilingual UI in `English`, `Sanskrit`, and `Telugu`
+- Updated `Sandhi Ninja` branding and logo mark
 
-The backend analyzer currently supports deterministic reversal for:
+## Supported Svara-Sandhi Rules
 
-- Savarna Dirgha
-- Guna
-- Vrddhi
-- Yan
-- Ayavayayava
-- Purvarupa
-- Pararupa
+The current analyzer and gameplay bank support these deterministic svara-sandhi reversals:
+
+- `Savarna Dirgha`
+- `Guna`
+- `Vrddhi`
+- `Yan`
+- `Ayavayava`
+- `Purvarupa`
+- `Pararupa`
 
 ## Tech Stack
 
 - `React 19`
-- `Phaser 4`
-- `Vite`
 - `TypeScript`
-- `Node.js` backend for API + static asset serving
+- `Vite`
+- `Phaser 4`
+- `Framer Motion`
+- `Node.js` + `Express`
 
-## Project Structure
+## Architecture
+
+The repo is split into a small client/server/shared structure:
 
 ```text
 src/
   components/        React UI
-  data/              game bank and UI copy
+  data/              game bank, rules, copy
   game/              Phaser runtime and scene logic
-  styles/            global styles
-  utils/             client-side helpers
+  styles/            global visual system
+  types/             gameplay types
+  utils/             client helpers and explorer adapter
 
 server/
   engine/            sandhi analyzer engine
@@ -45,13 +61,15 @@ server/
 
 shared/
   contracts/         request/response types
-  core/              shared rules + Sanskrit normalization helpers
+  core/              normalization and transliteration helpers
 
 tests/
   engine.test.mjs    engine and API contract tests
 ```
 
-## Development
+The `Sandhi Explorer` calls `POST /api/sandhi/analyze` when the backend is available. For supported rules, the client also has a local fallback path so the explorer can still function if the API is unavailable.
+
+## Local Development
 
 Install dependencies:
 
@@ -59,7 +77,7 @@ Install dependencies:
 npm install
 ```
 
-Run the frontend and backend together:
+Run frontend and backend together:
 
 ```bash
 npm run dev
@@ -72,106 +90,36 @@ npm run dev:client
 npm run dev:server
 ```
 
-In local development, Vite proxies `/api/*` requests to `http://127.0.0.1:3001`.
+Useful scripts:
 
-## Build and Run
+```bash
+npm run build
+npm run build:client
+npm run build:server
+npm run test
+npm start
+```
 
-Create production builds:
+During local development, Vite proxies `/api/*` to `http://127.0.0.1:3001`.
+
+## Production Build
+
+Create production assets:
 
 ```bash
 npm run build
 ```
 
-Start the production server:
+Start the Node server:
 
 ```bash
 npm start
 ```
 
-The Node server serves both:
+The production server serves:
 
 - the built frontend from `dist/`
 - the API from `/api/*`
-
-## Deploy
-
-This repo now supports two deployment shapes:
-
-- `Vercel`: Vite frontend + Vercel Functions in `api/`
-- `Render`: single Node server that serves both frontend assets and `/api`
-
-### Vercel
-
-This repo includes Vercel Functions under [api](/Users/ankith/github/SandhiNinja/api:1).
-
-The Vercel setup uses:
-
-- Vite framework auto-detection
-- frontend output from `dist`
-- API routes from:
-  - `/api/sandhi/analyze`
-  - `/api/health`
-
-#### Vercel dashboard steps
-
-1. Push this repo to GitHub.
-2. In Vercel, click `Add New` -> `Project`.
-3. Import `avulaankith/SandhiNinja`.
-4. Confirm the project settings:
-
-```bash
-Framework Preset: Vite
-Build Command: npm run build
-Output Directory: dist
-```
-
-5. Deploy.
-
-If you later want the frontend to call a different backend host instead of same-origin Vercel Functions, set:
-
-```bash
-VITE_API_BASE_URL=https://your-api-host.example.com
-```
-
-#### Push updated code to GitHub
-
-This repo already uses `origin`:
-
-```bash
-git add -A
-git commit -m "Prepare Vercel deployment"
-git push origin main
-```
-
-After that, Vercel can auto-deploy from the `main` branch.
-
-### Render
-
-This repo includes [render.yaml](/Users/ankith/github/SandhiNinja/render.yaml:1) for a basic web-service deploy.
-
-1. Push the repo to GitHub.
-2. In Render, create a new Blueprint or Web Service from that GitHub repo.
-3. If you use the Blueprint flow, Render will read `render.yaml`.
-4. If you create the service manually, use:
-
-```bash
-Build Command: npm install && npm run build
-Start Command: npm start
-```
-
-5. Render should expose the app on its assigned `PORT`. The server already reads `PORT` and now binds to `0.0.0.0` by default for hosted environments.
-
-Health check:
-
-- `/api/health`
-
-## Tests
-
-Run the analyzer and API tests:
-
-```bash
-npm test
-```
 
 ## API
 
@@ -194,16 +142,17 @@ Accepted `script` values:
 - `devanagari`
 - `telugu`
 
-The API normalizes the input across scripts and returns ranked candidate analyses with:
+Response includes:
 
-- normalized forms
+- normalized forms in `IAST`, `Devanagari`, and `Telugu`
+- ranked candidate analyses
 - final split words
-- step-by-step sandhi reversal details
-- sūtra metadata
+- step-by-step rule applications
+- sutra, nimitta, and explanation metadata
 
 ### `GET /api/health`
 
-Returns a basic health payload for hosting checks:
+Health response:
 
 ```json
 {
@@ -211,7 +160,55 @@ Returns a basic health payload for hosting checks:
 }
 ```
 
-## Notes
+## Deployment
 
-- The analyzer is rule-based in the current version and does not yet do lexical or morphology validation.
+### Vercel
+
+Current live deployment:
+
+- [https://sandhi-ninja.vercel.app](https://sandhi-ninja.vercel.app)
+
+To deploy from GitHub:
+
+1. Push this repo to GitHub.
+2. In Vercel, create a new project from the repo.
+3. Use these settings:
+
+```bash
+Framework Preset: Vite
+Build Command: npm run build
+Output Directory: dist
+```
+
+4. Deploy.
+
+The app uses same-origin `/api/*` requests when the backend is available. The explorer also includes a client fallback for supported rule analysis, which keeps the feature usable even if the deployed environment is frontend-first.
+
+### Render
+
+This repo also includes [render.yaml](/Users/ankith/github/SandhiNinja/render.yaml:1) for a single Node service deploy.
+
+Manual settings:
+
+```bash
+Build Command: npm install && npm run build
+Start Command: npm start
+```
+
+Health check:
+
+- `/api/health`
+
+## Testing
+
+Run the analyzer and API tests with:
+
+```bash
+npm test
+```
+
+## Notes And Limitations
+
+- The current analyzer is rule-based and does not yet do dictionary or morphology validation.
 - Custom entries are stored locally in browser storage.
+- Gameplay and explorer share rule data, but only the explorer depends on the API path.
