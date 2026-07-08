@@ -7,6 +7,7 @@ import type {
   SanskritInputScript,
   SurfaceForms,
 } from "../../shared/contracts/sandhi.ts";
+import { analyzeSandhiWord } from "../../server/engine/analyzer.ts";
 import type { WordNode } from "../types/sandhi";
 import { makeWordId, splitDevanagariAksharas } from "./sanskrit";
 
@@ -133,26 +134,48 @@ export const requestSandhiAnalysis = async (
   script: SanskritInputScript,
   maxResults?: number,
 ) => {
-  const response = await fetch("/api/sandhi/analyze", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      input,
-      script,
-      maxResults,
-    }),
-  });
+  const localAnalysis = () => {
+    const result = analyzeSandhiWord(input, script, maxResults);
 
-  if (!response.ok) {
-    const payload = (await response.json().catch(() => null)) as
-      | SandhiAnalyzeErrorResponse
-      | null;
-    throw new Error(payload?.message ?? "Sandhi analysis request failed.");
+    if (!result) {
+      throw new Error("Input could not be normalized.");
+    }
+
+    return result;
+  };
+  const apiBase = import.meta.env.VITE_API_BASE_URL?.replace(/\/+$/, "") ?? "";
+  try {
+    const response = await fetch(`${apiBase}/api/sandhi/analyze`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        input,
+        script,
+        maxResults,
+      }),
+    });
+
+    if (!response.ok) {
+      if (response.status === 404 || response.status >= 500) {
+        return localAnalysis();
+      }
+
+      const payload = (await response.json().catch(() => null)) as
+        | SandhiAnalyzeErrorResponse
+        | null;
+      throw new Error(payload?.message ?? "Sandhi analysis request failed.");
+    }
+
+    return (await response.json()) as SandhiAnalyzeSuccessResponse;
+  } catch (error) {
+    if (error instanceof TypeError) {
+      return localAnalysis();
+    }
+
+    throw error;
   }
-
-  return (await response.json()) as SandhiAnalyzeSuccessResponse;
 };
 
 export const analysisResultToWordNode = (

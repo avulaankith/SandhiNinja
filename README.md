@@ -95,7 +95,55 @@ The Node server serves both:
 
 ## Deploy
 
-The simplest deployment path for the current architecture is a single Node web service on Render, because the same server handles both static frontend files and the `/api` routes.
+This repo now supports two deployment shapes:
+
+- `Vercel`: Vite frontend + Vercel Functions in `api/`
+- `Render`: single Node server that serves both frontend assets and `/api`
+
+### Vercel
+
+This repo includes Vercel Functions under [api](/Users/ankith/github/SandhiNinja/api:1).
+
+The Vercel setup uses:
+
+- Vite framework auto-detection
+- frontend output from `dist`
+- API routes from:
+  - `/api/sandhi/analyze`
+  - `/api/health`
+
+#### Vercel dashboard steps
+
+1. Push this repo to GitHub.
+2. In Vercel, click `Add New` -> `Project`.
+3. Import `avulaankith/SandhiNinja`.
+4. Confirm the project settings:
+
+```bash
+Framework Preset: Vite
+Build Command: npm run build
+Output Directory: dist
+```
+
+5. Deploy.
+
+If you later want the frontend to call a different backend host instead of same-origin Vercel Functions, set:
+
+```bash
+VITE_API_BASE_URL=https://your-api-host.example.com
+```
+
+#### Push updated code to GitHub
+
+This repo already uses `origin`:
+
+```bash
+git add -A
+git commit -m "Prepare Vercel deployment"
+git push origin main
+```
+
+After that, Vercel can auto-deploy from the `main` branch.
 
 ### Render
 
@@ -116,27 +164,6 @@ Start Command: npm start
 Health check:
 
 - `/api/health`
-
-### GitHub Push
-
-If you want to create a new public repo from this directory with GitHub CLI, the usual flow is:
-
-```bash
-git init
-git add .
-git commit -m "Initial commit"
-gh repo create SandhiNinja --public --source=. --remote=origin --push
-```
-
-If the repo already exists on GitHub, the usual flow is:
-
-```bash
-git init
-git add .
-git commit -m "Initial commit"
-git remote add origin <your-repo-url>
-git push -u origin main
-```
 
 ## Tests
 
