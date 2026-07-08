@@ -143,6 +143,32 @@ button {
   line-height: 0.98;
 }
 
+.hero-brand {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.hero-brand__text {
+  display: grid;
+  gap: 4px;
+}
+
+.hero-brand__text .hero-kicker {
+  align-self: start;
+}
+
+.hero-brand__text h1 {
+  margin: 0;
+}
+
+.brand-mark {
+  width: clamp(68px, 9vw, 94px);
+  height: clamp(68px, 9vw, 94px);
+  flex: 0 0 auto;
+  filter: drop-shadow(0 18px 30px rgba(0, 0, 0, 0.28));
+}
+
 .hero-copy p {
   max-width: 56ch;
   color: var(--text-muted);
@@ -1096,6 +1122,16 @@ select {
   .app-shell {
     width: 100%;
     padding: 14px;
+  }
+
+  .hero-brand {
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .brand-mark {
+    width: 62px;
+    height: 62px;
   }
 
   .mode-grid,

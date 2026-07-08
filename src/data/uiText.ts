@@ -4,7 +4,7 @@ export const UI_TEXT = {
   title: {
     en: "Sandhi Ninja",
     sa: "सन्धि निन्जा",
-    te: "సంధి వీరుడు",
+    te: "సంధి నింజా",
   },
   subtitle: {
     en: "Slice through living Sanskrit words and reveal the sandhi hidden inside.",

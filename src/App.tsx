@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import BrandMark from "./components/BrandMark";
 import LanguageToggle from "./components/LanguageToggle";
 import LessonPanel from "./components/LessonPanel";
 import ModeSelector from "./components/ModeSelector";
@@ -689,8 +690,13 @@ function App() {
 
       <header className="hero">
         <div className="hero-copy">
-          <span className="hero-kicker">{modeLabel(mode, language)}</span>
-          <h1>{t("title", language)}</h1>
+          <div className="hero-brand">
+            <BrandMark />
+            <div className="hero-brand__text">
+              <span className="hero-kicker">{modeLabel(mode, language)}</span>
+              <h1>{t("title", language)}</h1>
+            </div>
+          </div>
           <p>{t("subtitle", language)}</p>
         </div>
 
