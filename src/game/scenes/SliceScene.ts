@@ -6,6 +6,7 @@ import type {
   GameMode,
   Language,
   SandhiRuleId,
+  SliceAssessment,
   SliceFeedback,
   WordNode,
 } from "../../types/sandhi";
@@ -29,6 +30,7 @@ type TokenView = {
   container: Phaser.GameObjects.Container;
   orb: Phaser.GameObjects.Ellipse;
   outerGlow: Phaser.GameObjects.Ellipse;
+  sliceGuides: Phaser.GameObjects.Container | null;
   label: Phaser.GameObjects.Text;
   sublabel: Phaser.GameObjects.Text;
   badge: Phaser.GameObjects.Text;
@@ -242,13 +244,34 @@ export class SliceScene extends Phaser.Scene {
         continue;
       }
 
+      if (!isFurtherSplittable(token.node)) {
+        this.shakeToken(view, 0xff6673);
+        this.emitFeedback({
+          outcome: "blocked",
+          message: this.localized(
+            t("feedbackFinal", "en"),
+            t("feedbackFinal", "sa"),
+            t("feedbackFinal", "te"),
+          ),
+          activeTokens: [...this.activeTokens],
+          roundCompleted: false,
+          assessment: "final-word",
+        });
+        return;
+      }
+
       const zones = this.getSliceZones(view);
       const hitZone = zones.find((zone) =>
         lineIntersectsRectangle(swipeLine, zone.rect),
       );
 
       if (!hitZone) {
-        this.handleWrongSlice(token, "wrong-cut");
+        this.handleWrongSlice(
+          token,
+          this.hasSelectedRuleElsewhere(token)
+            ? "place-wrong-rule-correct"
+            : "both-wrong",
+        );
         return;
       }
 
@@ -266,10 +289,15 @@ export class SliceScene extends Phaser.Scene {
       this.shakeToken(view, 0xff6673);
       this.emitFeedback({
         outcome: "blocked",
-        message: this.localized(t("feedbackFinal", "en"), t("feedbackFinal", "sa"), t("feedbackFinal", "te")),
+        message: this.localized(
+          t("feedbackFinal", "en"),
+          t("feedbackFinal", "sa"),
+          t("feedbackFinal", "te"),
+        ),
         activeTokens: [...this.activeTokens],
         roundCompleted: false,
         boundaryIndex,
+        assessment: "final-word",
       });
       return;
     }
@@ -279,7 +307,13 @@ export class SliceScene extends Phaser.Scene {
     );
 
     if (exactBoundaryCuts.length === 0) {
-      this.handleWrongSlice(token, "wrong-cut", boundaryIndex);
+      this.handleWrongSlice(
+        token,
+        this.hasSelectedRuleElsewhere(token)
+          ? "place-wrong-rule-correct"
+          : "both-wrong",
+        boundaryIndex,
+      );
       return;
     }
 
@@ -288,7 +322,7 @@ export class SliceScene extends Phaser.Scene {
     );
 
     if (matchingCuts.length === 0) {
-      this.handleWrongSlice(token, "wrong-rule", boundaryIndex);
+      this.handleWrongSlice(token, "place-correct-rule-wrong", boundaryIndex);
       return;
     }
 
@@ -325,7 +359,11 @@ export class SliceScene extends Phaser.Scene {
 
     this.emitFeedback({
       outcome: "correct",
-      message: this.localized(t("correctSplit", "en"), t("correctSplit", "sa"), t("correctSplit", "te")),
+      message: this.localized(
+        t("feedbackBothCorrect", "en"),
+        t("feedbackBothCorrect", "sa"),
+        t("feedbackBothCorrect", "te"),
+      ),
       lesson: {
         node: token.node,
         cut: selectedCut,
@@ -334,12 +372,16 @@ export class SliceScene extends Phaser.Scene {
       activeTokens: [...this.activeTokens],
       roundCompleted,
       boundaryIndex,
+      assessment: "both-correct",
     });
   }
 
   private handleWrongSlice(
     token: ActiveToken,
-    type: "wrong-cut" | "wrong-rule",
+    type:
+      | "place-correct-rule-wrong"
+      | "place-wrong-rule-correct"
+      | "both-wrong",
     boundaryIndex?: number,
   ) {
     const view = this.tokenViews.get(token.instanceId);
@@ -348,26 +390,31 @@ export class SliceScene extends Phaser.Scene {
       this.spawnSparks(view.container.x, view.container.y, 0xff6673);
     }
 
-    const message =
-      type === "wrong-rule"
-        ? this.localized(
-            t("feedbackWrongRule", "en"),
-            t("feedbackWrongRule", "sa"),
-            t("feedbackWrongRule", "te"),
-          )
-        : this.localized(
-            t("feedbackWrongCut", "en"),
-            t("feedbackWrongCut", "sa"),
-            t("feedbackWrongCut", "te"),
-          );
+    const messageKey =
+      type === "place-correct-rule-wrong"
+        ? "feedbackWrongRule"
+        : type === "place-wrong-rule-correct"
+          ? "feedbackWrongPlaceRightRule"
+          : "feedbackWrongBoth";
 
     this.emitFeedback({
       outcome: "wrong",
-      message,
+      message: this.localized(
+        t(messageKey, "en"),
+        t(messageKey, "sa"),
+        t(messageKey, "te"),
+      ),
       activeTokens: [...this.activeTokens],
       roundCompleted: false,
       boundaryIndex,
+      assessment: type,
     });
+  }
+
+  private hasSelectedRuleElsewhere(token: ActiveToken) {
+    return token.node.cuts.some(
+      (cut) => !cut.reviewNeeded && cut.ruleId === this.bridgeState.selectedRuleId,
+    );
   }
 
   private shakeToken(view: TokenView, color: number) {
@@ -442,12 +489,37 @@ export class SliceScene extends Phaser.Scene {
     return view.token.node.aksharas.slice(0, -1).map((_, index) => ({
       index,
       rect: new Phaser.Geom.Rectangle(
-        labelBounds.x + slotWidth * (index + 1) - 13,
-        labelBounds.y - 18,
-        26,
-        labelBounds.height + 36,
+        labelBounds.x + slotWidth * (index + 1) - 17,
+        labelBounds.y - 24,
+        34,
+        labelBounds.height + 48,
       ),
     }));
+  }
+
+  private buildSliceGuides(
+    label: Phaser.GameObjects.Text,
+    token: ActiveToken,
+  ) {
+    if (!isFurtherSplittable(token.node) || token.node.aksharas.length <= 1) {
+      return null;
+    }
+
+    const slotWidth = label.width / Math.max(token.node.aksharas.length, 1);
+    const leftEdge = -label.width / 2;
+    const guides = this.add.container(0, 0);
+
+    token.node.aksharas.slice(0, -1).forEach((_, index) => {
+      const x = leftEdge + slotWidth * (index + 1);
+      const glow = this.add.circle(x, 20, 7, 0xffbe70, 0.05);
+      const tick = this.add.rectangle(x, 16, 2, 10, 0xffdca8, 0.18);
+      const dot = this.add.circle(x, 22, 2, 0xfff0cf, 0.38);
+
+      guides.add([glow, tick, dot]);
+    });
+
+    guides.setAlpha(0.52);
+    return guides;
   }
 
   private syncTokenViews(options?: {
@@ -551,6 +623,7 @@ export class SliceScene extends Phaser.Scene {
     });
     label.setOrigin(0.5);
     label.setResolution(TEXT_RESOLUTION);
+    const sliceGuides = this.buildSliceGuides(label, token);
 
     const sublabel = this.add.text(0, 26, this.getSubLabel(token.node), {
       fontFamily: this.getSubLabelFont(token.node),
@@ -571,7 +644,12 @@ export class SliceScene extends Phaser.Scene {
     badge.setOrigin(0.5);
     badge.setResolution(TEXT_RESOLUTION);
 
-    const container = this.add.container(0, 0, [outerGlow, orb, sheen, label, sublabel, badge]);
+    const containerChildren: Phaser.GameObjects.GameObject[] = [outerGlow, orb, sheen];
+    if (sliceGuides) {
+      containerChildren.push(sliceGuides);
+    }
+    containerChildren.push(label, sublabel, badge);
+    const container = this.add.container(0, 0, containerChildren);
 
     this.tweens.add({
       targets: outerGlow,
@@ -599,6 +677,7 @@ export class SliceScene extends Phaser.Scene {
       container,
       orb,
       outerGlow,
+      sliceGuides,
       label,
       sublabel,
       badge,
@@ -614,6 +693,7 @@ export class SliceScene extends Phaser.Scene {
     view.orb.setFillStyle(orbColor, 0.92);
     view.badge.setColor(isSplittable ? "#ffdca8" : "#baf7d1");
     view.badge.setBackgroundColor(isSplittable ? "#4d3210" : "#13301d");
+    view.sliceGuides?.setVisible(isSplittable);
   }
 
   private getUiFontFamily() {

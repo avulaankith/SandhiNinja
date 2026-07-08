@@ -40,6 +40,10 @@ const DEFAULT_LIVES = 4;
 const REVEAL_THRESHOLD = 4;
 const DEFAULT_TIMER_MODE: TimerMode = "timed";
 const FONT_LOAD_TIMEOUT_MS = 2200;
+const FEEDBACK_CLEAR_DELAY_MS = 3200;
+const ROUND_COMPLETE_DELAY_MS = 3000;
+const FULL_SPLIT_ROUND_COMPLETE_DELAY_MS = 3400;
+const TIME_UP_ADVANCE_DELAY_MS = 2600;
 const GAME_FONT_SPECS = [
   '600 42px "Noto Serif Devanagari"',
   '500 20px "Anek Telugu"',
@@ -149,6 +153,7 @@ function App() {
     fullSplit: { index: 0, cycle: 0 },
   });
   const [interactionLocked, setInteractionLocked] = useState(false);
+  const [awaitingPracticeAdvance, setAwaitingPracticeAdvance] = useState(false);
   const [fontsReady, setFontsReady] = useState(
     () => typeof document === "undefined" || !("fonts" in document),
   );
@@ -237,12 +242,31 @@ function App() {
       timer: getTimerSeconds(nextMode),
     }));
 
-  const scheduleNextWord = (delay = 1300) => {
+  const clearFeedbackTimer = () => {
+    if (feedbackTimerRef.current) {
+      window.clearTimeout(feedbackTimerRef.current);
+      feedbackTimerRef.current = null;
+    }
+  };
+
+  const clearNextWordTimer = () => {
     if (nextWordTimerRef.current) {
       window.clearTimeout(nextWordTimerRef.current);
+      nextWordTimerRef.current = null;
     }
+  };
+
+  const getRoundAdvanceDelay = () =>
+    effectiveModeRef.current === "fullSplit"
+      ? FULL_SPLIT_ROUND_COMPLETE_DELAY_MS
+      : ROUND_COMPLETE_DELAY_MS;
+
+  const scheduleNextWord = (delay = getRoundAdvanceDelay()) => {
+    clearNextWordTimer();
 
     nextWordTimerRef.current = window.setTimeout(() => {
+      nextWordTimerRef.current = null;
+      setAwaitingPracticeAdvance(false);
       setInteractionLocked(false);
       setLesson(null);
       resetAttempts();
@@ -305,11 +329,11 @@ function App() {
   };
 
   const clearFeedbackLater = () => {
-    if (feedbackTimerRef.current) {
-      window.clearTimeout(feedbackTimerRef.current);
-    }
-
-    feedbackTimerRef.current = window.setTimeout(() => setFeedback(null), 2300);
+    clearFeedbackTimer();
+    feedbackTimerRef.current = window.setTimeout(() => {
+      feedbackTimerRef.current = null;
+      setFeedback(null);
+    }, FEEDBACK_CLEAR_DELAY_MS);
   };
 
   const resetAttempts = () => {
@@ -374,9 +398,14 @@ function App() {
 
       if (payload.roundCompleted) {
         setInteractionLocked(true);
-        if (effectiveModeRef.current === "fullSplit") {
-          scheduleNextWord(1650);
+        if (practiceModeRef.current) {
+          clearNextWordTimer();
+          clearFeedbackTimer();
+          setAwaitingPracticeAdvance(true);
+          setFeedback(t("practiceNextHint", languageRef.current));
+          return;
         }
+        scheduleNextWord();
       }
 
       return;
@@ -415,8 +444,7 @@ function App() {
 
         // Keep the reveal message visible instead of auto-clearing it.
         if (feedbackTimerRef.current) {
-          window.clearTimeout(feedbackTimerRef.current);
-          feedbackTimerRef.current = null;
+          clearFeedbackTimer();
         }
         setFeedback(t("revealChip", languageRef.current));
         setInteractionLocked(true);
@@ -533,7 +561,7 @@ function App() {
           setInteractionLocked(true);
           setFeedback(t("timeUp", language));
           clearFeedbackLater();
-          scheduleNextWord(1800);
+          scheduleNextWord(TIME_UP_ADVANCE_DELAY_MS);
           return {
             ...current,
             timer: 0,
@@ -552,6 +580,10 @@ function App() {
   }, [interactionLocked, language, mode, timerMode, practiceMode]);
 
   useEffect(() => {
+    clearNextWordTimer();
+    clearFeedbackTimer();
+    setAwaitingPracticeAdvance(false);
+    setFeedback(null);
     resetTimer(effectiveMode);
     setInteractionLocked(false);
     setLesson(null);
@@ -614,17 +646,37 @@ function App() {
 
   const selectedRule = SANDHI_RULES.find((rule) => rule.id === selectedRuleId)!;
   const dockNotes = [
+    t("splitMarkerHint", language),
+    t("splitRuleHint", language),
     mode === "fullSplit" ? t("fullSplitAnyRule", language) : null,
     practiceMode ? t("practiceHint", language) : null,
   ].filter((value): value is string => Boolean(value));
+  const onboardingSteps = [
+    {
+      title: t("onboardingStepOneTitle", language),
+      body: t("onboardingStepOneBody", language),
+    },
+    {
+      title: t("onboardingStepTwoTitle", language),
+      body: t("onboardingStepTwoBody", language),
+    },
+    {
+      title: t("onboardingStepThreeTitle", language),
+      body: t("onboardingStepThreeBody", language),
+    },
+  ];
   const isStudioMode = mode === "devStudio";
   if (!isStudioMode) {
     lastGameplayModeRef.current = mode;
   }
   const resetCurrentRound = () => {
+    clearNextWordTimer();
+    clearFeedbackTimer();
+    setAwaitingPracticeAdvance(false);
     resetTimer();
     setInteractionLocked(false);
     setLesson(null);
+    setFeedback(null);
     resetAttempts();
     setStats((current) => ({ ...current, lives: DEFAULT_LIVES }));
     gameRef.current?.resetRound();
@@ -760,11 +812,16 @@ function App() {
                       {t("resetWord", language)} · R
                     </button>
                     <button
-                      className="ghost-button"
+                      className={`ghost-button ${
+                        awaitingPracticeAdvance ? "ghost-button--next-hint" : ""
+                      }`}
                       onClick={() => scheduleNextWord(0)}
                       type="button"
                     >
-                      {t("nextWord", language)} · N
+                      {awaitingPracticeAdvance
+                        ? `${t("nextWord", language)} →`
+                        : t("nextWord", language)}{" "}
+                      · N
                     </button>
                   </div>
                 </div>
@@ -809,6 +866,14 @@ function App() {
             >
               <span className="panel-kicker">{t("onboardingTitle", language)}</span>
               <h2>{t("onboardingBody", language)}</h2>
+              <div className="onboarding-steps">
+                {onboardingSteps.map((step) => (
+                  <div className="onboarding-step" key={step.title}>
+                    <strong>{step.title}</strong>
+                    <p>{step.body}</p>
+                  </div>
+                ))}
+              </div>
               <button
                 className="primary-button"
                 onClick={() => setShowOnboarding(false)}

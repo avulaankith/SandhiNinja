@@ -91,6 +91,13 @@ export type StoredProgress = {
   practiceMode?: boolean;
 };
 
+export type SliceAssessment =
+  | "both-correct"
+  | "place-correct-rule-wrong"
+  | "place-wrong-rule-correct"
+  | "both-wrong"
+  | "final-word";
+
 export type SliceFeedback = {
   outcome: "correct" | "wrong" | "blocked";
   message: LocalizedText;
@@ -98,4 +105,5 @@ export type SliceFeedback = {
   activeTokens: ActiveToken[];
   roundCompleted: boolean;
   boundaryIndex?: number;
+  assessment?: SliceAssessment;
 };

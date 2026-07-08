@@ -17,14 +17,19 @@ export const UI_TEXT = {
     te: "సంధి కత్తిని ఎంచుకోండి",
   },
   slicePrompt: {
-    en: "Slice at the correct point",
-    sa: "पदे यथास्थानं छिन्दतु",
-    te: "పదములో సరైన చోట కోయండి",
+    en: "Split at a marked point between aksharas",
+    sa: "अक्षरयोर्मध्ये चिह्नितस्थाने भिन्धि",
+    te: "అక్షరాల మధ్య గుర్తు చేసిన చోట విడగొట్టండి",
   },
   correctSplit: {
     en: "Correct split",
     sa: "साधु!",
     te: "సాధు! సరైన విభాగం",
+  },
+  feedbackBothCorrect: {
+    en: "Correct place and correct sandhi.",
+    sa: "स्थानं सम्यक्, सन्धिश्च सम्यक्।",
+    te: "స్థానం సరైంది, సంధి కూడా సరైంది.",
   },
   canSplitAgain: {
     en: "This can still be split",
@@ -117,9 +122,39 @@ export const UI_TEXT = {
     te: "ఆట తీరు",
   },
   onboardingBody: {
-    en: "Select knife → slice inside word → split until all final padāni are green.",
-    sa: "शस्त्रं वृणु → पदे छिन्दि → यावत् सर्वाणि अन्तिमपदानि हरितानि भवन्ति।",
-    te: "కత్తిని ఎంచుకోండి → పదములో కోయండి → అంతిమ పదాలు అన్నీ ఆకుపచ్చగా మారే వరకు విభజించండి.",
+    en: "Choose the correct sandhi knife, then split only at the marked points between aksharas.",
+    sa: "युक्तं सन्धि-शस्त्रं वृणु, ततः केवलं अक्षरयोर्मध्ये चिह्नितेषु स्थानेषु एव भिन्धि।",
+    te: "సరైన సంధి కత్తిని ఎంచుకుని, అక్షరాల మధ్య గుర్తు చేసిన చోట్లనే విడగొట్టండి.",
+  },
+  onboardingStepOneTitle: {
+    en: "1. Pick the knife",
+    sa: "१. शस्त्रं चिनुत",
+    te: "1. కత్తిని ఎంచుకోండి",
+  },
+  onboardingStepOneBody: {
+    en: "Select the sandhi rule first. The game checks both the place and the chosen sandhi, and the feedback tells you which part is wrong.",
+    sa: "प्रथमं सन्धिनियमं चिनुत। क्रीडा स्थानं च चयनितं सन्धिं च परीक्षते, तथा प्रतिक्रिया कथयति यत् किम् अयुक्तम्।",
+    te: "ముందుగా సంధి నియమాన్ని ఎంచుకోండి. ఆట స్థానం, ఎంచుకున్న సంధి రెండింటినీ చూస్తుంది; ఏది తప్పో వెంటనే చెబుతుంది.",
+  },
+  onboardingStepTwoTitle: {
+    en: "2. Cut between aksharas",
+    sa: "२. अक्षरयोर्मध्ये छिन्धि",
+    te: "2. అక్షరాల మధ్య కోయండి",
+  },
+  onboardingStepTwoBody: {
+    en: "Do not cut through the middle of a letter. Use the subtle gold markers around the word as the valid split guides.",
+    sa: "अक्षरमध्यं मा भिन्धि। पदस्य समीपे स्थितानि सूक्ष्मसुवर्णचिह्नानि एव ग्राह्यभेदमार्गदर्शकानि सन्ति।",
+    te: "అక్షరాన్ని మధ్యలో కోయవద్దు. పదం చుట్టూ కనిపించే మృదువైన బంగారు గుర్తులే సరైన విడిపోటి సూచనలు.",
+  },
+  onboardingStepThreeTitle: {
+    en: "3. Keep splitting",
+    sa: "३. पुनः पुनः विभज",
+    te: "3. పూర్తయ్యే వరకు విడగొట్టండి",
+  },
+  onboardingStepThreeBody: {
+    en: "If the word can still be split, keep going until all final padani turn green. In practice mode, the solved word stays here until you click Next word.",
+    sa: "यदि पदं पुनरपि विभाज्यम् अस्ति, तर्हि यावत् सर्वाणि अन्तिमपदानि हरितानि भवन्ति तावत् अग्रे गच्छ। अभ्यासविधौ तु सिद्धं पदम् अग्रिमपदं नुदेपर्यन्तं अत्रैव तिष्ठति।",
+    te: "పదాన్ని ఇంకా విడగొట్టవచ్చంటే, అన్ని చివరి పదాలు ఆకుపచ్చగా మారే వరకు కొనసాగండి. అభ్యాస విధానంలో అయితే పూర్తైన పదం మీరు తదుపరి పదం నొక్కే వరకు ఇక్కడే ఉంటుంది.",
   },
   close: {
     en: "Enter arena",
@@ -132,9 +167,9 @@ export const UI_TEXT = {
     te: "పాఠ పలక",
   },
   noLesson: {
-    en: "Successful cuts will reveal the sūtra and three-language explanation here.",
-    sa: "सफलच्छेदेन अत्र सूत्रं त्रिभाष्यं च दृश्यते।",
-    te: "సరైన కోత పడితే ఇక్కడ సూత్రం, మూడు భాషల వివరణ కనిపిస్తుంది.",
+    en: "Correct cuts reveal the sutra, nimittam, split place, and explanation here. Wrong attempts also tell you whether the place, the sandhi, or both were wrong.",
+    sa: "साधुभेदेन अत्र सूत्रं, निमित्तं, भेदस्थानं, व्याख्या च दृश्यते। असाधुप्रयासेषु अपि स्थानं, सन्धिः, उभयं वा किम् अयुक्तम् इति सूच्यते।",
+    te: "సరైన విభాగం పడితే ఇక్కడ సూత్రం, నిమిత్తం, విడిపోటి స్థానం, వివరణ కనిపిస్తాయి. తప్పు ప్రయత్నాల్లో స్థానం తప్పిందా, సంధి తప్పిందా, రెండూ తప్పాయా అని కూడా చెబుతుంది.",
   },
   nimittam: {
     en: "Nimittam",
@@ -367,14 +402,24 @@ export const UI_TEXT = {
     te: "స్వపదాలు",
   },
   feedbackWrongRule: {
-    en: "Valid boundary, wrong knife for this sandhi.",
-    sa: "देशः साधुः, किन्तु शस्त्रं न युक्तम्।",
-    te: "స్థానం సరైనదే, కానీ ఈ సంధికి కత్తి సరిపోలలేదు.",
+    en: "Place is correct, but the selected sandhi is wrong. Keep the same split point and change the knife.",
+    sa: "छेदस्थानं सम्यक्, किन्तु चयनितः सन्धिः न युक्तः। तदेव भेदस्थानं धारयित्वा शस्त्रं परिवर्तय।",
+    te: "విడిపోటి స్థానం సరైంది, కానీ ఎంచుకున్న సంధి తప్పింది. అదే చోటు ఉంచి కత్తిని మార్చండి.",
   },
   feedbackWrongCut: {
-    en: "Wrong slice. Try a different boundary inside the word.",
-    sa: "अयुक्तच्छेदः। पदे अन्यं देशं प्रयतस्व।",
-    te: "తప్పు కోత. పదములో వేరే విభాగస్థానాన్ని ప్రయత్నించండి.",
+    en: "Wrong place. Try a different split point between the aksharas.",
+    sa: "अयुक्तं स्थानम्। अक्षरयोर्मध्ये अन्यत् भेदस्थानं प्रयतस्व।",
+    te: "తప్పు స్థానం. అక్షరాల మధ్య మరో విడిపోటి స్థానాన్ని ప్రయత్నించండి.",
+  },
+  feedbackWrongPlaceRightRule: {
+    en: "The selected sandhi can work in this word, but not at this place. Try a different split point.",
+    sa: "चयनितः सन्धिः अस्मिन् पदे शक्यः, किन्तु अस्मिन् स्थाने न। अन्यत् भेदस्थानं प्रयतस्व।",
+    te: "ఎంచుకున్న సంధి ఈ పదంలో పనికొస్తుంది, కానీ ఈ స్థానంలో కాదు. మరో విడిపోటి స్థానాన్ని ప్రయత్నించండి.",
+  },
+  feedbackWrongBoth: {
+    en: "Both the split place and the selected sandhi are wrong.",
+    sa: "भेदस्थानं च चयनितः सन्धिश्च उभयं अयुक्तम्।",
+    te: "విడిపోటి స్థానం కూడా, ఎంచుకున్న సంధి కూడా రెండూ తప్పే.",
   },
   feedbackFinal: {
     en: "This is already a final word.",
@@ -517,9 +562,24 @@ export const UI_TEXT = {
     te: "సమాధానం చూపు",
   },
   practiceHint: {
-    en: "Practice mode: no clock — reveal the answer and reasoning any time.",
-    sa: "अभ्यासविधौ कालः नास्ति — यदा इच्छसि तदा उत्तरं कारणं च पश्य।",
-    te: "అభ్యాస విధానం: గడియారం లేదు — ఎప్పుడైనా సమాధానం, కారణం చూడవచ్చు.",
+    en: "Practice mode: no clock. Reveal the answer any time, and after solving the word it stays on screen until you click Next word.",
+    sa: "अभ्यासविधौ कालः नास्ति। यदा इच्छसि तदा उत्तरं पश्य, तथा पदसिद्धेः अनन्तरम् अग्रिमपदं नुदेपर्यन्तं तत् पदम् अत्रैव तिष्ठति।",
+    te: "అభ్యాస విధానంలో గడియారం లేదు. ఎప్పుడైనా సమాధానం చూడవచ్చు; పదం పూర్తయిన తర్వాత కూడా మీరు తదుపరి పదం నొక్కే వరకు అదే పదం కనిపిస్తూనే ఉంటుంది.",
+  },
+  practiceNextHint: {
+    en: "Practice mode keeps this solved word on screen. Click Next word when you are ready.",
+    sa: "अभ्यासविधौ एतत् सिद्धं पदं अत्रैव तिष्ठति। यदा सिद्धः भवसि तदा अग्रिमपदं नुद।",
+    te: "అభ్యాస విధానంలో ఈ పూర్తైన పదమే ఇక్కడ కనిపిస్తుంది. మీరు సిద్ధమైనప్పుడు తదుపరి పదాన్ని నొక్కండి.",
+  },
+  splitMarkerHint: {
+    en: "Subtle gold markers show the valid split points between aksharas.",
+    sa: "सूक्ष्मसुवर्णचिह्नानि अक्षरयोर्मध्येषु ग्राह्यभेदस्थानानि सूचयन्ति।",
+    te: "మృదువైన బంగారు గుర్తులు అక్షరాల మధ్య సరైన విడిపోటి స్థానాలను చూపిస్తాయి.",
+  },
+  splitRuleHint: {
+    en: "A move counts only when both the split point and the selected knife are correct. The feedback will say whether the place, the sandhi, or both were wrong.",
+    sa: "यदा भेदस्थानं च चयनितं शस्त्रं च उभयं सम्यक् भवतः तदा एव प्रयासः ग्राह्यः। प्रतिक्रिया तु स्थानं, सन्धिः, उभयं वा किम् अयुक्तम् इति वदति।",
+    te: "విడిపోటి స్థానం, ఎంచుకున్న కత్తి రెండూ సరైనప్పుడే ప్రయత్నం లెక్కలోకి వస్తుంది. స్థానం తప్పిందా, సంధి తప్పిందా, రెండూ తప్పాయా అని సూచన చెబుతుంది.",
   },
 } satisfies Record<string, LocalizedText>;
 
