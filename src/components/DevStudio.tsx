@@ -18,10 +18,13 @@ import {
 } from "../utils/sanskrit";
 
 type DevStudioProps = {
+  entries: WordNode[];
   language: Language;
   rules: SandhiRule[];
   customEntries: WordNode[];
+  defaultEntryIds: string[];
   onSaveEntry: (entry: WordNode) => void;
+  onDeleteEntry: (entryId: string) => void;
   onImportEntries: (payload: unknown) => void;
   onExportEntries: () => void;
 };
@@ -248,11 +251,56 @@ const buildEntryFromDraft = (
   return { entry: finalizeTree(root) };
 };
 
+const getEditableCut = (node: WordNode) =>
+  node.cuts.find((entry) => !entry.reviewNeeded) ?? node.cuts[0] ?? null;
+
+const isBuilderEditable = (node: WordNode): boolean => {
+  const activeCuts = node.cuts.filter((entry) => !entry.reviewNeeded);
+
+  if (activeCuts.length > 1) {
+    return false;
+  }
+
+  const cut = activeCuts[0] ?? null;
+  if (!cut) {
+    return true;
+  }
+
+  return isBuilderEditable(cut.left) && isBuilderEditable(cut.right);
+};
+
+const flattenEntryToDraft = (entry: WordNode): SplitStepDraft[] => {
+  const steps: SplitStepDraft[] = [];
+
+  const walk = (node: WordNode, sourcePath = ROOT_PATH) => {
+    const cut = getEditableCut(node);
+    if (!cut) {
+      return;
+    }
+
+    steps.push({
+      sourcePath,
+      leftDevanagari: cut.left.devanagari,
+      rightDevanagari: cut.right.devanagari,
+      ruleId: cut.ruleId,
+    });
+
+    walk(cut.left, `${sourcePath}L`);
+    walk(cut.right, `${sourcePath}R`);
+  };
+
+  walk(entry);
+  return steps;
+};
+
 export const DevStudio = ({
+  entries,
   language,
   rules,
   customEntries,
+  defaultEntryIds,
   onSaveEntry,
+  onDeleteEntry,
   onImportEntries,
   onExportEntries,
 }: DevStudioProps) => {
@@ -267,8 +315,14 @@ export const DevStudio = ({
   const [rootWord, setRootWord] = useState("");
   const [splitCount, setSplitCount] = useState(1);
   const [steps, setSteps] = useState<SplitStepDraft[]>([createStepDraft(defaultRuleId)]);
+  const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
+  const defaultEntryIdSet = useMemo(() => new Set(defaultEntryIds), [defaultEntryIds]);
+  const customEntryIdSet = useMemo(
+    () => new Set(customEntries.map((entry) => entry.id)),
+    [customEntries],
+  );
 
   useEffect(() => {
     setSteps((current) => ensureStepCount(current, splitCount, defaultRuleId));
@@ -354,6 +408,24 @@ export const DevStudio = ({
     setRootWord("");
     setSplitCount(1);
     setSteps([createStepDraft(defaultRuleId)]);
+    setEditingEntryId(null);
+  };
+
+  const handleEditEntry = (entry: WordNode) => {
+    if (!isBuilderEditable(entry)) {
+      setMessage(t("builderSinglePathOnly", language));
+      return;
+    }
+
+    const draftSteps = flattenEntryToDraft(entry);
+
+    setEditingEntryId(entry.id);
+    setRootWord(entry.devanagari);
+    setSplitCount(Math.max(draftSteps.length, 1));
+    setSteps(
+      draftSteps.length > 0 ? draftSteps : [createStepDraft(defaultRuleId)],
+    );
+    setMessage(t("studioEditingLoaded", language));
   };
 
   const handleSave = () => {
@@ -374,9 +446,19 @@ export const DevStudio = ({
       return;
     }
 
-    onSaveEntry(result.entry);
+    const nextEntry =
+      editingEntryId !== null
+        ? {
+            ...result.entry,
+            id: editingEntryId,
+          }
+        : result.entry;
+
+    onSaveEntry(nextEntry);
     resetForm();
-    setMessage(t("studioSavedMessage", language));
+    setMessage(
+      t(editingEntryId !== null ? "studioUpdatedMessage" : "studioSavedMessage", language),
+    );
   };
 
   const handleImport = async (file: File | null) => {
@@ -730,8 +812,13 @@ export const DevStudio = ({
 
           <div className="studio-actions">
             <button className="primary-button" onClick={handleSave} type="button">
-              {t("saveEntry", language)}
+              {t(editingEntryId !== null ? "updateEntry" : "saveEntry", language)}
             </button>
+            {editingEntryId !== null ? (
+              <button className="ghost-button" onClick={resetForm} type="button">
+                {t("cancelEdit", language)}
+              </button>
+            ) : null}
           </div>
 
           {message ? <div className="note-box">{message}</div> : null}
@@ -780,6 +867,68 @@ export const DevStudio = ({
                 </div>
               ))
             )}
+          </div>
+
+          <div className="studio-list studio-list--admin">
+            <h3>
+              {t("adminExamples", language)} ({entries.length})
+            </h3>
+            {entries.map((entry) => {
+              const isBuiltIn = defaultEntryIdSet.has(entry.id);
+              const isCustom = customEntryIdSet.has(entry.id);
+              const editable = isBuilderEditable(entry);
+              const tags = [
+                isBuiltIn ? t("builtInEntry", language) : null,
+                isCustom && isBuiltIn
+                  ? t("customOverrideEntry", language)
+                  : isCustom
+                    ? t("customEntry", language)
+                    : null,
+              ].filter((value): value is string => Boolean(value));
+
+              return (
+                <div className="entry-preview entry-preview--admin" key={`admin-${entry.id}`}>
+                  <div className="entry-preview__row">
+                    <strong>{entry.devanagari}</strong>
+                    {tags.length > 0 ? (
+                      <div className="entry-preview__tags">
+                        {tags.map((tag) => (
+                          <span className="entry-preview__tag" key={`${entry.id}-${tag}`}>
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                  <span>{entry.iast}</span>
+                  <span>
+                    {entry.aksharas.join(" | ")} · {t("studioCuts", language)} {entry.cuts.length}
+                  </span>
+                  {!editable ? (
+                    <span>{t("builderSinglePathOnly", language)}</span>
+                  ) : null}
+                  <div className="studio-actions entry-preview__actions">
+                    <button
+                      className="ghost-button"
+                      disabled={!editable}
+                      onClick={() => handleEditEntry(entry)}
+                      type="button"
+                    >
+                      {t("editInBuilder", language)}
+                    </button>
+                    {isCustom ? (
+                      <button
+                        className="ghost-button"
+                        onClick={() => onDeleteEntry(entry.id)}
+                        type="button"
+                      >
+                        {t("deleteEntry", language)}
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>

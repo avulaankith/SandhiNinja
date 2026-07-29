@@ -1,8 +1,12 @@
 export type Language = "en" | "sa" | "te";
 
-export type GameMode = "arcade" | "fullSplit" | "devStudio";
+export type SandhiFamily = "mixed" | "svara" | "vyanjana" | "visarga";
+
+export type GameMode = "arcade" | "join" | "devStudio";
 
 export type TimerMode = "timed" | "untimed";
+
+export type StudyMode = "guided" | "challenge";
 
 export type SandhiRuleId =
   | "savarna-dirgha"
@@ -11,7 +15,17 @@ export type SandhiRuleId =
   | "yan"
   | "ayavayava"
   | "purvarupa"
-  | "pararupa";
+  | "pararupa"
+  | "jashtva"
+  | "chartva"
+  | "anunasika"
+  | "anusvara"
+  | "purvasavarna"
+  | "parasavarna"
+  | "visarga-sa"
+  | "visarga-repha"
+  | "visarga-lopa"
+  | "visarga-o";
 
 export type LocalizedText = Record<Language, string>;
 
@@ -22,9 +36,15 @@ export type SutraReference = {
   number: string;
 };
 
+export type SourceReference = {
+  title: string;
+  detail: LocalizedText;
+  href?: string;
+};
+
 export type ExplanationBlock = LocalizedText & {
   nimitta?: LocalizedText;
-  note?: string;
+  note?: LocalizedText | string;
 };
 
 export type WordNode = {
@@ -51,11 +71,14 @@ export type SandhiCut = {
 
 export type SandhiRule = {
   id: SandhiRuleId;
+  family: Exclude<SandhiFamily, "mixed">;
   shortcut: string;
   accent: string;
   label: LocalizedText;
   helper: LocalizedText;
+  pattern: LocalizedText;
   sutra: SutraReference;
+  sources: SourceReference[];
 };
 
 export type ActiveToken = {
@@ -86,7 +109,9 @@ export type StoredProgress = {
   successfulCuts: number;
   preferredLanguage: Language;
   preferredMode: GameMode;
+  preferredFamily?: SandhiFamily;
   timerMode?: TimerMode;
+  studyMode?: StudyMode;
   practiceSlowly?: boolean;
   practiceMode?: boolean;
 };
@@ -102,6 +127,7 @@ export type SliceFeedback = {
   outcome: "correct" | "wrong" | "blocked";
   message: LocalizedText;
   lesson?: LessonPayload;
+  revealLesson?: LessonPayload;
   activeTokens: ActiveToken[];
   roundCompleted: boolean;
   boundaryIndex?: number;

@@ -11,7 +11,7 @@ import type {
   WordNode,
 } from "../../types/sandhi";
 
-type RuntimeMode = Exclude<GameMode, "devStudio">;
+type RuntimeMode = Exclude<GameMode, "devStudio" | "join">;
 
 export type SliceSceneBridgeState = {
   mode: RuntimeMode;
@@ -143,6 +143,7 @@ export class SliceScene extends Phaser.Scene {
         sa: t("slicePrompt", "sa"),
         te: t("slicePrompt", "te"),
       },
+      revealLesson: this.buildRevealLesson(this.activeTokens),
       activeTokens: [...this.activeTokens],
       roundCompleted: false,
     });
@@ -369,6 +370,7 @@ export class SliceScene extends Phaser.Scene {
         cut: selectedCut,
         variantCount: matchingCuts.length,
       },
+      revealLesson: this.buildRevealLesson(this.activeTokens),
       activeTokens: [...this.activeTokens],
       roundCompleted,
       boundaryIndex,
@@ -404,11 +406,34 @@ export class SliceScene extends Phaser.Scene {
         t(messageKey, "sa"),
         t(messageKey, "te"),
       ),
+      revealLesson: this.buildRevealLesson(this.activeTokens),
       activeTokens: [...this.activeTokens],
       roundCompleted: false,
       boundaryIndex,
       assessment: type,
     });
+  }
+
+  private buildRevealLesson(tokens: ActiveToken[]) {
+    const stuck = tokens.find((entry) => isFurtherSplittable(entry.node));
+    if (!stuck) {
+      return undefined;
+    }
+
+    const cut = stuck.node.cuts.find((entry) => !entry.reviewNeeded) ?? stuck.node.cuts[0];
+    if (!cut) {
+      return undefined;
+    }
+
+    const variantCount = stuck.node.cuts.filter(
+      (entry) => !entry.reviewNeeded && entry.cutAfterAksharaIndex === cut.cutAfterAksharaIndex,
+    ).length;
+
+    return {
+      node: stuck.node,
+      cut,
+      variantCount,
+    };
   }
 
   private hasSelectedRuleElsewhere(token: ActiveToken) {

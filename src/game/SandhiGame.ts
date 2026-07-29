@@ -2,7 +2,7 @@ import Phaser from "phaser";
 import type { GameMode, Language, SandhiRuleId, SliceFeedback, WordNode } from "../types/sandhi";
 import { SliceScene, type SliceSceneBridgeState } from "./scenes/SliceScene";
 
-type RuntimeMode = Exclude<GameMode, "devStudio">;
+type RuntimeMode = Exclude<GameMode, "devStudio" | "join">;
 
 export type SandhiGameOptions = {
   container: HTMLDivElement;

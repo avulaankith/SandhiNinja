@@ -84,6 +84,16 @@ const SPECIFICITY_BY_RULE: Record<SandhiRuleId, number> = {
   guna: 7,
   yan: 6,
   "savarna-dirgha": 6,
+  jashtva: 0,
+  chartva: 0,
+  anunasika: 0,
+  anusvara: 0,
+  purvasavarna: 0,
+  parasavarna: 0,
+  "visarga-sa": 0,
+  "visarga-repha": 0,
+  "visarga-lopa": 0,
+  "visarga-o": 0,
 };
 
 const RULE_LOOKUP = new Map(SANDHI_RULES.map((rule) => [rule.id, rule]));

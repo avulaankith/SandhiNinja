@@ -1,5 +1,9 @@
 export type Language = "en" | "sa" | "te";
 
+export type SandhiFamily = "mixed" | "svara" | "vyanjana" | "visarga";
+
+export type StudyMode = "guided" | "challenge";
+
 export type SandhiRuleId =
   | "savarna-dirgha"
   | "guna"
@@ -7,7 +11,17 @@ export type SandhiRuleId =
   | "yan"
   | "ayavayava"
   | "purvarupa"
-  | "pararupa";
+  | "pararupa"
+  | "jashtva"
+  | "chartva"
+  | "anunasika"
+  | "anusvara"
+  | "purvasavarna"
+  | "parasavarna"
+  | "visarga-sa"
+  | "visarga-repha"
+  | "visarga-lopa"
+  | "visarga-o";
 
 export type SanskritInputScript = "auto" | "iast" | "devanagari" | "telugu";
 
@@ -18,13 +32,22 @@ export type SutraReference = {
   number: string;
 };
 
+export type SourceReference = {
+  title: string;
+  detail: LocalizedText;
+  href?: string;
+};
+
 export type SandhiRule = {
   id: SandhiRuleId;
+  family: Exclude<SandhiFamily, "mixed">;
   shortcut: string;
   accent: string;
   label: LocalizedText;
   helper: LocalizedText;
+  pattern: LocalizedText;
   sutra: SutraReference;
+  sources: SourceReference[];
 };
 
 export type SurfaceForms = {

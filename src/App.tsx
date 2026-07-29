@@ -4,8 +4,10 @@ import BrandMark from "./components/BrandMark";
 import LanguageToggle from "./components/LanguageToggle";
 import LessonPanel from "./components/LessonPanel";
 import ModeSelector from "./components/ModeSelector";
+import SandhiFamilySelector from "./components/SandhiFamilySelector";
 import ScorePanel from "./components/ScorePanel";
 import DevStudio from "./components/DevStudio";
+import SandhiJoinBoard from "./components/SandhiJoinBoard";
 import {
   DEFAULT_SANDHI_BANK,
   SANDHI_RULES,
@@ -23,28 +25,36 @@ import type {
   Language,
   LessonPayload,
   PlayerStats,
+  SandhiFamily,
   SandhiRuleId,
   SliceFeedback,
   StoredProgress,
+  StudyMode,
   TimerMode,
   WordNode,
 } from "./types/sandhi";
 
+type GameplayMode = Exclude<GameMode, "devStudio">;
+
 const DEFAULT_LANGUAGE: Language = "en";
 const DEFAULT_MODE: GameMode = "arcade";
+const DEFAULT_FAMILY: SandhiFamily = "mixed";
 const DEFAULT_RULE: SandhiRuleId = "savarna-dirgha";
 const TIMER_BY_MODE = {
-  arcade: 20,
-  fullSplit: 75,
+  arcade: 45,
+  join: 45,
 } as const;
 const DEFAULT_LIVES = 4;
 const REVEAL_THRESHOLD = 4;
 const DEFAULT_TIMER_MODE: TimerMode = "timed";
+const DEFAULT_STUDY_MODE: StudyMode = "guided";
 const FONT_LOAD_TIMEOUT_MS = 2200;
 const FEEDBACK_CLEAR_DELAY_MS = 3200;
 const ROUND_COMPLETE_DELAY_MS = 3000;
-const FULL_SPLIT_ROUND_COMPLETE_DELAY_MS = 3400;
 const TIME_UP_ADVANCE_DELAY_MS = 2600;
+const GUIDED_COACH_THRESHOLD = 2;
+const RECENT_WORD_MEMORY = 8;
+const MAX_VISIBLE_RULE_OPTIONS = 6;
 const GAME_FONT_SPECS = [
   '600 42px "Noto Serif Devanagari"',
   '500 20px "Anek Telugu"',
@@ -70,6 +80,24 @@ const loadStoredProgress = (): StoredProgress | null => {
   }
 };
 
+const normalizeStoredProgress = (value: StoredProgress | null): StoredProgress | null => {
+  if (!value) {
+    return null;
+  }
+
+  const preferredMode =
+    value.preferredMode === "join" || value.preferredMode === "devStudio"
+      ? value.preferredMode
+      : "arcade";
+  const studyMode = value.studyMode === "challenge" ? "challenge" : DEFAULT_STUDY_MODE;
+
+  return {
+    ...value,
+    preferredMode,
+    studyMode,
+  };
+};
+
 const loadCustomEntries = (): WordNode[] => {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEYS.customEntries);
@@ -79,10 +107,29 @@ const loadCustomEntries = (): WordNode[] => {
   }
 };
 
-const runtimeMode = (mode: GameMode): "arcade" | "fullSplit" =>
-  mode === "fullSplit" ? "fullSplit" : "arcade";
+const getTimerSeconds = (mode: GameplayMode) => TIMER_BY_MODE[mode];
 
-const getTimerSeconds = (mode: "arcade" | "fullSplit") => TIMER_BY_MODE[mode];
+const getCorrectScoreGain = (streak: number, studyMode: StudyMode) =>
+  studyMode === "challenge" ? 165 + streak * 24 : 120 + streak * 18;
+
+const countRemainingSplitsInNode = (node: WordNode): number => {
+  const canonicalCut = node.cuts.find((entry) => !entry.reviewNeeded) ?? null;
+
+  if (!canonicalCut) {
+    return 0;
+  }
+
+  return (
+    1 +
+    countRemainingSplitsInNode(canonicalCut.left) +
+    countRemainingSplitsInNode(canonicalCut.right)
+  );
+};
+
+const countRemainingSplitsInTokens = (tokens: ActiveToken[]) =>
+  tokens.reduce((total, token) => total + countRemainingSplitsInNode(token.node), 0);
+
+const RULE_LOOKUP = new Map(SANDHI_RULES.map((rule) => [rule.id, rule]));
 
 const shuffleArray = <T,>(items: T[]) => {
   const shuffled = [...items];
@@ -95,14 +142,60 @@ const shuffleArray = <T,>(items: T[]) => {
   return shuffled;
 };
 
-const getPoolForMode = (mode: GameMode, entries: WordNode[]) => {
-  const gameplayEntries = entries.filter(isGameplayEligible);
+const buildRoundPool = (entries: WordNode[], recentWordIds: string[]) => {
+  const shuffled = shuffleArray(entries);
 
-  if (mode === "fullSplit") {
-    return [...gameplayEntries].sort(
-      (left, right) => right.cuts.length - left.cuts.length,
-    );
+  if (shuffled.length <= 2 || recentWordIds.length === 0) {
+    return shuffled;
   }
+
+  const recentSet = new Set(
+    recentWordIds.slice(-Math.min(Math.max(3, Math.ceil(shuffled.length / 4)), RECENT_WORD_MEMORY)),
+  );
+  const fresh = shuffled.filter((entry) => !recentSet.has(entry.id));
+  const recent = shuffled.filter((entry) => recentSet.has(entry.id));
+
+  return fresh.length > 0 ? [...fresh, ...recent] : shuffled;
+};
+
+const pushRecentWordId = (history: string[], wordId: string) => {
+  const deduped = history.filter((entryId) => entryId !== wordId);
+  return [...deduped, wordId].slice(-RECENT_WORD_MEMORY);
+};
+
+const getRulesForFamily = (family: SandhiFamily) =>
+  family === "mixed"
+    ? SANDHI_RULES
+    : SANDHI_RULES.filter((rule) => rule.family === family);
+
+const wordMatchesFamily = (node: WordNode, family: SandhiFamily) =>
+  family === "mixed" ||
+  node.cuts.some(
+    (cut) => !cut.reviewNeeded && RULE_LOOKUP.get(cut.ruleId)?.family === family,
+  );
+
+const getVisibleRuleIdsFromTokens = (tokens: ActiveToken[]) => {
+  const ids = new Set<SandhiRuleId>();
+
+  tokens.forEach((token) => {
+    if (!isFurtherSplittable(token.node)) {
+      return;
+    }
+
+    token.node.cuts.forEach((cut) => {
+      if (!cut.reviewNeeded) {
+        ids.add(cut.ruleId);
+      }
+    });
+  });
+
+  return [...ids];
+};
+
+const getPoolForMode = (entries: WordNode[], family: SandhiFamily) => {
+  const gameplayEntries = entries
+    .filter(isGameplayEligible)
+    .filter((entry) => wordMatchesFamily(entry, family));
 
   return gameplayEntries;
 };
@@ -120,7 +213,10 @@ const downloadJson = (filename: string, value: unknown) => {
 };
 
 function App() {
-  const storedProgress = useMemo(loadStoredProgress, []);
+  const storedProgress = useMemo(
+    () => normalizeStoredProgress(loadStoredProgress()),
+    [],
+  );
   const storedCustomEntries = useMemo(loadCustomEntries, []);
 
   const [language, setLanguage] = useState<Language>(
@@ -129,9 +225,15 @@ function App() {
   const [mode, setMode] = useState<GameMode>(
     storedProgress?.preferredMode ?? DEFAULT_MODE,
   );
+  const [selectedFamily, setSelectedFamily] = useState<SandhiFamily>(
+    storedProgress?.preferredFamily ?? DEFAULT_FAMILY,
+  );
   const [timerMode, setTimerMode] = useState<TimerMode>(
     storedProgress?.timerMode ??
       (storedProgress?.practiceSlowly ? "untimed" : DEFAULT_TIMER_MODE),
+  );
+  const [studyMode, setStudyMode] = useState<StudyMode>(
+    storedProgress?.studyMode ?? DEFAULT_STUDY_MODE,
   );
   const [practiceMode, setPracticeMode] = useState<boolean>(
     storedProgress?.practiceMode ?? false,
@@ -147,14 +249,17 @@ function App() {
   }));
   const [lesson, setLesson] = useState<LessonPayload | null>(null);
   const [revealed, setRevealed] = useState(false);
+  const [showAnswerMeta, setShowAnswerMeta] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(true);
+  const [visibleTokens, setVisibleTokens] = useState<ActiveToken[]>([]);
   const [wordProgress, setWordProgress] = useState({
     arcade: { index: 0, cycle: 0 },
-    fullSplit: { index: 0, cycle: 0 },
+    join: { index: 0, cycle: 0 },
   });
   const [interactionLocked, setInteractionLocked] = useState(false);
   const [awaitingPracticeAdvance, setAwaitingPracticeAdvance] = useState(false);
+  const [roundResetNonce, setRoundResetNonce] = useState(0);
   const [fontsReady, setFontsReady] = useState(
     () => typeof document === "undefined" || !("fonts" in document),
   );
@@ -165,9 +270,14 @@ function App() {
   const nextWordTimerRef = useRef<number | null>(null);
   const wrongAttemptsRef = useRef(0);
   const lastActiveTokensRef = useRef<ActiveToken[]>([]);
-  const lastGameplayModeRef = useRef<"arcade" | "fullSplit">(
-    storedProgress?.preferredMode === "fullSplit" ? "fullSplit" : "arcade",
+  const lastRevealLessonRef = useRef<LessonPayload | null>(null);
+  const lastGameplayModeRef = useRef<GameplayMode>(
+    storedProgress?.preferredMode === "join" ? "join" : "arcade",
   );
+  const recentWordIdsRef = useRef({
+    arcade: [] as string[],
+    join: [] as string[],
+  });
 
   const allEntries = useMemo(
     () => {
@@ -177,46 +287,104 @@ function App() {
     },
     [customEntries],
   );
-  const effectiveMode = mode === "devStudio" ? "arcade" : runtimeMode(mode);
+  const activeRules = useMemo(
+    () => getRulesForFamily(selectedFamily),
+    [selectedFamily],
+  );
+  const isStudioMode = mode === "devStudio";
+  const isJoinMode = mode === "join";
+  const effectiveMode: GameplayMode = isStudioMode ? lastGameplayModeRef.current : mode;
   const arcadePool = useMemo(
-    () => shuffleArray(getPoolForMode("arcade", allEntries)),
-    [allEntries, wordProgress.arcade.cycle],
+    () => buildRoundPool(getPoolForMode(allEntries, selectedFamily), recentWordIdsRef.current.arcade),
+    [allEntries, selectedFamily, wordProgress.arcade.cycle],
   );
-  const fullSplitPool = useMemo(
-    () => shuffleArray(getPoolForMode("fullSplit", allEntries)),
-    [allEntries, wordProgress.fullSplit.cycle],
+  const joinPool = useMemo(
+    () => buildRoundPool(getPoolForMode(allEntries, selectedFamily), recentWordIdsRef.current.join),
+    [allEntries, selectedFamily, wordProgress.join.cycle],
   );
-  const activePool = effectiveMode === "fullSplit" ? fullSplitPool : arcadePool;
+  const activePool = effectiveMode === "join" ? joinPool : arcadePool;
   const poolLengthsRef = useRef({
     arcade: arcadePool.length,
-    fullSplit: fullSplitPool.length,
+    join: joinPool.length,
   });
   poolLengthsRef.current = {
     arcade: arcadePool.length,
-    fullSplit: fullSplitPool.length,
+    join: joinPool.length,
   };
   const poolIndex =
-    effectiveMode === "fullSplit"
-      ? wordProgress.fullSplit.index
-      : wordProgress.arcade.index;
-  const currentWord =
-    activePool[poolIndex] ?? DEFAULT_SANDHI_BANK[0];
+    effectiveMode === "join" ? wordProgress.join.index : wordProgress.arcade.index;
+  const safePoolIndex =
+    activePool.length > 0 ? Math.min(poolIndex, activePool.length - 1) : 0;
+  const currentWord = activePool[safePoolIndex] ?? activePool[0] ?? DEFAULT_SANDHI_BANK[0];
+  const activeTokensForUi =
+    visibleTokens.length > 0
+      ? visibleTokens
+      : [
+          {
+            instanceId: "preview-root",
+            node: cloneWordNode(currentWord),
+            depth: 0,
+          },
+        ];
+  const currentVisibleRuleIds = useMemo(
+    () => getVisibleRuleIdsFromTokens(activeTokensForUi),
+    [activeTokensForUi],
+  );
+  const visibleRules = useMemo(() => {
+    if (activeRules.length <= MAX_VISIBLE_RULE_OPTIONS) {
+      return activeRules;
+    }
+
+    const activeRuleMap = new Map(activeRules.map((rule) => [rule.id, rule]));
+    const relevantRules = currentVisibleRuleIds
+      .map((ruleId) => activeRuleMap.get(ruleId) ?? null)
+      .filter((rule): rule is (typeof activeRules)[number] => Boolean(rule));
+
+    if (relevantRules.length > MAX_VISIBLE_RULE_OPTIONS) {
+      return relevantRules;
+    }
+
+    const preferredFamilies =
+      relevantRules.length > 0
+        ? [...new Set(relevantRules.map((rule) => rule.family))]
+        : selectedFamily === "mixed"
+          ? []
+          : [selectedFamily];
+    const relevantIds = new Set(relevantRules.map((rule) => rule.id));
+    const preferredFamilyRules = activeRules.filter(
+      (rule) => preferredFamilies.includes(rule.family) && !relevantIds.has(rule.id),
+    );
+    const remainingRules = activeRules.filter(
+      (rule) => !preferredFamilies.includes(rule.family) && !relevantIds.has(rule.id),
+    );
+
+    return [...relevantRules, ...preferredFamilyRules, ...remainingRules].slice(
+      0,
+      MAX_VISIBLE_RULE_OPTIONS,
+    );
+  }, [activeRules, currentVisibleRuleIds, selectedFamily]);
   const languageRef = useRef(language);
   const modeRef = useRef(mode);
+  const familyRef = useRef(selectedFamily);
   const timerModeRef = useRef(timerMode);
   const effectiveModeRef = useRef(effectiveMode);
   const practiceModeRef = useRef(practiceMode);
+  const studyModeRef = useRef(studyMode);
 
   languageRef.current = language;
   modeRef.current = mode;
+  familyRef.current = selectedFamily;
   timerModeRef.current = timerMode;
   effectiveModeRef.current = effectiveMode;
   practiceModeRef.current = practiceMode;
+  studyModeRef.current = studyMode;
 
   const persistProgress = (
     nextLanguage: Language,
     nextMode: GameMode,
+    nextFamily: SandhiFamily,
     nextTimerMode: TimerMode,
+    nextStudyMode: StudyMode,
     nextStats: PlayerStats,
   ) => {
     const payload: StoredProgress = {
@@ -225,7 +393,9 @@ function App() {
       successfulCuts: nextStats.successfulCuts,
       preferredLanguage: nextLanguage,
       preferredMode: nextMode,
+      preferredFamily: nextFamily,
       timerMode: nextTimerMode,
+      studyMode: nextStudyMode,
       practiceSlowly: nextTimerMode === "untimed",
       practiceMode: practiceModeRef.current,
     };
@@ -237,7 +407,7 @@ function App() {
     window.localStorage.setItem(STORAGE_KEYS.customEntries, JSON.stringify(entries));
   };
 
-  const resetTimer = (nextMode: "arcade" | "fullSplit" = effectiveModeRef.current) =>
+  const resetTimer = (nextMode: GameplayMode = effectiveModeRef.current) =>
     setStats((current) => ({
       ...current,
       timer: getTimerSeconds(nextMode),
@@ -257,10 +427,7 @@ function App() {
     }
   };
 
-  const getRoundAdvanceDelay = () =>
-    effectiveModeRef.current === "fullSplit"
-      ? FULL_SPLIT_ROUND_COMPLETE_DELAY_MS
-      : ROUND_COMPLETE_DELAY_MS;
+  const getRoundAdvanceDelay = () => ROUND_COMPLETE_DELAY_MS;
 
   const scheduleNextWord = (delay = getRoundAdvanceDelay()) => {
     clearNextWordTimer();
@@ -270,6 +437,7 @@ function App() {
       setAwaitingPracticeAdvance(false);
       setInteractionLocked(false);
       setLesson(null);
+      setShowAnswerMeta(false);
       resetAttempts();
       setStats((current) => ({ ...current, lives: DEFAULT_LIVES }));
 
@@ -322,7 +490,9 @@ function App() {
       persistProgress(
         languageRef.current,
         modeRef.current,
+        familyRef.current,
         timerModeRef.current,
+        studyModeRef.current,
         normalized,
       );
       return normalized;
@@ -363,21 +533,26 @@ function App() {
   };
 
   // Practice-mode on-demand reveal. Does not lock interaction — the player can
-  // keep slicing after peeking at the answer.
+  // keep working after peeking at the answer.
   const handleRevealAnswer = () => {
-    const revealLesson = buildRevealLesson(lastActiveTokensRef.current);
+    const revealLesson =
+      lastRevealLessonRef.current ?? buildRevealLesson(lastActiveTokensRef.current);
     if (!revealLesson) {
       return;
     }
 
     setLesson(revealLesson);
     setRevealed(true);
+    setShowAnswerMeta(true);
     setFeedback(t("revealTitle", languageRef.current));
     clearFeedbackLater();
   };
 
   const handleFeedback = (payload: SliceFeedback) => {
     lastActiveTokensRef.current = payload.activeTokens;
+    setVisibleTokens(payload.activeTokens);
+    lastRevealLessonRef.current =
+      payload.revealLesson ?? buildRevealLesson(payload.activeTokens);
     setFeedback(payload.message[languageRef.current]);
     clearFeedbackLater();
 
@@ -386,10 +561,13 @@ function App() {
     }
 
     if (payload.outcome === "correct") {
+      setShowAnswerMeta(Boolean(payload.lesson));
       resetAttempts();
       updateStats((current) => ({
         ...current,
-        score: current.score + 120 + current.streak * 18,
+        score:
+          current.score +
+          getCorrectScoreGain(current.streak, studyModeRef.current),
         streak: current.streak + 1,
         successfulCuts: current.successfulCuts + 1,
         completedWords: payload.roundCompleted
@@ -413,6 +591,7 @@ function App() {
     }
 
     if (payload.outcome === "wrong") {
+      setShowAnswerMeta(false);
       const nextAttempts = wrongAttemptsRef.current + 1;
       wrongAttemptsRef.current = nextAttempts;
 
@@ -427,20 +606,39 @@ function App() {
         persistProgress(
           languageRef.current,
           modeRef.current,
+          familyRef.current,
           timerModeRef.current,
+          studyModeRef.current,
           next,
         );
 
         return next;
       });
 
+      if (
+        studyModeRef.current === "guided" &&
+        nextAttempts >= GUIDED_COACH_THRESHOLD &&
+        nextAttempts < REVEAL_THRESHOLD
+      ) {
+        const coachingLesson =
+          payload.revealLesson ?? buildRevealLesson(payload.activeTokens);
+        if (coachingLesson) {
+          setLesson(coachingLesson);
+          setRevealed(false);
+          setFeedback(t("guidedCoachHint", languageRef.current));
+          clearFeedbackLater();
+        }
+      }
+
       // Practice mode never auto-reveals — the player chooses when via the
       // "Show answer" button. Non-practice mode reveals after 4 misses.
       if (!practiceModeRef.current && nextAttempts >= REVEAL_THRESHOLD) {
-        const revealLesson = buildRevealLesson(payload.activeTokens);
+        const revealLesson =
+          payload.revealLesson ?? buildRevealLesson(payload.activeTokens);
         if (revealLesson) {
           setLesson(revealLesson);
           setRevealed(true);
+          setShowAnswerMeta(true);
         }
 
         // Keep the reveal message visible instead of auto-clearing it.
@@ -483,16 +681,46 @@ function App() {
   }, []);
 
   useEffect(() => {
+    if (isStudioMode) {
+      return;
+    }
+
+    const key = effectiveMode;
+    recentWordIdsRef.current = {
+      ...recentWordIdsRef.current,
+      [key]: pushRecentWordId(recentWordIdsRef.current[key], currentWord.id),
+    };
+  }, [currentWord.id, effectiveMode, isStudioMode]);
+
+  useEffect(() => {
     persistCustomEntries(customEntries);
   }, [customEntries]);
 
   useEffect(() => {
-    persistProgress(language, mode, timerMode, stats);
-  }, [language, mode, timerMode, stats, practiceMode]);
+    persistProgress(language, mode, selectedFamily, timerMode, studyMode, stats);
+  }, [language, mode, selectedFamily, timerMode, studyMode, stats, practiceMode]);
 
   useEffect(() => {
-    if (!containerRef.current || mode === "devStudio" || !fontsReady) {
-      if (gameRef.current && mode === "devStudio") {
+    if (selectedFamily !== "mixed" && activeRules.length === 0) {
+      setSelectedFamily("mixed");
+      return;
+    }
+
+    if (visibleRules.length > 0 && !visibleRules.some((rule) => rule.id === selectedRuleId)) {
+      setSelectedRuleId(visibleRules[0].id);
+    }
+  }, [activeRules, selectedFamily, selectedRuleId, visibleRules]);
+
+  useEffect(() => {
+    setWordProgress((current) => ({
+      arcade: { index: 0, cycle: current.arcade.cycle + 1 },
+      join: { index: 0, cycle: current.join.cycle + 1 },
+    }));
+  }, [selectedFamily]);
+
+  useEffect(() => {
+    if (!containerRef.current || mode !== "arcade" || !fontsReady) {
+      if (gameRef.current && mode !== "arcade") {
         gameRef.current.destroy();
         gameRef.current = null;
       }
@@ -503,7 +731,7 @@ function App() {
       gameRef.current = new SandhiGame({
         container: containerRef.current,
         state: {
-          mode: effectiveMode,
+          mode: "arcade",
           language,
           selectedRuleId,
           rootWord: cloneWordNode(currentWord),
@@ -515,7 +743,7 @@ function App() {
     }
 
     gameRef.current.update({
-      mode: effectiveMode,
+      mode: "arcade",
       language,
       selectedRuleId,
       rootWord: cloneWordNode(currentWord),
@@ -546,12 +774,7 @@ function App() {
   );
 
   useEffect(() => {
-    if (
-      mode === "devStudio" ||
-      timerMode === "untimed" ||
-      practiceMode ||
-      interactionLocked
-    ) {
+    if (mode === "devStudio" || timerMode === "untimed" || practiceMode || interactionLocked) {
       return;
     }
 
@@ -585,6 +808,9 @@ function App() {
     clearFeedbackTimer();
     setAwaitingPracticeAdvance(false);
     setFeedback(null);
+    setVisibleTokens([]);
+    setShowAnswerMeta(false);
+    lastRevealLessonRef.current = null;
     resetTimer(effectiveMode);
     setInteractionLocked(false);
     setLesson(null);
@@ -594,35 +820,53 @@ function App() {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      const ruleIndex = Number.parseInt(event.key, 10) - 1;
-      if (ruleIndex >= 0 && ruleIndex < SANDHI_RULES.length) {
-        const rule = SANDHI_RULES[ruleIndex];
-        setSelectedRuleId(rule.id);
+      const pressedKey = event.key.toLowerCase();
+      const matchedRule = visibleRules.find(
+        (rule) => rule.shortcut.toLowerCase() === pressedKey,
+      );
+
+      if (matchedRule) {
+        setSelectedRuleId(matchedRule.id);
       }
 
-      if (event.key.toLowerCase() === "r" && gameRef.current) {
+      if (event.key.toLowerCase() === "r") {
         resetTimer();
         setInteractionLocked(false);
         setLesson(null);
+        setShowAnswerMeta(false);
+        setFeedback(null);
+        setAwaitingPracticeAdvance(false);
         resetAttempts();
         setStats((current) => ({ ...current, lives: DEFAULT_LIVES }));
-        gameRef.current.resetRound();
+
+        if (modeRef.current === "arcade" && gameRef.current) {
+          gameRef.current.resetRound();
+          return;
+        }
+
+        if (modeRef.current === "join") {
+          setRoundResetNonce((current) => current + 1);
+        }
       }
 
-      if (event.key.toLowerCase() === "n") {
+      if (event.key.toLowerCase() === "n" && modeRef.current !== "devStudio") {
         scheduleNextWord(0);
       }
     };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+  }, [visibleRules]);
 
   const handleSaveEntry = (entry: WordNode) => {
     setCustomEntries((current) => {
       const filtered = current.filter((item) => item.id !== entry.id);
       return [...filtered, entry];
     });
+  };
+
+  const handleDeleteEntry = (entryId: string) => {
+    setCustomEntries((current) => current.filter((entry) => entry.id !== entryId));
   };
 
   const handleImportEntries = (payload: unknown) => {
@@ -645,28 +889,86 @@ function App() {
     downloadJson("sandhi-ninja-custom-entries.json", customEntries);
   };
 
-  const selectedRule = SANDHI_RULES.find((rule) => rule.id === selectedRuleId)!;
+  const familyOptions = useMemo(() => {
+    const gameplayEntries = allEntries.filter(isGameplayEligible);
+    const buildExamples = (family: SandhiFamily) => {
+      if (family === "mixed") {
+        return (["savarna-dirgha", "jashtva", "anusvara"] as SandhiRuleId[])
+          .map((ruleId) => RULE_LOOKUP.get(ruleId)?.label[language] ?? null)
+          .filter((value): value is string => Boolean(value))
+          .join(" · ");
+      }
+
+      return getRulesForFamily(family)
+        .slice(0, 3)
+        .map((rule) => rule.label[language])
+        .join(" · ");
+    };
+
+    return (["mixed", "svara", "vyanjana", "visarga"] as SandhiFamily[]).map((family) => {
+      const familyRules = getRulesForFamily(family);
+      const wordCount =
+        family === "mixed"
+          ? gameplayEntries.length
+          : gameplayEntries.filter((entry) => wordMatchesFamily(entry, family)).length;
+
+      return {
+        id: family,
+        examples: buildExamples(family),
+        ruleCount: familyRules.length,
+        wordCount,
+        disabled: family !== "mixed" && (familyRules.length === 0 || wordCount === 0),
+      };
+    });
+  }, [allEntries, language]);
+  const selectedRule =
+    visibleRules.find((rule) => rule.id === selectedRuleId) ??
+    visibleRules[0] ??
+    activeRules[0] ??
+    SANDHI_RULES[0];
+  const remainingSplits = countRemainingSplitsInTokens(activeTokensForUi);
+  const selectedRuleSummary =
+    studyMode === "guided"
+      ? selectedRule.helper[language]
+      : t("challengeDockHint", language);
   const dockNotes = [
-    t("splitMarkerHint", language),
-    t("splitRuleHint", language),
-    mode === "fullSplit" ? t("fullSplitAnyRule", language) : null,
+    t(isJoinMode ? "joinBoundaryHint" : "splitMarkerHint", language),
+    t(isJoinMode ? "joinRuleHint" : "splitRuleHint", language),
     practiceMode ? t("practiceHint", language) : null,
   ].filter((value): value is string => Boolean(value));
-  const onboardingSteps = [
-    {
-      title: t("onboardingStepOneTitle", language),
-      body: t("onboardingStepOneBody", language),
-    },
-    {
-      title: t("onboardingStepTwoTitle", language),
-      body: t("onboardingStepTwoBody", language),
-    },
-    {
-      title: t("onboardingStepThreeTitle", language),
-      body: t("onboardingStepThreeBody", language),
-    },
-  ];
-  const isStudioMode = mode === "devStudio";
+  const dockShortcutLegend = `${t(
+    isJoinMode ? "glueShortcutLegend" : "shortcutLegend",
+    language,
+  )} · R · N`;
+  const onboardingSteps = isJoinMode
+    ? [
+        {
+          title: t("onboardingJoinStepOneTitle", language),
+          body: t("onboardingJoinStepOneBody", language),
+        },
+        {
+          title: t("onboardingJoinStepTwoTitle", language),
+          body: t("onboardingJoinStepTwoBody", language),
+        },
+        {
+          title: t("onboardingJoinStepThreeTitle", language),
+          body: t("onboardingJoinStepThreeBody", language),
+        },
+      ]
+    : [
+        {
+          title: t("onboardingStepOneTitle", language),
+          body: t("onboardingStepOneBody", language),
+        },
+        {
+          title: t("onboardingStepTwoTitle", language),
+          body: t("onboardingStepTwoBody", language),
+        },
+        {
+          title: t("onboardingStepThreeTitle", language),
+          body: t("onboardingStepThreeBody", language),
+        },
+      ];
   if (!isStudioMode) {
     lastGameplayModeRef.current = mode;
   }
@@ -677,10 +979,20 @@ function App() {
     resetTimer();
     setInteractionLocked(false);
     setLesson(null);
+    setShowAnswerMeta(false);
     setFeedback(null);
+    lastRevealLessonRef.current = null;
     resetAttempts();
     setStats((current) => ({ ...current, lives: DEFAULT_LIVES }));
-    gameRef.current?.resetRound();
+
+    if (mode === "arcade") {
+      gameRef.current?.resetRound();
+      return;
+    }
+
+    if (mode === "join") {
+      setRoundResetNonce((current) => current + 1);
+    }
   };
 
   return (
@@ -701,31 +1013,46 @@ function App() {
         </div>
 
         <div className="hero-controls">
-          <ModeSelector language={language} mode={mode} onChange={setMode} />
-          <div className="hero-utility-row">
-            <button
-              className="ghost-button"
-              onClick={() =>
-                setMode(isStudioMode ? lastGameplayModeRef.current : "devStudio")
-              }
-              type="button"
-            >
-              {isStudioMode ? t("backToGame", language) : t("openExplorer", language)}
-            </button>
-            <LanguageToggle language={language} onChange={setLanguage} />
-            <div className="hero-word-chip">
-              <strong>{currentWord.devanagari}</strong>
+          <div className="hero-controls__top">
+            <ModeSelector language={language} mode={mode} onChange={setMode} />
+            <div className="hero-utility-row">
+              <button
+                className="ghost-button"
+                onClick={() =>
+                  setMode(isStudioMode ? lastGameplayModeRef.current : "devStudio")
+                }
+                type="button"
+              >
+                {isStudioMode ? t("backToGame", language) : t("openExplorer", language)}
+              </button>
+              <LanguageToggle language={language} onChange={setLanguage} />
+              <div className="hero-word-chip">
+                <strong>{currentWord.devanagari}</strong>
+              </div>
             </div>
           </div>
+
+          {!isStudioMode ? (
+            <SandhiFamilySelector
+              language={language}
+              onChange={setSelectedFamily}
+              options={familyOptions}
+              selectedFamily={selectedFamily}
+            />
+          ) : null}
         </div>
+        
       </header>
 
       <main className={`main-grid ${isStudioMode ? "main-grid--studio" : ""}`}>
         {isStudioMode ? (
           <section className="arena-column arena-column--studio">
             <DevStudio
+              entries={allEntries}
               customEntries={customEntries}
+              defaultEntryIds={DEFAULT_SANDHI_BANK.map((entry) => entry.id)}
               language={language}
+              onDeleteEntry={handleDeleteEntry}
               onExportEntries={handleExportEntries}
               onImportEntries={handleImportEntries}
               onSaveEntry={handleSaveEntry}
@@ -735,104 +1062,123 @@ function App() {
         ) : (
           <>
             <section className="arena-column">
-            <div className="arena-frame glass-panel">
-              <div className="arena-banner">
-                <div>
-                  <span className="panel-kicker">{t("slicePrompt", language)}</span>
-                  <strong>{currentWord.devanagari}</strong>
-                </div>
-              </div>
-              <div className="game-stage-shell">
-                <div
-                  className={`game-stage ${fontsReady ? "" : "game-stage--loading"}`}
-                  ref={containerRef}
-                >
-                  {!fontsReady ? (
-                    <div className="game-stage__loading">{t("loadingArena", language)}</div>
-                  ) : null}
-                </div>
-
-                <div className="floating-dock glass-panel">
-                  <div className="floating-dock__topline">
-                    <span className="panel-kicker">{t("selectKnife", language)}</span>
-                    <span className="shortcut-row">
-                      {`1-${SANDHI_RULES.length} · R · N`}
+              <div className="arena-frame glass-panel">
+                <div className="arena-banner">
+                  <div>
+                    <span className="panel-kicker">
+                      {t(isJoinMode ? "joinTarget" : "slicePrompt", language)}
                     </span>
+                    <strong>{currentWord.devanagari}</strong>
                   </div>
+                </div>
+                <div className="game-stage-shell">
+                  {isJoinMode ? (
+                    <SandhiJoinBoard
+                      interactionLocked={interactionLocked}
+                      language={language}
+                      onFeedback={handleFeedback}
+                      resetNonce={roundResetNonce}
+                      rootWord={currentWord}
+                      selectedRuleId={selectedRuleId}
+                    />
+                  ) : (
+                    <div
+                      className={`game-stage ${fontsReady ? "" : "game-stage--loading"}`}
+                      ref={containerRef}
+                    >
+                      {!fontsReady ? (
+                        <div className="game-stage__loading">{t("loadingArena", language)}</div>
+                      ) : null}
+                    </div>
+                  )}
 
-                  <div className="knife-detail">
-                    <div className="knife-detail__topline">
-                      <strong>{selectedRule.label[language]}</strong>
-                      <span className="knife-detail__shortcut">{selectedRule.shortcut}</span>
+                  <div className="floating-dock glass-panel">
+                    <div className="floating-dock__topline">
+                      <span className="panel-kicker">
+                        {t(isJoinMode ? "selectGlue" : "selectKnife", language)}
+                      </span>
+                      <span className="shortcut-row">{dockShortcutLegend}</span>
                     </div>
-                    <div className="knife-detail__sutra">
-                      {selectedRule.sutra.text} · {selectedRule.sutra.number}
-                    </div>
-                    <p>{selectedRule.helper[language]}</p>
-                    {dockNotes.length > 0 ? (
-                      <div className="knife-detail__notes">
-                        {dockNotes.map((note) => (
-                          <span className="knife-detail__note" key={note}>
-                            {note}
-                          </span>
-                        ))}
+
+                    <div className="knife-detail">
+                      <div className="knife-detail__topline">
+                        <strong>{selectedRule.label[language]}</strong>
+                        <span className="knife-detail__shortcut">{selectedRule.shortcut}</span>
                       </div>
-                    ) : null}
-                  </div>
+                      <div className="knife-detail__sutra">
+                        {selectedRule.sutra.text} · {selectedRule.sutra.number}
+                      </div>
+                      {studyMode === "guided" ? (
+                        <div className="knife-detail__pattern">
+                          <span className="panel-kicker">{t("rulePattern", language)}</span>
+                          <strong>{selectedRule.pattern[language]}</strong>
+                        </div>
+                      ) : null}
+                      <p>{selectedRuleSummary}</p>
+                      {dockNotes.length > 0 ? (
+                        <div className="knife-detail__notes">
+                          {dockNotes.map((note) => (
+                            <span className="knife-detail__note" key={note}>
+                              {note}
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
 
-                  <div className="knife-grid knife-grid--floating">
-                    {SANDHI_RULES.map((rule) => {
-                      const active = selectedRuleId === rule.id;
+                    <div className="knife-grid knife-grid--floating">
+                      {visibleRules.map((rule) => {
+                        const active = selectedRuleId === rule.id;
 
-                      return (
+                        return (
+                          <button
+                            className={`knife-card knife-card--floating ${
+                              active ? "active" : ""
+                            }`}
+                            key={rule.id}
+                            onClick={() => setSelectedRuleId(rule.id)}
+                            type="button"
+                          >
+                            <strong>{rule.label[language]}</strong>
+                            <span className="knife-card__footer">{rule.shortcut}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <div className="action-row floating-dock__actions">
+                      {practiceMode ? (
                         <button
-                          className={`knife-card knife-card--floating ${
-                            active ? "active" : ""
-                          }`}
-                          key={rule.id}
-                          onClick={() => setSelectedRuleId(rule.id)}
+                          className="ghost-button ghost-button--reveal"
+                          onClick={handleRevealAnswer}
                           type="button"
                         >
-                          <strong>{rule.label[language]}</strong>
-                          <span className="knife-card__footer">{rule.shortcut}</span>
+                          {t("showAnswer", language)}
                         </button>
-                      );
-                    })}
-                  </div>
-
-                  <div className="action-row floating-dock__actions">
-                    {practiceMode ? (
+                      ) : null}
                       <button
-                        className="ghost-button ghost-button--reveal"
-                        onClick={handleRevealAnswer}
+                        className="ghost-button"
+                        onClick={resetCurrentRound}
                         type="button"
                       >
-                        {t("showAnswer", language)}
+                        {t("resetWord", language)} · R
                       </button>
-                    ) : null}
-                    <button
-                      className="ghost-button"
-                      onClick={resetCurrentRound}
-                      type="button"
-                    >
-                      {t("resetWord", language)} · R
-                    </button>
-                    <button
-                      className={`ghost-button ${
-                        awaitingPracticeAdvance ? "ghost-button--next-hint" : ""
-                      }`}
-                      onClick={() => scheduleNextWord(0)}
-                      type="button"
-                    >
-                      {awaitingPracticeAdvance
-                        ? `${t("nextWord", language)} →`
-                        : t("nextWord", language)}{" "}
-                      · N
-                    </button>
+                      <button
+                        className={`ghost-button ${
+                          awaitingPracticeAdvance ? "ghost-button--next-hint" : ""
+                        }`}
+                        onClick={() => scheduleNextWord(0)}
+                        type="button"
+                      >
+                        {awaitingPracticeAdvance
+                          ? `${t("nextWord", language)} →`
+                          : t("nextWord", language)}{" "}
+                        · N
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
             </section>
 
             <aside className="sidebar sidebar--game">
@@ -842,8 +1188,11 @@ function App() {
                 mode={mode}
                 onTimerModeChange={setTimerMode}
                 timerMode={timerMode}
+                studyMode={studyMode}
+                onStudyModeChange={setStudyMode}
                 practiceMode={practiceMode}
                 onPracticeModeChange={setPracticeMode}
+                remainingSplits={remainingSplits}
                 stats={stats}
               />
               <LessonPanel
@@ -851,6 +1200,7 @@ function App() {
                 language={language}
                 lesson={lesson}
                 revealed={revealed}
+                showAnswerMeta={showAnswerMeta}
               />
             </aside>
           </>
@@ -871,7 +1221,7 @@ function App() {
               initial={{ opacity: 0, scale: 0.95, y: 24 }}
             >
               <span className="panel-kicker">{t("onboardingTitle", language)}</span>
-              <h2>{t("onboardingBody", language)}</h2>
+              <h2>{t(isJoinMode ? "onboardingJoinBody" : "onboardingBody", language)}</h2>
               <div className="onboarding-steps">
                 {onboardingSteps.map((step) => (
                   <div className="onboarding-step" key={step.title}>

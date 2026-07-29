@@ -8,7 +8,7 @@ type ModeSelectorProps = {
   onChange: (mode: GameMode) => void;
 };
 
-const MODES: GameMode[] = ["arcade", "fullSplit", "devStudio"];
+const MODES: GameMode[] = ["arcade", "join", "devStudio"];
 
 export const ModeSelector = ({ language, mode, onChange }: ModeSelectorProps) => (
   <div className="mode-grid">
@@ -24,7 +24,7 @@ export const ModeSelector = ({ language, mode, onChange }: ModeSelectorProps) =>
           onClick={() => onChange(value)}
         >
           <span className="mode-card__eyebrow">
-            {value === "arcade" ? "01" : value === "fullSplit" ? "02" : "03"}
+            {value === "arcade" ? "01" : value === "join" ? "02" : "03"}
           </span>
           <span className="mode-card__title">{modeLabel(value, language)}</span>
         </motion.button>
