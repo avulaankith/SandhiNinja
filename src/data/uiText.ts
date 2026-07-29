@@ -22,9 +22,9 @@ export const UI_TEXT = {
     te: "సంధి గ్లూని ఎంచుకోండి",
   },
   slicePrompt: {
-    en: "Split at a marked point between aksharas",
-    sa: "अक्षरयोर्मध्ये चिह्नितस्थाने भिन्धि",
-    te: "అక్షరాల మధ్య గుర్తు చేసిన చోట విడగొట్టండి",
+    en: "Split only at a shown teaching guide",
+    sa: "प्रदर्शिते शिक्षणमार्गदर्शके एव भिन्धि",
+    te: "చూపిన బోధనా సూచిక దగ్గరే విడగొట్టండి",
   },
   joinPrompt: {
     en: "Pick a rule, then join adjacent padani at the glowing glue points",
@@ -33,8 +33,8 @@ export const UI_TEXT = {
   },
   correctSplit: {
     en: "Correct split",
-    sa: "साधु!",
-    te: "సాధు! సరైన విభాగం",
+    sa: "सम्यक् भेदः",
+    te: "సరైన విభాగం",
   },
   feedbackBothCorrect: {
     en: "Correct place and correct sandhi.",
@@ -44,12 +44,12 @@ export const UI_TEXT = {
   canSplitAgain: {
     en: "This can still be split",
     sa: "एतत् पुनः विभज्यते",
-    te: "ఇది ఇంకా విడగొట్టవచ్చు",
+    te: "ఇంకా విడగొట్టాలి",
   },
   finalWord: {
     en: "Final word",
     sa: "अन्तिमं पदम्",
-    te: "ఇది అంతిమ పదం",
+    te: "ఇది తుది పదం",
   },
   splitMode: {
     en: "Sandhi Splitting",
@@ -59,7 +59,7 @@ export const UI_TEXT = {
   joinMode: {
     en: "Sandhi Joining",
     sa: "सन्धि-संयोगः",
-    te: "సంధి కలయిక",
+    te: "సంధి కలపడం",
   },
   devStudioMode: {
     en: "Sandhi Explorer",
@@ -69,52 +69,52 @@ export const UI_TEXT = {
   familyTitle: {
     en: "Sandhi set",
     sa: "सन्धिसमूहः",
-    te: "సంధి సమూహం",
+    te: "సంధి వర్గం",
   },
   familyMixed: {
     en: "Mixed",
     sa: "मिश्रितम्",
-    te: "మిశ్రమం",
+    te: "మిశ్రితం",
   },
   familySvara: {
     en: "Svara",
     sa: "स्वरः",
-    te: "స్వరం",
+    te: "స్వరసంధి",
   },
   familyVyanjana: {
     en: "Vyanjana",
     sa: "व्यञ्जनम्",
-    te: "వ్యంజనం",
+    te: "వ్యంజనసంధి",
   },
   familyVisarga: {
     en: "Visarga",
     sa: "विसर्गः",
-    te: "విసర్గం",
+    te: "విసర్గసంధి",
   },
   familyMixedHint: {
     en: "Show all enabled sandhi families together.",
     sa: "समर्थिताः सर्वे सन्धिप्रकाराः एकत्र दर्श्यन्ताम्।",
-    te: "ఉన్న అన్ని సంధి సమూహాలను కలిపి చూపించు.",
+    te: "అందుబాటులో ఉన్న సంధులన్నింటినీ కలిసి చూపించు.",
   },
   familySvaraHint: {
     en: "Only vowel sandhis and their examples.",
     sa: "केवलं स्वर-सन्धयः तेषां च उदाहरणानि।",
-    te: "స్వరసంధులు మరియు వాటి ఉదాహరణలే చూపించు.",
+    te: "స్వరసంధులు మరియు వాటి ఉదాహరణలనే చూపించు.",
   },
   familyVyanjanaHint: {
     en: "Only consonant sandhis and their examples.",
     sa: "केवलं व्यञ्जन-सन्धयः तेषां च उदाहरणानि।",
-    te: "వ్యంజనసంధులు మరియు వాటి ఉదాహరణలే చూపించు.",
+    te: "వ్యంజనసంధులు మరియు వాటి ఉదాహరణలనే చూపించు.",
   },
   familyVisargaHint: {
     en: "Visarga examples only: Visarga-Satva, Visarga-Repha, Visarga-Lopa, and Visarga-Ootvam from the textbook trail.",
     sa: "केवलं विसर्गोदाहरणानि: विसर्ग-सत्व-, विसर्ग-रेफ-, विसर्ग-लोप-, विसर्ग-ओत्व-प्रकाराणां अभ्यासः।",
-    te: "విసర్గ ఉదాహరణలే: విసర్గ-సత్వం, విసర్గ-రేఫం, విసర్గ-లోపం, విసర్గ-ఓత్వం వంటి రూపాల అభ్యాసం.",
+    te: "విసర్గసంధి ఉదాహరణలే చూపించు: విసర్గ-సత్వం, విసర్గ-రేఫం, విసర్గ-లోపం, విసర్గ-ఓత్వం మొదలైనవి.",
   },
   familyExamples: {
     en: "Likely knives",
     sa: "सम्भाव्यशस्त्राणि",
-    te: "సాధారణ కత్తులు",
+    te: "ఎక్కువగా వచ్చే కత్తులు",
   },
   familyComingSoon: {
     en: "Coming soon",
@@ -132,44 +132,79 @@ export const UI_TEXT = {
     te: "పదాలు",
   },
   timedMode: {
-    en: "Timed",
+    en: "With clock",
     sa: "कालबद्धम्",
-    te: "సమయపరిమితితో",
+    te: "గడియారంతో",
   },
   untimedMode: {
-    en: "Untimed",
+    en: "No clock",
     sa: "अकालबद्धम्",
-    te: "సమయపరిమితి లేకుండా",
+    te: "గడియారం లేకుండా",
   },
   timerStyle: {
-    en: "Timer mode",
-    sa: "कालविधिः",
-    te: "సమయ విధానం",
+    en: "Clock",
+    sa: "कालगणना",
+    te: "గడియారం",
   },
   studyMode: {
-    en: "Study mode",
-    sa: "अध्ययनविधिः",
-    te: "అధ్యయన విధానం",
+    en: "Help level",
+    sa: "साहाय्यस्तरः",
+    te: "సహాయ స్థాయి",
   },
   guidedMode: {
-    en: "Guided",
-    sa: "मार्गदर्शितम्",
-    te: "మార్గదర్శి",
+    en: "With hints",
+    sa: "सहायतया",
+    te: "సూచనలతో",
   },
   challengeMode: {
-    en: "Challenge",
-    sa: "आह्वानम्",
-    te: "సవాలు",
+    en: "Test",
+    sa: "परीक्षा",
+    te: "పరీక్ష",
   },
   guidedModeHint: {
-    en: "Guided mode keeps the rule pattern visible and starts coaching after repeated misses.",
-    sa: "मार्गदर्शितविधौ नियमरूपं दृश्यते, पुनःपुनर्विपलेषु शीघ्रं साहाय्यम् अपि लभ्यते।",
-    te: "మార్గదర్శి విధానంలో నియమరూపం కనిపిస్తూనే ఉంటుంది; వరుసగా తప్పితే త్వరగా సహాయ సూచన కూడా వస్తుంది.",
+    en: "With hints keeps memory aids visible. Every 4 misses reveal the answer, then the reveal counter resets so you can keep learning without a hard fail.",
+    sa: "सहायतया स्मरणसाहाय्यं दृश्यते। प्रत्येकेषु चतुर्षु विपलेषु उत्तरं दृश्यते, ततः पुनः गणना आरभ्यते; अतः कठोरपराजयः न भवति।",
+    te: "సూచనలతో ఆడితే గుర్తుపట్టేందుకు తోడు కనిపిస్తుంది. ప్రతి 4 తప్పుల తర్వాత జవాబు చూపించి, మళ్లీ లెక్క మొదలవుతుంది; కఠిన ఓటమి ఉండదు.",
   },
   challengeModeHint: {
-    en: "Challenge mode trims pre-cut hints. Use the sutra, the word-form, and your own judgement before the app explains.",
-    sa: "आह्वानविधौ पूर्वसाहाय्यं न्यूनं भवति। सूत्रं, पदरूपं, स्वबुद्धिं च आश्रित्य प्रथमं प्रयतस्व।",
-    te: "సవాలు విధానంలో ముందస్తు సూచనలు తక్కువగా ఉంటాయి. ముందుగా సూత్రం, పదరూపం, మీ నిర్ణయాన్ని ఆధారంగా తీసుకుని ప్రయత్నించండి.",
+    en: "Test hides most memory aids and gives only 4 real lives per word. If all 4 are spent, the answer is shown, then the next word follows your After answer setting.",
+    sa: "परीक्षायां स्मरणसाहाय्यं न्यूनं भवति, प्रत्येकपदे केवलं चत्वारि जीवनानि भवन्ति। सर्वेषु क्षीणेषु उत्तरं दर्श्यते, ततः अनन्तरपदगमनं तव उत्तरानन्तरविकल्पेन नियोज्यते।",
+    te: "పరీక్ష రీతిలో తోడు సూచనలు తక్కువగా ఉంటాయి; ప్రతి పదానికి నిజమైన 4 అవకాశాలే. అవన్నీ పూర్తయితే జవాబు చూపించి, తరువాతి పదం 'జవాబు తర్వాత' ఎంపిక ప్రకారం మారుతుంది.",
+  },
+  afterAnswer: {
+    en: "After answer",
+    sa: "उत्तरानन्तरम्",
+    te: "జవాబు తర్వాత",
+  },
+  autoNext: {
+    en: "Auto next",
+    sa: "स्वयमग्रे",
+    te: "తానే ముందుకు",
+  },
+  waitForNext: {
+    en: "Stay here",
+    sa: "प्रतीक्षताम्",
+    te: "ఇక్కడే ఉండు",
+  },
+  answerTime: {
+    en: "Answer time",
+    sa: "उत्तरकालः",
+    te: "జవాబు కనిపించే వేళ",
+  },
+  answerTimeShort: {
+    en: "12s",
+    sa: "12s",
+    te: "12s",
+  },
+  answerTimeMedium: {
+    en: "16s",
+    sa: "16s",
+    te: "16s",
+  },
+  answerTimeLong: {
+    en: "20s",
+    sa: "20s",
+    te: "20s",
   },
   resetWord: {
     en: "Reset word",
@@ -195,6 +230,11 @@ export const UI_TEXT = {
     en: "Lives",
     sa: "जीवनानि",
     te: "అవకాశాలు",
+  },
+  revealLives: {
+    en: "Reveal lives",
+    sa: "प्रकाशन-जीवनानि",
+    te: "సమాధాన జీవాలు",
   },
   timer: {
     en: "Timer",
@@ -227,9 +267,9 @@ export const UI_TEXT = {
     te: "ఆట తీరు",
   },
   onboardingBody: {
-    en: "Choose the correct sandhi knife, then split only at the marked points between aksharas.",
-    sa: "युक्तं सन्धि-शस्त्रं वृणु, ततः केवलं अक्षरयोर्मध्ये चिह्नितेषु स्थानेषु एव भिन्धि।",
-    te: "సరైన సంధి కత్తిని ఎంచుకుని, అక్షరాల మధ్య గుర్తు చేసిన చోట్లనే విడగొట్టండి.",
+    en: "Choose the correct sandhi knife, then split only at the shown gold guides in the word.",
+    sa: "युक्तं सन्धि-शस्त्रं वृणु, ततः पदे दर्शितेषु सुवर्णमार्गदर्शकेषु एव भिन्धि।",
+    te: "సరైన సంధి కత్తిని ఎంచుకుని, పదంలో చూపిన బంగారు సూచికల దగ్గరే విడగొట్టండి.",
   },
   onboardingJoinBody: {
     en: "Choose the correct sandhi glue, then rebuild the compound by joining only the adjacent padani that truly belong together.",
@@ -252,9 +292,9 @@ export const UI_TEXT = {
     te: "2. అక్షరాల మధ్య కోయండి",
   },
   onboardingStepTwoBody: {
-    en: "Do not cut through the middle of a letter. Use the subtle gold markers around the word as the valid split guides.",
-    sa: "अक्षरमध्यं मा भिन्धि। पदस्य समीपे स्थितानि सूक्ष्मसुवर्णचिह्नानि एव ग्राह्यभेदमार्गदर्शकानि सन्ति।",
-    te: "అక్షరాన్ని మధ్యలో కోయవద్దు. పదం చుట్టూ కనిపించే మృదువైన బంగారు గుర్తులే సరైన విడిపోటి సూచనలు.",
+    en: "Use only the shown gold guides. In transformed sandhi forms, a teaching split may fall inside what looks like one visible cluster.",
+    sa: "दर्शितान् सुवर्णमार्गदर्शकान् एव गृहाण। विकृतसन्धिरूपेषु शिक्षणभेदः कदाचित् एकस्मिन् दृश्यसमूहे अपि तिष्ठेत्।",
+    te: "చూపిన బంగారు సూచికలనే ఉపయోగించండి. రూపం మారిన సంధి పదాల్లో బోధనా విభాగం ఒకేలా కనిపించే అక్షరగుచ్ఛం లోపల కూడా ఉండవచ్చు.",
   },
   onboardingStepThreeTitle: {
     en: "3. Keep splitting",
@@ -622,9 +662,9 @@ export const UI_TEXT = {
     te: "కలయిక స్థానం సరైంది, కానీ ఎంచుకున్న సంధి తప్పింది. అదే సరిహద్దు ఉంచి గ్లూని మార్చండి.",
   },
   feedbackWrongCut: {
-    en: "Wrong place. Try a different split point between the aksharas.",
-    sa: "अयुक्तं स्थानम्। अक्षरयोर्मध्ये अन्यत् भेदस्थानं प्रयतस्व।",
-    te: "తప్పు స్థానం. అక్షరాల మధ్య మరో విడిపోటి స్థానాన్ని ప్రయత్నించండి.",
+    en: "Wrong place. Try another shown guide in the word.",
+    sa: "अयुक्तं स्थानम्। पदे दर्शितं अन्यत् मार्गदर्शकं प्रयतस्व।",
+    te: "తప్పు స్థానం. పదంలో చూపిన మరో సూచికను ప్రయత్నించండి.",
   },
   feedbackWrongJoinBoundary: {
     en: "Wrong boundary. Try a different glue point between adjacent padani.",
@@ -669,12 +709,12 @@ export const UI_TEXT = {
   knifeLocked: {
     en: "Knife locked",
     sa: "शस्त्रं नियतम्",
-    te: "కత్తి ఖాయం",
+    te: "ఎంచుకున్న కత్తి",
   },
   glueLocked: {
     en: "Glue locked",
     sa: "लेपः नियतः",
-    te: "గ్లూ ఖాయం",
+    te: "ఎంచుకున్న గ్లూ",
   },
   fullSplitAnyRule: {
     en: "Full Split allows any valid split order, but the chosen knife must still match the sandhi.",
@@ -767,9 +807,14 @@ export const UI_TEXT = {
     te: "సమాధానం చూపబడింది",
   },
   revealChip: {
-    en: "Stuck after 4 tries — answer shown. N: next · R: retry",
-    sa: "चतुर्वारं यत्नानन्तरम् उत्तरं दर्शितम्। N: अग्रे · R: पुनः",
-    te: "4 సార్లు తప్పాక సమాధానం చూపాం. N: తదుపరి · R: మళ్లీ",
+    en: "Stuck after 4 tries — answer shown. You can still solve this word. N: next · R: retry",
+    sa: "चतुर्वारं यत्नानन्तरम् उत्तरं दर्शितम्। एतत् पदं अद्यापि साधयितुं शक्यते। N: अग्रे · R: पुनः",
+    te: "4 సార్లు తప్పాక సమాధానం చూపాం. ఈ పదాన్ని ఇంకా మీరు పూర్తిచేయవచ్చు. N: తదుపరి · R: మళ్లీ",
+  },
+  challengeOutOfLives: {
+    en: "Out of lives — answer shown. This round is over. N: next · R: retry",
+    sa: "जीवनानि क्षीणानि — उत्तरं दर्शितम्। अयं क्रमः समाप्तः। N: अग्रे · R: पुनः",
+    te: "అవకాశాలు పూర్తయ్యాయి — సమాధానం చూపాం. ఈ రౌండ్ ముగిసింది. N: తదుపరి · R: మళ్లీ",
   },
   revealRule: {
     en: "Correct sandhi",
@@ -782,19 +827,19 @@ export const UI_TEXT = {
     te: "ఇక్కడ విడగొట్టండి",
   },
   practiceMode: {
-    en: "Practice mode",
-    sa: "अभ्यासविधिः",
-    te: "అభ్యాస విధానం",
+    en: "Session",
+    sa: "अभ्यासप्रकारः",
+    te: "సాధన తీరు",
   },
   practiceOn: {
-    en: "On",
-    sa: "चालितम्",
-    te: "ఆన్",
+    en: "Free practice",
+    sa: "मुक्ताभ्यासः",
+    te: "స్వేచ్ఛా సాధన",
   },
   practiceOff: {
-    en: "Off",
-    sa: "निवृत्तम्",
-    te: "ఆఫ్",
+    en: "Score run",
+    sa: "अङ्कक्रमः",
+    te: "అంకాల ఆట",
   },
   showAnswer: {
     en: "Show answer",
@@ -802,14 +847,29 @@ export const UI_TEXT = {
     te: "సమాధానం చూపు",
   },
   practiceHint: {
-    en: "Practice mode: no clock. Reveal the answer any time, and after solving the word it stays on screen until you click Next word.",
-    sa: "अभ्यासविधौ कालः नास्ति। यदा इच्छसि तदा उत्तरं पश्य, तथा पदसिद्धेः अनन्तरम् अग्रिमपदं नुदेपर्यन्तं तत् पदम् अत्रैव तिष्ठति।",
-    te: "అభ్యాస విధానంలో గడియారం లేదు. ఎప్పుడైనా సమాధానం చూడవచ్చు; పదం పూర్తయిన తర్వాత కూడా మీరు తదుపరి పదం నొక్కే వరకు అదే పదం కనిపిస్తూనే ఉంటుంది.",
+    en: "Free practice removes the clock. You may reveal the answer any time, and after solving the word it stays on screen until you click Next word.",
+    sa: "मुक्ताभ्यासे कालः नास्ति। यदा इच्छसि तदा उत्तरं पश्य, तथा पदसिद्धेः अनन्तरम् अग्रिमपदं नुदेपर्यन्तं तत् पदम् अत्रैव तिष्ठति।",
+    te: "స్వేచ్ఛా సాధనలో గడియారం ఉండదు. ఎప్పుడైనా జవాబు చూడవచ్చు; పదం పూర్తయిన తరువాత కూడా మీరు 'తదుపరి పదం' నొక్కే వరకు అదే పదం ఇక్కడే ఉంటుంది.",
   },
   practiceNextHint: {
-    en: "Practice mode keeps this solved word on screen. Click Next word when you are ready.",
-    sa: "अभ्यासविधौ एतत् सिद्धं पदं अत्रैव तिष्ठति। यदा सिद्धः भवसि तदा अग्रिमपदं नुद।",
-    te: "అభ్యాస విధానంలో ఈ పూర్తైన పదమే ఇక్కడ కనిపిస్తుంది. మీరు సిద్ధమైనప్పుడు తదుపరి పదాన్ని నొక్కండి.",
+    en: "Free practice keeps this solved word on screen. Click Next word when you are ready.",
+    sa: "मुक्ताभ्यासे एतत् सिद्धं पदं अत्रैव तिष्ठति। यदा सिद्धः भवसि तदा अग्रिमपदं नुद।",
+    te: "స్వేచ్ఛా సాధనలో ఈ పూర్తైన పదమే ఇక్కడ కనిపిస్తుంది. మీరు సిద్ధమైనప్పుడు తదుపరి పదాన్ని నొక్కండి.",
+  },
+  answerWaitHint: {
+    en: "Answer stays on screen. Click Next word when you are ready.",
+    sa: "उत्तरम् अत्रैव तिष्ठति। यदा सिद्धः भवसि तदा अग्रिमपदं नुद।",
+    te: "జవాబు ఇక్కడే ఉంటుంది. మీరు సిద్ధమైనప్పుడు తదుపరి పదాన్ని నొక్కండి.",
+  },
+  joinCanJoin: {
+    en: "Can still be joined",
+    sa: "इदं पुनः संयोजनीयम्",
+    te: "ఇంకా కలపాలి",
+  },
+  joinBuilt: {
+    en: "Built back fully",
+    sa: "पूर्णं पुनर्निर्मितम्",
+    te: "పూర్తిగా కలిసింది",
   },
   guidedCoachHint: {
     en: "Study the sutra, nimittam, and pattern shown here, then try the same word again.",
@@ -817,24 +877,24 @@ export const UI_TEXT = {
     te: "ఇక్కడ చూపిన సూత్రం, నిమిత్తం, నియమరూపాన్ని చూసి అదే పదాన్ని మళ్లీ ప్రయత్నించండి.",
   },
   challengeDockHint: {
-    en: "Challenge mode keeps the pre-cut help lean. Full explanation appears after a correct move or reveal.",
-    sa: "आह्वानविधौ पूर्वसाहाय्यं लघु भवति। साधुप्रयासे अथवा प्रकाशने पूर्णव्याख्या दृश्यते।",
-    te: "సవాలు విధానంలో ముందస్తు సహాయం తగ్గించి ఉంచుతాం. సరైన ప్రయత్నం లేదా వెల్లడన తర్వాతే పూర్తి వివరణ కనిపిస్తుంది.",
+    en: "Challenge mode keeps only the core prompt here. Memory aids and stepwise teaching stay hidden until you solve or reveal.",
+    sa: "आह्वानविधौ अत्र केवलं मूलप्रेरणा तिष्ठति। स्मरणसाहाय्यं क्रमिकोपदेशश्च सिद्धौ अथवा प्रकाशने एव दृश्येते।",
+    te: "సవాలు విధానంలో ఇక్కడ ప్రధాన సూచన మాత్రమే ఉంటుంది. జ్ఞాపక సహాయం, దశలవారీ బోధన మీరు సాధించిన తర్వాత లేదా వెల్లడించిన తర్వాత మాత్రమే కనిపిస్తాయి.",
   },
   correctJoin: {
-    en: "Correct join. A larger compound chunk is ready.",
-    sa: "साधुसंयोगः। बृहत्तरः समासखण्डः सिद्धः।",
-    te: "సరైన కలయిక. పెద్ద సమాస భాగం సిద్ధమైంది.",
+    en: "Correct join",
+    sa: "सम्यक् संयोगः",
+    te: "సరైన కలయిక",
   },
   joinComplete: {
-    en: "Correct join. The compound is rebuilt.",
-    sa: "साधुसंयोगः। समस्तपदं पुनर्निर्मितम्।",
-    te: "సరైన కలయిక. సమాసం మళ్లీ నిర్మితమైంది.",
+    en: "Correct join complete",
+    sa: "सम्यक् संयोगः सम्पन्नः",
+    te: "కలయిక పూర్తైంది",
   },
   splitMarkerHint: {
-    en: "Subtle gold markers show the valid split points between aksharas.",
-    sa: "सूक्ष्मसुवर्णचिह्नानि अक्षरयोर्मध्येषु ग्राह्यभेदस्थानानि सूचयन्ति।",
-    te: "మృదువైన బంగారు గుర్తులు అక్షరాల మధ్య సరైన విడిపోటి స్థానాలను చూపిస్తాయి.",
+    en: "Gold guides mark the teaching split positions. In transformed sandhi forms, a guide may sit inside one visible cluster.",
+    sa: "सुवर्णमार्गदर्शकाः शिक्षणभेदस्थानानि दर्शयन्ति। विकृतसन्धिरूपेषु मार्गदर्शकः कदाचित् एकस्मिन् दृश्यसमूहे अपि तिष्ठेत्।",
+    te: "బంగారు సూచనలు బోధనా విభాగ స్థానాలను చూపిస్తాయి. రూపం మారిన సంధి పదాల్లో ఒక సూచిక ఒకేలా కనిపించే అక్షరగుచ్ఛం లోపల కూడా ఉండవచ్చు.",
   },
   splitRuleHint: {
     en: "A move counts only when both the split point and the selected knife are correct. The feedback will say whether the place, the sandhi, or both were wrong.",

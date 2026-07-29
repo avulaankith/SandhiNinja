@@ -8,6 +8,8 @@ export type TimerMode = "timed" | "untimed";
 
 export type StudyMode = "guided" | "challenge";
 
+export type AnswerAdvanceMode = "auto" | "manual";
+
 export type SandhiRuleId =
   | "savarna-dirgha"
   | "guna"
@@ -67,6 +69,7 @@ export type WordNode = {
 export type SandhiCut = {
   id: string;
   ruleId: SandhiRuleId;
+  ruleChain?: SandhiRuleId[];
   cutAfterAksharaIndex: number;
   left: WordNode;
   right: WordNode;
@@ -120,6 +123,8 @@ export type StoredProgress = {
   studyMode?: StudyMode;
   practiceSlowly?: boolean;
   practiceMode?: boolean;
+  answerAdvanceMode?: AnswerAdvanceMode;
+  answerRevealDelayMs?: number;
 };
 
 export type SliceAssessment =
@@ -134,8 +139,10 @@ export type SliceFeedback = {
   message: LocalizedText;
   lesson?: LessonPayload;
   revealLesson?: LessonPayload;
+  availableRuleIds?: SandhiRuleId[];
   activeTokens: ActiveToken[];
   roundCompleted: boolean;
   boundaryIndex?: number;
   assessment?: SliceAssessment;
+  interactionId?: string;
 };

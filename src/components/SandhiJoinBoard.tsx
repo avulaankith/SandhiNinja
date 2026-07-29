@@ -9,6 +9,7 @@ import type {
   SandhiRuleId,
   SliceAssessment,
   SliceFeedback,
+  StudyMode,
   WordNode,
 } from "../types/sandhi";
 
@@ -16,9 +17,11 @@ type SandhiJoinBoardProps = {
   interactionLocked: boolean;
   language: Language;
   onFeedback: (feedback: SliceFeedback) => void;
+  roundKey: string;
   resetNonce: number;
   rootWord: WordNode;
   selectedRuleId: SandhiRuleId;
+  studyMode: StudyMode;
 };
 
 type JoinBranch = {
@@ -30,6 +33,27 @@ type JoinBranch = {
   right?: JoinBranch;
   parent?: JoinBranch;
   depth: number;
+};
+
+const cutMatchesRule = (cut: SandhiCut, ruleId: SandhiRuleId) =>
+  cut.ruleId === ruleId || cut.ruleChain?.includes(ruleId) === true;
+
+const collectAvailableRuleIds = (branches: JoinBranch[]) => {
+  const ids = new Set<SandhiRuleId>();
+
+  branches.forEach((branch, index) => {
+    if (index >= branches.length - 1) {
+      return;
+    }
+
+    const opportunity = getJoinOpportunity(branch, branches[index + 1]);
+    opportunity?.cuts.forEach((cut) => {
+      ids.add(cut.ruleId);
+      cut.ruleChain?.forEach((ruleId) => ids.add(ruleId));
+    });
+  });
+
+  return [...ids];
 };
 
 const buildLesson = (
@@ -148,8 +172,8 @@ const hasRuleAtVisibleBoundary = (branches: JoinBranch[], ruleId: SandhiRuleId) 
     }
 
     return (
-      getJoinOpportunity(branch, branches[index + 1])?.cuts.some(
-        (cut) => cut.ruleId === ruleId,
+      getJoinOpportunity(branch, branches[index + 1])?.cuts.some((cut) =>
+        cutMatchesRule(cut, ruleId),
       ) ?? false
     );
   });
@@ -167,15 +191,18 @@ export const SandhiJoinBoard = ({
   interactionLocked,
   language,
   onFeedback,
+  roundKey,
   resetNonce,
   rootWord,
   selectedRuleId,
+  studyMode,
 }: SandhiJoinBoardProps) => {
   const tree = useMemo(
     () => createBranch(rootWord, rootWord.id, 0),
-    [rootWord],
+    [rootWord, roundKey],
   );
   const onFeedbackRef = useRef(onFeedback);
+  const interactionCounterRef = useRef(0);
   const [visibleBranches, setVisibleBranches] = useState<JoinBranch[]>(() =>
     collectLeaves(tree),
   );
@@ -186,11 +213,13 @@ export const SandhiJoinBoard = ({
 
   useEffect(() => {
     const initialBranches = collectLeaves(tree);
+    interactionCounterRef.current = 0;
     setVisibleBranches(initialBranches);
     onFeedbackRef.current({
       outcome: "blocked",
       message: localizedMessage("joinPrompt"),
       revealLesson: getRevealLesson(initialBranches),
+      availableRuleIds: collectAvailableRuleIds(initialBranches),
       activeTokens: toActiveTokens(initialBranches),
       roundCompleted: initialBranches.length === 1,
     });
@@ -201,6 +230,7 @@ export const SandhiJoinBoard = ({
       return;
     }
 
+    const interactionId = `${roundKey}:join:${++interactionCounterRef.current}`;
     const left = visibleBranches[boundaryIndex];
     const right = visibleBranches[boundaryIndex + 1];
 
@@ -210,7 +240,7 @@ export const SandhiJoinBoard = ({
 
     const opportunity = getJoinOpportunity(left, right);
     const matchingCuts = opportunity
-      ? opportunity.cuts.filter((cut) => cut.ruleId === selectedRuleId)
+      ? opportunity.cuts.filter((cut) => cutMatchesRule(cut, selectedRuleId))
       : [];
     const assessment: SliceAssessment = opportunity
       ? matchingCuts.length > 0
@@ -240,10 +270,12 @@ export const SandhiJoinBoard = ({
           matchingCuts.length,
         ),
         revealLesson: getRevealLesson(nextBranches),
+        availableRuleIds: collectAvailableRuleIds(nextBranches),
         activeTokens: toActiveTokens(nextBranches),
         roundCompleted,
         boundaryIndex,
         assessment,
+        interactionId,
       });
       return;
     }
@@ -260,10 +292,12 @@ export const SandhiJoinBoard = ({
       outcome: "wrong",
       message: localizedMessage(wrongKey),
       revealLesson: getRevealLesson(visibleBranches),
+      availableRuleIds: collectAvailableRuleIds(visibleBranches),
       activeTokens: toActiveTokens(visibleBranches),
       roundCompleted: false,
       boundaryIndex,
       assessment,
+      interactionId,
     });
   };
 
@@ -283,7 +317,16 @@ export const SandhiJoinBoard = ({
               className={`join-token ${branch.cut ? "join-token--compound" : "join-token--final"}`}
             >
               <strong>{branch.node.devanagari}</strong>
-              <span>{secondaryLabel(branch.node, language)}</span>
+              <div className="join-token__meta">
+                <span>{secondaryLabel(branch.node, language)}</span>
+                <div
+                  className={`join-token__badge ${
+                    branch.cut ? "join-token__badge--compound" : "join-token__badge--final"
+                  }`}
+                >
+                  {branch.cut ? t("joinCanJoin", language) : t("joinBuilt", language)}
+                </div>
+              </div>
             </motion.article>
 
             {index < visibleBranches.length - 1 ? (
@@ -296,7 +339,9 @@ export const SandhiJoinBoard = ({
                 whileTap={{ scale: 0.97 }}
               >
                 <span className="join-boundary__plus">+</span>
-                <span className="join-boundary__label">{t("joinTap", language)}</span>
+                {studyMode === "guided" ? (
+                  <span className="join-boundary__label">{t("joinTap", language)}</span>
+                ) : null}
               </motion.button>
             ) : null}
           </div>

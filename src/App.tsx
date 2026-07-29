@@ -8,6 +8,7 @@ import SandhiFamilySelector from "./components/SandhiFamilySelector";
 import ScorePanel from "./components/ScorePanel";
 import DevStudio from "./components/DevStudio";
 import SandhiJoinBoard from "./components/SandhiJoinBoard";
+import SandhiSplitBoard from "./components/SandhiSplitBoard";
 import {
   DEFAULT_SANDHI_BANK,
   SANDHI_RULES,
@@ -18,14 +19,15 @@ import {
   parseWordEntries,
 } from "./data/sandhiBank";
 import { modeLabel, t } from "./data/uiText";
-import SandhiGame from "./game/SandhiGame";
 import type {
   ActiveToken,
+  AnswerAdvanceMode,
   GameMode,
   Language,
   LessonPayload,
   PlayerStats,
   SandhiFamily,
+  SandhiRule,
   SandhiRuleId,
   SliceFeedback,
   StoredProgress,
@@ -35,6 +37,9 @@ import type {
 } from "./types/sandhi";
 
 type GameplayMode = Exclude<GameMode, "devStudio">;
+
+const getVisibleMode = (mode?: GameMode): GameplayMode =>
+  mode === "join" ? "join" : "arcade";
 
 const DEFAULT_LANGUAGE: Language = "en";
 const DEFAULT_MODE: GameMode = "arcade";
@@ -48,11 +53,12 @@ const DEFAULT_LIVES = 4;
 const REVEAL_THRESHOLD = 4;
 const DEFAULT_TIMER_MODE: TimerMode = "timed";
 const DEFAULT_STUDY_MODE: StudyMode = "guided";
+const DEFAULT_ANSWER_ADVANCE_MODE: AnswerAdvanceMode = "auto";
 const FONT_LOAD_TIMEOUT_MS = 2200;
 const FEEDBACK_CLEAR_DELAY_MS = 3200;
-const ROUND_COMPLETE_DELAY_MS = 3000;
+const ANSWER_REVEAL_DELAY_OPTIONS = [12000, 16000, 20000] as const;
+const DEFAULT_ANSWER_REVEAL_DELAY_MS = 16000;
 const TIME_UP_ADVANCE_DELAY_MS = 2600;
-const GUIDED_COACH_THRESHOLD = 2;
 const RECENT_WORD_MEMORY = 8;
 const MAX_VISIBLE_RULE_OPTIONS = 6;
 const GAME_FONT_SPECS = [
@@ -71,6 +77,13 @@ const makeDefaultStats = (): PlayerStats => ({
   successfulCuts: 0,
 });
 
+const normalizeAnswerRevealDelay = (value?: number) =>
+  ANSWER_REVEAL_DELAY_OPTIONS.includes(
+    value as (typeof ANSWER_REVEAL_DELAY_OPTIONS)[number],
+  )
+    ? value
+    : DEFAULT_ANSWER_REVEAL_DELAY_MS;
+
 const loadStoredProgress = (): StoredProgress | null => {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEYS.progress);
@@ -85,16 +98,27 @@ const normalizeStoredProgress = (value: StoredProgress | null): StoredProgress |
     return null;
   }
 
+  const preferredLanguage =
+    value.preferredLanguage === "sa" || value.preferredLanguage === "te"
+      ? value.preferredLanguage
+      : DEFAULT_LANGUAGE;
   const preferredMode =
     value.preferredMode === "join" || value.preferredMode === "devStudio"
       ? value.preferredMode
       : "arcade";
   const studyMode = value.studyMode === "challenge" ? "challenge" : DEFAULT_STUDY_MODE;
+  const answerAdvanceMode =
+    value.answerAdvanceMode === "manual"
+      ? "manual"
+      : DEFAULT_ANSWER_ADVANCE_MODE;
 
   return {
     ...value,
+    preferredLanguage,
     preferredMode,
     studyMode,
+    answerAdvanceMode,
+    answerRevealDelayMs: normalizeAnswerRevealDelay(value.answerRevealDelayMs),
   };
 };
 
@@ -168,11 +192,20 @@ const getRulesForFamily = (family: SandhiFamily) =>
     ? SANDHI_RULES
     : SANDHI_RULES.filter((rule) => rule.family === family);
 
-const wordMatchesFamily = (node: WordNode, family: SandhiFamily) =>
+const wordMatchesFamily = (node: WordNode, family: SandhiFamily): boolean =>
   family === "mixed" ||
-  node.cuts.some(
-    (cut) => !cut.reviewNeeded && RULE_LOOKUP.get(cut.ruleId)?.family === family,
-  );
+  node.cuts.some((cut): boolean => {
+    if (cut.reviewNeeded) {
+      return false;
+    }
+
+    const cutRuleIds = [cut.ruleId, ...(cut.ruleChain ?? [])];
+    return (
+      cutRuleIds.some((ruleId) => RULE_LOOKUP.get(ruleId)?.family === family) ||
+      wordMatchesFamily(cut.left, family) ||
+      wordMatchesFamily(cut.right, family)
+    );
+  });
 
 const getVisibleRuleIdsFromTokens = (tokens: ActiveToken[]) => {
   const ids = new Set<SandhiRuleId>();
@@ -185,6 +218,7 @@ const getVisibleRuleIdsFromTokens = (tokens: ActiveToken[]) => {
     token.node.cuts.forEach((cut) => {
       if (!cut.reviewNeeded) {
         ids.add(cut.ruleId);
+        cut.ruleChain?.forEach((ruleId) => ids.add(ruleId));
       }
     });
   });
@@ -224,6 +258,18 @@ const getPoolForMode = (entries: WordNode[], family: SandhiFamily) => {
   return gameplayEntries;
 };
 
+const buildVisibleRuleContextKey = (
+  tokens: ActiveToken[],
+  currentWordId: string,
+  mode: GameplayMode,
+  family: SandhiFamily,
+  ruleIds: SandhiRuleId[],
+  priorityRuleIds: SandhiRuleId[],
+) =>
+  `${mode}:${family}:${currentWordId}:${tokens
+    .map((token) => `${token.depth}:${token.node.id}:${token.node.devanagari}`)
+    .join("|")}:${ruleIds.join(",")}:${priorityRuleIds.join(",")}`;
+
 const downloadJson = (filename: string, value: unknown) => {
   const blob = new Blob([JSON.stringify(value, null, 2)], {
     type: "application/json",
@@ -247,7 +293,7 @@ function App() {
     storedProgress?.preferredLanguage ?? DEFAULT_LANGUAGE,
   );
   const [mode, setMode] = useState<GameMode>(
-    storedProgress?.preferredMode ?? DEFAULT_MODE,
+    getVisibleMode(storedProgress?.preferredMode) ?? DEFAULT_MODE,
   );
   const [selectedFamily, setSelectedFamily] = useState<SandhiFamily>(
     storedProgress?.preferredFamily ?? DEFAULT_FAMILY,
@@ -261,6 +307,12 @@ function App() {
   );
   const [practiceMode, setPracticeMode] = useState<boolean>(
     storedProgress?.practiceMode ?? false,
+  );
+  const [answerAdvanceMode, setAnswerAdvanceMode] = useState<AnswerAdvanceMode>(
+    storedProgress?.answerAdvanceMode ?? DEFAULT_ANSWER_ADVANCE_MODE,
+  );
+  const [answerRevealDelayMs, setAnswerRevealDelayMs] = useState<number>(
+    storedProgress?.answerRevealDelayMs ?? DEFAULT_ANSWER_REVEAL_DELAY_MS,
   );
   const [selectedRuleId, setSelectedRuleId] =
     useState<SandhiRuleId>(DEFAULT_RULE);
@@ -277,6 +329,8 @@ function App() {
   const [feedback, setFeedback] = useState<string | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(true);
   const [visibleTokens, setVisibleTokens] = useState<ActiveToken[]>([]);
+  const [availableRuleIds, setAvailableRuleIds] = useState<SandhiRuleId[]>([]);
+  const [priorityRuleIds, setPriorityRuleIds] = useState<SandhiRuleId[]>([]);
   const [wordProgress, setWordProgress] = useState({
     arcade: { index: 0, cycle: 0 },
     join: { index: 0, cycle: 0 },
@@ -288,15 +342,14 @@ function App() {
     () => typeof document === "undefined" || !("fonts" in document),
   );
 
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const gameRef = useRef<SandhiGame | null>(null);
   const feedbackTimerRef = useRef<number | null>(null);
   const nextWordTimerRef = useRef<number | null>(null);
   const wrongAttemptsRef = useRef(0);
+  const lastHandledInteractionIdRef = useRef<string | null>(null);
   const lastActiveTokensRef = useRef<ActiveToken[]>([]);
   const lastRevealLessonRef = useRef<LessonPayload | null>(null);
   const lastGameplayModeRef = useRef<GameplayMode>(
-    storedProgress?.preferredMode === "join" ? "join" : "arcade",
+    getVisibleMode(storedProgress?.preferredMode),
   );
   const recentWordIdsRef = useRef({
     arcade: [] as string[],
@@ -340,6 +393,20 @@ function App() {
   const safePoolIndex =
     activePool.length > 0 ? Math.min(poolIndex, activePool.length - 1) : 0;
   const currentWord = activePool[safePoolIndex] ?? activePool[0] ?? DEFAULT_SANDHI_BANK[0];
+  const currentRoundKey = useMemo(() => {
+    const progress =
+      effectiveMode === "join" ? wordProgress.join : wordProgress.arcade;
+
+    return `${effectiveMode}:${progress.cycle}:${progress.index}:${currentWord.id}:${roundResetNonce}`;
+  }, [
+    currentWord.id,
+    effectiveMode,
+    roundResetNonce,
+    wordProgress.arcade.cycle,
+    wordProgress.arcade.index,
+    wordProgress.join.cycle,
+    wordProgress.join.index,
+  ]);
   const activeTokensForUi =
     visibleTokens.length > 0
       ? visibleTokens
@@ -351,8 +418,30 @@ function App() {
           },
         ];
   const currentVisibleRuleIds = useMemo(
-    () => getVisibleRuleIdsFromTokens(activeTokensForUi),
-    [activeTokensForUi],
+    () =>
+      availableRuleIds.length > 0
+        ? availableRuleIds
+        : getVisibleRuleIdsFromTokens(activeTokensForUi),
+    [activeTokensForUi, availableRuleIds],
+  );
+  const visibleRuleContextKey = useMemo(
+    () =>
+      buildVisibleRuleContextKey(
+        activeTokensForUi,
+        currentWord.id,
+        effectiveMode,
+        selectedFamily,
+        currentVisibleRuleIds,
+        priorityRuleIds,
+      ),
+    [
+      activeTokensForUi,
+      currentVisibleRuleIds,
+      currentWord.id,
+      effectiveMode,
+      priorityRuleIds,
+      selectedFamily,
+    ],
   );
   const wordRuleOrder = useMemo(
     () =>
@@ -363,11 +452,41 @@ function App() {
       ).map((rule) => rule.id),
     [activeRules, currentWord.id, effectiveMode, selectedFamily],
   );
-  const visibleRules = useMemo(() => {
+  const computedVisibleRules = useMemo(() => {
     const activeRuleMap = new Map(activeRules.map((rule) => [rule.id, rule]));
-    const relevantRules = currentVisibleRuleIds
+    const orderIndex = new Map(wordRuleOrder.map((ruleId, index) => [ruleId, index]));
+    const priorityIndex = new Map(
+      priorityRuleIds.map((ruleId, index) => [ruleId, index]),
+    );
+    const sortByWordOrder = (rules: SandhiRule[]) =>
+      [...rules].sort((left, right) => {
+        const leftPriority = priorityIndex.get(left.id);
+        const rightPriority = priorityIndex.get(right.id);
+
+        if (leftPriority !== undefined || rightPriority !== undefined) {
+          if (leftPriority === undefined) {
+            return 1;
+          }
+
+          if (rightPriority === undefined) {
+            return -1;
+          }
+
+          if (leftPriority !== rightPriority) {
+            return leftPriority - rightPriority;
+          }
+        }
+
+        const leftIndex = orderIndex.get(left.id) ?? Number.MAX_SAFE_INTEGER;
+        const rightIndex = orderIndex.get(right.id) ?? Number.MAX_SAFE_INTEGER;
+
+        return leftIndex - rightIndex || left.id.localeCompare(right.id);
+      });
+    const relevantRules = sortByWordOrder(
+      currentVisibleRuleIds
       .map((ruleId) => activeRuleMap.get(ruleId) ?? null)
-      .filter((rule): rule is (typeof activeRules)[number] => Boolean(rule));
+      .filter((rule): rule is (typeof activeRules)[number] => Boolean(rule)),
+    );
 
     let candidateRules = activeRules;
 
@@ -382,29 +501,47 @@ function App() {
               ? []
               : [selectedFamily];
         const relevantIds = new Set(relevantRules.map((rule) => rule.id));
-        const preferredFamilyRules = activeRules.filter(
-          (rule) => preferredFamilies.includes(rule.family) && !relevantIds.has(rule.id),
+        const preferredFamilyRules = sortByWordOrder(
+          activeRules.filter(
+            (rule) => preferredFamilies.includes(rule.family) && !relevantIds.has(rule.id),
+          ),
         );
-        const remainingRules = activeRules.filter(
-          (rule) => !preferredFamilies.includes(rule.family) && !relevantIds.has(rule.id),
+        const remainingRules = sortByWordOrder(
+          activeRules.filter(
+            (rule) => !preferredFamilies.includes(rule.family) && !relevantIds.has(rule.id),
+          ),
         );
 
-        candidateRules = [...relevantRules, ...preferredFamilyRules, ...remainingRules].slice(
-          0,
-          MAX_VISIBLE_RULE_OPTIONS,
-        );
+        candidateRules = [
+          ...relevantRules,
+          ...preferredFamilyRules,
+          ...remainingRules,
+        ].slice(0, MAX_VISIBLE_RULE_OPTIONS);
       }
     }
 
-    const orderIndex = new Map(wordRuleOrder.map((ruleId, index) => [ruleId, index]));
+    return sortByWordOrder(candidateRules);
+  }, [
+    activeRules,
+    currentVisibleRuleIds,
+    priorityRuleIds,
+    selectedFamily,
+    wordRuleOrder,
+  ]);
+  const visibleRulesCacheRef = useRef<{ key: string; rules: SandhiRule[] } | null>(null);
+  const visibleRules = useMemo(() => {
+    if (
+      !visibleRulesCacheRef.current ||
+      visibleRulesCacheRef.current.key !== visibleRuleContextKey
+    ) {
+      visibleRulesCacheRef.current = {
+        key: visibleRuleContextKey,
+        rules: computedVisibleRules,
+      };
+    }
 
-    return [...candidateRules].sort((left, right) => {
-      const leftIndex = orderIndex.get(left.id) ?? Number.MAX_SAFE_INTEGER;
-      const rightIndex = orderIndex.get(right.id) ?? Number.MAX_SAFE_INTEGER;
-
-      return leftIndex - rightIndex || left.id.localeCompare(right.id);
-    });
-  }, [activeRules, currentVisibleRuleIds, selectedFamily, wordRuleOrder]);
+    return visibleRulesCacheRef.current.rules;
+  }, [computedVisibleRules, visibleRuleContextKey]);
   const languageRef = useRef(language);
   const modeRef = useRef(mode);
   const familyRef = useRef(selectedFamily);
@@ -412,6 +549,8 @@ function App() {
   const effectiveModeRef = useRef(effectiveMode);
   const practiceModeRef = useRef(practiceMode);
   const studyModeRef = useRef(studyMode);
+  const answerAdvanceModeRef = useRef(answerAdvanceMode);
+  const answerRevealDelayMsRef = useRef(answerRevealDelayMs);
 
   languageRef.current = language;
   modeRef.current = mode;
@@ -420,6 +559,8 @@ function App() {
   effectiveModeRef.current = effectiveMode;
   practiceModeRef.current = practiceMode;
   studyModeRef.current = studyMode;
+  answerAdvanceModeRef.current = answerAdvanceMode;
+  answerRevealDelayMsRef.current = answerRevealDelayMs;
 
   const persistProgress = (
     nextLanguage: Language,
@@ -440,6 +581,8 @@ function App() {
       studyMode: nextStudyMode,
       practiceSlowly: nextTimerMode === "untimed",
       practiceMode: practiceModeRef.current,
+      answerAdvanceMode: answerAdvanceModeRef.current,
+      answerRevealDelayMs: answerRevealDelayMsRef.current,
     };
 
     window.localStorage.setItem(STORAGE_KEYS.progress, JSON.stringify(payload));
@@ -469,46 +612,30 @@ function App() {
     }
   };
 
-  const getRoundAdvanceDelay = () => ROUND_COMPLETE_DELAY_MS;
+  const shouldWaitForNextWord = () =>
+    practiceModeRef.current ||
+    timerModeRef.current === "untimed" ||
+    answerAdvanceModeRef.current === "manual";
 
-  const scheduleNextWord = (delay = getRoundAdvanceDelay()) => {
+  const getAnswerAdvanceDelay = () => answerRevealDelayMsRef.current;
+
+  const advanceToNextWord = () => {
     clearNextWordTimer();
+    lastHandledInteractionIdRef.current = null;
+    setAwaitingPracticeAdvance(false);
+    setInteractionLocked(false);
+    setLesson(null);
+    setShowAnswerMeta(false);
+    setPriorityRuleIds([]);
+    resetAttempts();
+    setStats((current) => ({ ...current, lives: DEFAULT_LIVES }));
 
-    nextWordTimerRef.current = window.setTimeout(() => {
-      nextWordTimerRef.current = null;
-      setAwaitingPracticeAdvance(false);
-      setInteractionLocked(false);
-      setLesson(null);
-      setShowAnswerMeta(false);
-      resetAttempts();
-      setStats((current) => ({ ...current, lives: DEFAULT_LIVES }));
+    setWordProgress((current) => {
+      const key = effectiveModeRef.current;
+      const currentProgress = current[key];
+      const poolLength = poolLengthsRef.current[key];
 
-      setWordProgress((current) => {
-        const key = effectiveModeRef.current;
-        const currentProgress = current[key];
-        const poolLength = poolLengthsRef.current[key];
-
-        if (poolLength <= 1) {
-          return {
-            ...current,
-            [key]: {
-              index: 0,
-              cycle: currentProgress.cycle + 1,
-            },
-          };
-        }
-
-        const nextIndex = currentProgress.index + 1;
-        if (nextIndex < poolLength) {
-          return {
-            ...current,
-            [key]: {
-              ...currentProgress,
-              index: nextIndex,
-            },
-          };
-        }
-
+      if (poolLength <= 1) {
         return {
           ...current,
           [key]: {
@@ -516,9 +643,37 @@ function App() {
             cycle: currentProgress.cycle + 1,
           },
         };
-      });
+      }
 
-      resetTimer();
+      const nextIndex = currentProgress.index + 1;
+      if (nextIndex < poolLength) {
+        return {
+          ...current,
+          [key]: {
+            ...currentProgress,
+            index: nextIndex,
+          },
+        };
+      }
+
+      return {
+        ...current,
+        [key]: {
+          index: 0,
+          cycle: currentProgress.cycle + 1,
+        },
+      };
+    });
+
+    resetTimer();
+  };
+
+  const scheduleNextWord = (delay = getAnswerAdvanceDelay()) => {
+    clearNextWordTimer();
+
+    nextWordTimerRef.current = window.setTimeout(() => {
+      nextWordTimerRef.current = null;
+      advanceToNextWord();
     }, delay);
   };
 
@@ -583,16 +738,37 @@ function App() {
       return;
     }
 
+    const revealRuleIds = [
+      revealLesson.cut.ruleId,
+      ...(revealLesson.cut.ruleChain ?? []),
+    ];
     setLesson(revealLesson);
     setRevealed(true);
     setShowAnswerMeta(true);
+    setInteractionLocked(false);
+    setPriorityRuleIds(revealRuleIds);
+    setSelectedRuleId(revealLesson.cut.ruleId);
     setFeedback(t("revealTitle", languageRef.current));
     clearFeedbackLater();
   };
 
   const handleFeedback = (payload: SliceFeedback) => {
+    if (
+      payload.interactionId &&
+      lastHandledInteractionIdRef.current === payload.interactionId
+    ) {
+      return;
+    }
+
+    if (payload.interactionId) {
+      lastHandledInteractionIdRef.current = payload.interactionId;
+    }
+
     lastActiveTokensRef.current = payload.activeTokens;
     setVisibleTokens(payload.activeTokens);
+    setAvailableRuleIds(
+      payload.availableRuleIds ?? getVisibleRuleIdsFromTokens(payload.activeTokens),
+    );
     lastRevealLessonRef.current =
       payload.revealLesson ?? buildRevealLesson(payload.activeTokens);
     setFeedback(payload.message[languageRef.current]);
@@ -600,9 +776,15 @@ function App() {
 
     if (payload.lesson) {
       setLesson(payload.lesson);
+      setPriorityRuleIds([
+        payload.lesson.cut.ruleId,
+        ...(payload.lesson.cut.ruleChain ?? []),
+      ]);
     }
 
     if (payload.outcome === "correct") {
+      setInteractionLocked(false);
+      setAwaitingPracticeAdvance(false);
       setShowAnswerMeta(Boolean(payload.lesson));
       resetAttempts();
       updateStats((current) => ({
@@ -619,8 +801,7 @@ function App() {
 
       if (payload.roundCompleted) {
         setInteractionLocked(true);
-        const shouldWaitForManualAdvance =
-          practiceModeRef.current || timerModeRef.current === "untimed";
+        const shouldWaitForManualAdvance = shouldWaitForNextWord();
 
         if (shouldWaitForManualAdvance) {
           clearNextWordTimer();
@@ -629,24 +810,47 @@ function App() {
           if (practiceModeRef.current) {
             clearFeedbackTimer();
             setFeedback(t("practiceNextHint", languageRef.current));
+          } else if (answerAdvanceModeRef.current === "manual") {
+            clearFeedbackTimer();
+            setFeedback(t("answerWaitHint", languageRef.current));
           }
           return;
         }
-        scheduleNextWord();
+        scheduleNextWord(getAnswerAdvanceDelay());
       }
 
       return;
     }
 
-    if (payload.outcome === "wrong") {
+    if (payload.outcome === "blocked") {
+      setInteractionLocked(false);
+      setAwaitingPracticeAdvance(false);
       setShowAnswerMeta(false);
+      setRevealed(false);
+      setLesson(null);
+      return;
+    }
+
+    if (payload.outcome === "wrong") {
+      setInteractionLocked(false);
+      setAwaitingPracticeAdvance(false);
+      setShowAnswerMeta(false);
+      setRevealed(false);
+      setLesson(null);
       const nextAttempts = wrongAttemptsRef.current + 1;
       wrongAttemptsRef.current = nextAttempts;
+      const guidedMode = studyModeRef.current === "guided";
+      const challengeMode = studyModeRef.current === "challenge";
+      const revealDue = nextAttempts >= REVEAL_THRESHOLD;
+      const livesAfterWrong =
+        guidedMode && revealDue
+          ? DEFAULT_LIVES
+          : Math.max(DEFAULT_LIVES - nextAttempts, 0);
 
       setStats((current) => {
         const next = {
           ...current,
-          lives: Math.max(DEFAULT_LIVES - nextAttempts, 0),
+          lives: livesAfterWrong,
           streak: 0,
           highScore: Math.max(current.highScore, current.score),
         };
@@ -663,38 +867,59 @@ function App() {
         return next;
       });
 
-      if (
-        studyModeRef.current === "guided" &&
-        nextAttempts >= GUIDED_COACH_THRESHOLD &&
-        nextAttempts < REVEAL_THRESHOLD
-      ) {
-        const coachingLesson =
-          payload.revealLesson ?? buildRevealLesson(payload.activeTokens);
-        if (coachingLesson) {
-          setLesson(coachingLesson);
-          setRevealed(false);
-          setFeedback(t("guidedCoachHint", languageRef.current));
-          clearFeedbackLater();
-        }
-      }
-
-      // Practice mode never auto-reveals — the player chooses when via the
-      // "Show answer" button. Non-practice mode reveals after 4 misses.
-      if (!practiceModeRef.current && nextAttempts >= REVEAL_THRESHOLD) {
+      if (guidedMode && revealDue) {
         const revealLesson =
           payload.revealLesson ?? buildRevealLesson(payload.activeTokens);
         if (revealLesson) {
           setLesson(revealLesson);
           setRevealed(true);
           setShowAnswerMeta(true);
+          setInteractionLocked(false);
+          setPriorityRuleIds([
+            revealLesson.cut.ruleId,
+            ...(revealLesson.cut.ruleChain ?? []),
+          ]);
+          setSelectedRuleId(revealLesson.cut.ruleId);
         }
+        wrongAttemptsRef.current = 0;
 
-        // Keep the reveal message visible instead of auto-clearing it.
         if (feedbackTimerRef.current) {
           clearFeedbackTimer();
         }
         setFeedback(t("revealChip", languageRef.current));
-        setInteractionLocked(true);
+        return;
+      }
+
+      if (challengeMode && revealDue) {
+        const revealLesson =
+          payload.revealLesson ?? buildRevealLesson(payload.activeTokens);
+        if (revealLesson) {
+          setLesson(revealLesson);
+          setRevealed(true);
+          setShowAnswerMeta(true);
+          setInteractionLocked(true);
+          setPriorityRuleIds([
+            revealLesson.cut.ruleId,
+            ...(revealLesson.cut.ruleChain ?? []),
+          ]);
+          setSelectedRuleId(revealLesson.cut.ruleId);
+        }
+
+        if (feedbackTimerRef.current) {
+          clearFeedbackTimer();
+        }
+        wrongAttemptsRef.current = 0;
+        setFeedback(t("challengeOutOfLives", languageRef.current));
+
+        if (shouldWaitForNextWord()) {
+          clearNextWordTimer();
+          setAwaitingPracticeAdvance(true);
+          return;
+        }
+
+        setAwaitingPracticeAdvance(false);
+        scheduleNextWord(getAnswerAdvanceDelay());
+        return;
       }
       return;
     }
@@ -746,7 +971,17 @@ function App() {
 
   useEffect(() => {
     persistProgress(language, mode, selectedFamily, timerMode, studyMode, stats);
-  }, [language, mode, selectedFamily, timerMode, studyMode, stats, practiceMode]);
+  }, [
+    answerAdvanceMode,
+    answerRevealDelayMs,
+    language,
+    mode,
+    selectedFamily,
+    timerMode,
+    studyMode,
+    stats,
+    practiceMode,
+  ]);
 
   useEffect(() => {
     if (selectedFamily !== "mixed" && activeRules.length === 0) {
@@ -766,47 +1001,6 @@ function App() {
     }));
   }, [selectedFamily]);
 
-  useEffect(() => {
-    if (!containerRef.current || mode !== "arcade" || !fontsReady) {
-      if (gameRef.current && mode !== "arcade") {
-        gameRef.current.destroy();
-        gameRef.current = null;
-      }
-      return;
-    }
-
-    if (!gameRef.current) {
-      gameRef.current = new SandhiGame({
-        container: containerRef.current,
-        state: {
-          mode: "arcade",
-          language,
-          selectedRuleId,
-          rootWord: cloneWordNode(currentWord),
-          interactionLocked,
-        },
-        onFeedback: handleFeedback,
-      });
-      return;
-    }
-
-    gameRef.current.update({
-      mode: "arcade",
-      language,
-      selectedRuleId,
-      rootWord: cloneWordNode(currentWord),
-      interactionLocked,
-    });
-  }, [
-    currentWord,
-    effectiveMode,
-    interactionLocked,
-    language,
-    mode,
-    selectedRuleId,
-    fontsReady,
-  ]);
-
   useEffect(
     () => () => {
       if (feedbackTimerRef.current) {
@@ -815,8 +1009,6 @@ function App() {
       if (nextWordTimerRef.current) {
         window.clearTimeout(nextWordTimerRef.current);
       }
-      gameRef.current?.destroy();
-      gameRef.current = null;
     },
     [],
   );
@@ -854,17 +1046,21 @@ function App() {
   useEffect(() => {
     clearNextWordTimer();
     clearFeedbackTimer();
+    lastHandledInteractionIdRef.current = null;
     setAwaitingPracticeAdvance(false);
     setFeedback(null);
+    setAvailableRuleIds([]);
+    setPriorityRuleIds([]);
     setVisibleTokens([]);
     setShowAnswerMeta(false);
+    lastActiveTokensRef.current = [];
     lastRevealLessonRef.current = null;
     resetTimer(effectiveMode);
     setInteractionLocked(false);
     setLesson(null);
     resetAttempts();
     setStats((current) => ({ ...current, lives: DEFAULT_LIVES }));
-  }, [currentWord.id, effectiveMode, mode]);
+  }, [currentRoundKey, mode]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -878,27 +1074,26 @@ function App() {
       }
 
       if (event.key.toLowerCase() === "r") {
+        clearNextWordTimer();
+        clearFeedbackTimer();
+        lastHandledInteractionIdRef.current = null;
         resetTimer();
         setInteractionLocked(false);
         setLesson(null);
         setShowAnswerMeta(false);
         setFeedback(null);
+        setAvailableRuleIds([]);
+        setPriorityRuleIds([]);
         setAwaitingPracticeAdvance(false);
+        lastActiveTokensRef.current = [];
+        lastRevealLessonRef.current = null;
         resetAttempts();
         setStats((current) => ({ ...current, lives: DEFAULT_LIVES }));
-
-        if (modeRef.current === "arcade" && gameRef.current) {
-          gameRef.current.resetRound();
-          return;
-        }
-
-        if (modeRef.current === "join") {
-          setRoundResetNonce((current) => current + 1);
-        }
+        setRoundResetNonce((current) => current + 1);
       }
 
       if (event.key.toLowerCase() === "n" && modeRef.current !== "devStudio") {
-        scheduleNextWord(0);
+        advanceToNextWord();
       }
     };
 
@@ -979,6 +1174,7 @@ function App() {
     studyMode === "guided"
       ? selectedRule.helper[language]
       : t("challengeDockHint", language);
+  const showAnswerFlowSettings = !practiceMode && timerMode !== "untimed";
   const dockNotes = [
     t(isJoinMode ? "joinBoundaryHint" : "splitMarkerHint", language),
     t(isJoinMode ? "joinRuleHint" : "splitRuleHint", language),
@@ -1023,24 +1219,20 @@ function App() {
   const resetCurrentRound = () => {
     clearNextWordTimer();
     clearFeedbackTimer();
+    lastHandledInteractionIdRef.current = null;
     setAwaitingPracticeAdvance(false);
     resetTimer();
     setInteractionLocked(false);
     setLesson(null);
     setShowAnswerMeta(false);
     setFeedback(null);
+    setAvailableRuleIds([]);
+    setPriorityRuleIds([]);
+    lastActiveTokensRef.current = [];
     lastRevealLessonRef.current = null;
     resetAttempts();
     setStats((current) => ({ ...current, lives: DEFAULT_LIVES }));
-
-    if (mode === "arcade") {
-      gameRef.current?.resetRound();
-      return;
-    }
-
-    if (mode === "join") {
-      setRoundResetNonce((current) => current + 1);
-    }
+    setRoundResetNonce((current) => current + 1);
   };
 
   return (
@@ -1064,15 +1256,6 @@ function App() {
           <div className="hero-controls__top">
             <ModeSelector language={language} mode={mode} onChange={setMode} />
             <div className="hero-utility-row">
-              <button
-                className="ghost-button"
-                onClick={() =>
-                  setMode(isStudioMode ? lastGameplayModeRef.current : "devStudio")
-                }
-                type="button"
-              >
-                {isStudioMode ? t("backToGame", language) : t("openExplorer", language)}
-              </button>
               <LanguageToggle language={language} onChange={setLanguage} />
               <div className="hero-word-chip">
                 <strong>{currentWord.devanagari}</strong>
@@ -1122,22 +1305,28 @@ function App() {
                 <div className="game-stage-shell">
                   {isJoinMode ? (
                     <SandhiJoinBoard
+                      key={currentRoundKey}
                       interactionLocked={interactionLocked}
                       language={language}
                       onFeedback={handleFeedback}
+                      roundKey={currentRoundKey}
                       resetNonce={roundResetNonce}
                       rootWord={currentWord}
                       selectedRuleId={selectedRuleId}
+                      studyMode={studyMode}
                     />
                   ) : (
-                    <div
-                      className={`game-stage ${fontsReady ? "" : "game-stage--loading"}`}
-                      ref={containerRef}
-                    >
-                      {!fontsReady ? (
-                        <div className="game-stage__loading">{t("loadingArena", language)}</div>
-                      ) : null}
-                    </div>
+                    <SandhiSplitBoard
+                      key={currentRoundKey}
+                      fontsReady={fontsReady}
+                      interactionLocked={interactionLocked}
+                      language={language}
+                      onFeedback={handleFeedback}
+                      rootWord={currentWord}
+                      roundKey={currentRoundKey}
+                      selectedRuleId={selectedRuleId}
+                      studyMode={studyMode}
+                    />
                   )}
 
                   <div className="floating-dock glass-panel">
@@ -1195,7 +1384,7 @@ function App() {
                     </div>
 
                     <div className="action-row floating-dock__actions">
-                      {practiceMode ? (
+                      {practiceMode && studyMode === "guided" ? (
                         <button
                           className="ghost-button ghost-button--reveal"
                           onClick={handleRevealAnswer}
@@ -1215,7 +1404,7 @@ function App() {
                         className={`ghost-button ${
                           awaitingPracticeAdvance ? "ghost-button--next-hint" : ""
                         }`}
-                        onClick={() => scheduleNextWord(0)}
+                        onClick={advanceToNextWord}
                         type="button"
                       >
                         {awaitingPracticeAdvance
@@ -1240,6 +1429,11 @@ function App() {
                 onStudyModeChange={setStudyMode}
                 practiceMode={practiceMode}
                 onPracticeModeChange={setPracticeMode}
+                answerAdvanceMode={answerAdvanceMode}
+                onAnswerAdvanceModeChange={setAnswerAdvanceMode}
+                answerRevealDelayMs={answerRevealDelayMs}
+                onAnswerRevealDelayChange={setAnswerRevealDelayMs}
+                showAnswerFlowSettings={showAnswerFlowSettings}
                 remainingSplits={remainingSplits}
                 stats={stats}
               />
@@ -1247,6 +1441,7 @@ function App() {
                 feedback={feedback}
                 language={language}
                 lesson={lesson}
+                studyMode={studyMode}
                 revealed={revealed}
                 showAnswerMeta={showAnswerMeta}
               />

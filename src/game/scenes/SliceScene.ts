@@ -5,9 +5,11 @@ import type {
   ActiveToken,
   GameMode,
   Language,
+  SandhiCut,
   SandhiRuleId,
   SliceAssessment,
   SliceFeedback,
+  StudyMode,
   WordNode,
 } from "../../types/sandhi";
 
@@ -19,6 +21,8 @@ export type SliceSceneBridgeState = {
   selectedRuleId: SandhiRuleId;
   rootWord: WordNode;
   interactionLocked: boolean;
+  roundKey: string;
+  studyMode: StudyMode;
 };
 
 type SliceSceneCallbacks = {
@@ -52,6 +56,30 @@ const lineIntersectsRectangle = (
 const TEXT_RESOLUTION =
   typeof window !== "undefined" ? Math.min(window.devicePixelRatio || 1, 2) : 2;
 
+const cutMatchesRule = (cut: SandhiCut, ruleId: SandhiRuleId) =>
+  cut.ruleId === ruleId || cut.ruleChain?.includes(ruleId) === true;
+
+const collectAvailableRuleIds = (tokens: ActiveToken[]) => {
+  const ids = new Set<SandhiRuleId>();
+
+  tokens.forEach((token) => {
+    if (!isFurtherSplittable(token.node)) {
+      return;
+    }
+
+    token.node.cuts.forEach((cut) => {
+      if (cut.reviewNeeded) {
+        return;
+      }
+
+      ids.add(cut.ruleId);
+      cut.ruleChain?.forEach((ruleId) => ids.add(ruleId));
+    });
+  });
+
+  return [...ids];
+};
+
 export class SliceScene extends Phaser.Scene {
   private bridgeState!: SliceSceneBridgeState;
 
@@ -73,6 +101,12 @@ export class SliceScene extends Phaser.Scene {
 
   private initialState: SliceSceneBridgeState | null = null;
 
+  private gestureSerial = 0;
+
+  private trailClearEvent: Phaser.Time.TimerEvent | null = null;
+
+  private arenaRecoveryEvent: Phaser.Time.TimerEvent | null = null;
+
   constructor(callbacks: SliceSceneCallbacks) {
     super("slice-scene");
     this.callbacks = callbacks;
@@ -93,6 +127,8 @@ export class SliceScene extends Phaser.Scene {
 
     const previousWordId = this.bridgeState.rootWord.id;
     const previousMode = this.bridgeState.mode;
+    const previousRoundKey = this.bridgeState.roundKey;
+    const previousStudyMode = this.bridgeState.studyMode;
     this.bridgeState = {
       ...this.bridgeState,
       ...state,
@@ -100,9 +136,20 @@ export class SliceScene extends Phaser.Scene {
 
     const nextWordId = this.bridgeState.rootWord.id;
     const nextMode = this.bridgeState.mode;
+    const nextRoundKey = this.bridgeState.roundKey;
+    const nextStudyMode = this.bridgeState.studyMode;
 
-    if (previousWordId !== nextWordId || previousMode !== nextMode) {
+    if (
+      previousWordId !== nextWordId ||
+      previousMode !== nextMode ||
+      previousRoundKey !== nextRoundKey
+    ) {
       this.resetRound();
+      return;
+    }
+
+    if (previousStudyMode !== nextStudyMode) {
+      this.rebuildTokenViews();
       return;
     }
 
@@ -126,7 +173,9 @@ export class SliceScene extends Phaser.Scene {
   }
 
   resetRound() {
+    this.cancelPendingSceneEvents();
     this.clearTrail();
+    this.gestureSerial = 0;
     this.activeTokens = [
       {
         instanceId: createInstanceId(),
@@ -144,12 +193,14 @@ export class SliceScene extends Phaser.Scene {
         te: t("slicePrompt", "te"),
       },
       revealLesson: this.buildRevealLesson(this.activeTokens),
+      availableRuleIds: collectAvailableRuleIds(this.activeTokens),
       activeTokens: [...this.activeTokens],
       roundCompleted: false,
     });
   }
 
   private handleResize() {
+    this.cancelPendingSceneEvents();
     this.clearTrail();
     this.rebuildTokenViews();
   }
@@ -159,6 +210,8 @@ export class SliceScene extends Phaser.Scene {
       return;
     }
 
+    this.cancelPendingSceneEvents();
+    this.clearTrail();
     this.pointerDown = true;
     this.swipeStart = new Phaser.Math.Vector2(pointer.worldX, pointer.worldY);
     this.swipeEnd = new Phaser.Math.Vector2(pointer.worldX, pointer.worldY);
@@ -184,7 +237,11 @@ export class SliceScene extends Phaser.Scene {
     this.renderTrail();
     this.resolveSwipe();
 
-    this.time.delayedCall(120, () => this.clearTrail());
+    this.trailClearEvent?.remove(false);
+    this.trailClearEvent = this.time.delayedCall(120, () => {
+      this.trailClearEvent = null;
+      this.clearTrail();
+    });
   }
 
   private renderTrail() {
@@ -209,10 +266,32 @@ export class SliceScene extends Phaser.Scene {
   }
 
   private clearTrail() {
+    this.pointerDown = false;
     this.swipeStart = null;
     this.swipeEnd = null;
     this.trail.clear();
     this.trailGlow.clear();
+  }
+
+  private cancelPendingSceneEvents() {
+    this.trailClearEvent?.remove(false);
+    this.trailClearEvent = null;
+    this.arenaRecoveryEvent?.remove(false);
+    this.arenaRecoveryEvent = null;
+  }
+
+  private scheduleArenaRecovery(delay = 220) {
+    this.arenaRecoveryEvent?.remove(false);
+    this.arenaRecoveryEvent = this.time.delayedCall(delay, () => {
+      this.arenaRecoveryEvent = null;
+      if (!this.sys.isActive()) {
+        return;
+      }
+
+      this.clearTrail();
+      this.rebuildTokenViews();
+      this.refreshTokenDecorations();
+    });
   }
 
   private resolveSwipe() {
@@ -220,6 +299,7 @@ export class SliceScene extends Phaser.Scene {
       return;
     }
 
+    const interactionId = `${this.bridgeState.roundKey}:swipe:${++this.gestureSerial}`;
     const swipeLine = new Phaser.Geom.Line(
       this.swipeStart.x,
       this.swipeStart.y,
@@ -255,10 +335,13 @@ export class SliceScene extends Phaser.Scene {
             t("feedbackFinal", "sa"),
             t("feedbackFinal", "te"),
           ),
+          availableRuleIds: collectAvailableRuleIds(this.activeTokens),
           activeTokens: [...this.activeTokens],
           roundCompleted: false,
           assessment: "final-word",
+          interactionId,
         });
+        this.scheduleArenaRecovery();
         return;
       }
 
@@ -273,11 +356,13 @@ export class SliceScene extends Phaser.Scene {
           this.hasSelectedRuleElsewhere(token)
             ? "place-wrong-rule-correct"
             : "both-wrong",
+          undefined,
+          interactionId,
         );
         return;
       }
 
-      this.handleSliceAtBoundary(token, hitZone.index, view);
+      this.handleSliceAtBoundary(token, hitZone.index, view, interactionId);
       return;
     }
   }
@@ -286,6 +371,7 @@ export class SliceScene extends Phaser.Scene {
     token: ActiveToken,
     boundaryIndex: number,
     view: TokenView,
+    interactionId: string,
   ) {
     if (!isFurtherSplittable(token.node)) {
       this.shakeToken(view, 0xff6673);
@@ -296,11 +382,14 @@ export class SliceScene extends Phaser.Scene {
           t("feedbackFinal", "sa"),
           t("feedbackFinal", "te"),
         ),
+        availableRuleIds: collectAvailableRuleIds(this.activeTokens),
         activeTokens: [...this.activeTokens],
         roundCompleted: false,
         boundaryIndex,
         assessment: "final-word",
+        interactionId,
       });
+      this.scheduleArenaRecovery();
       return;
     }
 
@@ -315,21 +404,29 @@ export class SliceScene extends Phaser.Scene {
           ? "place-wrong-rule-correct"
           : "both-wrong",
         boundaryIndex,
+        interactionId,
       );
       return;
     }
 
     const matchingCuts = exactBoundaryCuts.filter(
-      (cut) => cut.ruleId === this.bridgeState.selectedRuleId,
+      (cut) => cutMatchesRule(cut, this.bridgeState.selectedRuleId),
     );
 
     if (matchingCuts.length === 0) {
-      this.handleWrongSlice(token, "place-correct-rule-wrong", boundaryIndex);
+      this.handleWrongSlice(
+        token,
+        "place-correct-rule-wrong",
+        boundaryIndex,
+        interactionId,
+      );
       return;
     }
 
     const selectedCut =
       matchingCuts[Math.floor(Math.random() * matchingCuts.length)];
+    this.arenaRecoveryEvent?.remove(false);
+    this.arenaRecoveryEvent = null;
     const children: ActiveToken[] = [
       {
         instanceId: createInstanceId(),
@@ -372,10 +469,12 @@ export class SliceScene extends Phaser.Scene {
         variantCount: matchingCuts.length,
       },
       revealLesson: this.buildRevealLesson(this.activeTokens),
+      availableRuleIds: collectAvailableRuleIds(this.activeTokens),
       activeTokens: [...this.activeTokens],
       roundCompleted,
       boundaryIndex,
       assessment: "both-correct",
+      interactionId,
     });
   }
 
@@ -386,6 +485,7 @@ export class SliceScene extends Phaser.Scene {
       | "place-wrong-rule-correct"
       | "both-wrong",
     boundaryIndex?: number,
+    interactionId?: string,
   ) {
     const view = this.tokenViews.get(token.instanceId);
     if (view) {
@@ -408,11 +508,22 @@ export class SliceScene extends Phaser.Scene {
         t(messageKey, "te"),
       ),
       revealLesson: this.buildRevealLesson(this.activeTokens),
+      availableRuleIds: collectAvailableRuleIds(this.activeTokens),
       activeTokens: [...this.activeTokens],
       roundCompleted: false,
       boundaryIndex,
       assessment: type,
+      interactionId,
     });
+    this.scheduleArenaRecovery();
+  }
+
+  shutdown() {
+    this.cancelPendingSceneEvents();
+    this.input.off("pointerdown", this.handlePointerDown, this);
+    this.input.off("pointermove", this.handlePointerMove, this);
+    this.input.off("pointerup", this.handlePointerUp, this);
+    this.scale.off("resize", this.handleResize, this);
   }
 
   private buildRevealLesson(tokens: ActiveToken[]) {
@@ -439,7 +550,8 @@ export class SliceScene extends Phaser.Scene {
 
   private hasSelectedRuleElsewhere(token: ActiveToken) {
     return token.node.cuts.some(
-      (cut) => !cut.reviewNeeded && cut.ruleId === this.bridgeState.selectedRuleId,
+      (cut) =>
+        !cut.reviewNeeded && cutMatchesRule(cut, this.bridgeState.selectedRuleId),
     );
   }
 
@@ -527,7 +639,11 @@ export class SliceScene extends Phaser.Scene {
     label: Phaser.GameObjects.Text,
     token: ActiveToken,
   ) {
-    if (!isFurtherSplittable(token.node) || token.node.aksharas.length <= 1) {
+    if (
+      this.bridgeState.studyMode !== "guided" ||
+      !isFurtherSplittable(token.node) ||
+      token.node.aksharas.length <= 1
+    ) {
       return null;
     }
 

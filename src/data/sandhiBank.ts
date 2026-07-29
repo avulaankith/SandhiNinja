@@ -52,6 +52,7 @@ type SimpleEntryConfig = {
   devanagari: string;
   telugu?: string;
   ruleId: SandhiRuleId;
+  ruleChain?: SandhiRuleId[];
   left: {
     id: string;
     devanagari: string;
@@ -90,42 +91,69 @@ const buildSimpleExplanation = (
   te: `${surface} ను ${left} + ${right}గా విభజించాలి. ${rule.helper.te} ఈ సంగమంలో అందుకే ${surface} రూపం వస్తుంది. పాణినీ సూత్రం: ${rule.sutra.text} (${rule.sutra.number}).`,
 });
 
-const createSimpleEntry = ({
+const createRuleCut = ({
   id,
-  devanagari,
-  telugu,
+  surface,
   ruleId,
   left,
   right,
+  ruleChain,
   nimitta,
   note,
-}: SimpleEntryConfig): WordNode => {
+}: {
+  id: string;
+  surface: string;
+  ruleId: SandhiRuleId;
+  left: WordNode;
+  right: WordNode;
+  ruleChain?: SandhiRuleId[];
+  nimitta?: LocalizedText;
+  note?: LocalizedText | string;
+}): SandhiCut => {
   const rule = RULE_LOOKUP.get(ruleId);
 
   if (!rule) {
     throw new Error(`Unknown sandhi rule: ${ruleId}`);
   }
 
-  const leftNode = autoLeaf(left.id, left.devanagari, left.telugu);
-  const rightNode = autoLeaf(right.id, right.devanagari, right.telugu);
-
-  const cut = createCut({
-    id: `${id}-split`,
+  return createCut({
+    id,
     ruleId,
-    cutAfterAksharaIndex: Math.max(leftNode.aksharas.length - 1, 0),
-    left: leftNode,
-    right: rightNode,
+    ruleChain,
+    cutAfterAksharaIndex: Math.max(left.aksharas.length - 1, 0),
+    left,
+    right,
     explanation: {
-      ...buildSimpleExplanation(
-        devanagari,
-        rule,
-        left.devanagari,
-        right.devanagari,
-      ),
+      ...buildSimpleExplanation(surface, rule, left.devanagari, right.devanagari),
       nimitta,
       note: localizeNote(note),
     },
     sutra: rule.sutra,
+  });
+};
+
+const createSimpleEntry = ({
+  id,
+  devanagari,
+  telugu,
+  ruleId,
+  ruleChain,
+  left,
+  right,
+  nimitta,
+  note,
+}: SimpleEntryConfig): WordNode => {
+  const leftNode = autoLeaf(left.id, left.devanagari, left.telugu);
+  const rightNode = autoLeaf(right.id, right.devanagari, right.telugu);
+  const cut = createRuleCut({
+    id: `${id}-split`,
+    surface: devanagari,
+    ruleId,
+    left: leftNode,
+    right: rightNode,
+    ruleChain,
+    nimitta,
+    note,
   });
 
   return {
@@ -138,6 +166,26 @@ const createSimpleEntry = ({
     cuts: [cut],
   };
 };
+
+const createCompositeNode = ({
+  id,
+  devanagari,
+  cuts,
+  telugu,
+}: {
+  id: string;
+  devanagari: string;
+  cuts: SandhiCut[];
+  telugu?: string;
+}): WordNode => ({
+  id,
+  devanagari,
+  iast: devanagariToIast(devanagari) || devanagari,
+  telugu: telugu ?? autoTeluguFromDevanagari(devanagari),
+  status: "splittable",
+  aksharas: splitDevanagariAksharas(devanagari),
+  cuts,
+});
 
 const PURVARUPA_NIMITTA = {
   en: "Nimittam: the first word ends in e or o, and the next word begins with a.",
@@ -230,9 +278,9 @@ const SHTUTVA_NIMITTA = {
 } as const;
 
 const SATVA_NIMITTA = {
-  en: "Nimittam: a final n stands before c/ch/ṭ/ṭh/t/th and changes through satva into a nasalized vowel or anusvāra plus s, ś, or ṣ.",
-  sa: "निमित्तम्: पदान्तनकारः च्/छ्/ट्/ठ्/त्/थ्-परः सति सत्वप्रक्रियया अनुनासिकपूर्वस्वरम् अथवा अनुस्वारं कृत्वा स/श/षरूपं जनयति।",
-  te: "నిమిత్తం: పదాంత న్ తరువాత చ్/ఛ్/ట్/ఠ్/త్/థ్ వచ్చినప్పుడు సత్వప్రక్రియ ద్వారా ముందు స్వరం అనునాసికం లేదా అనుస్వారంగా మారి స్/శ్/ష్ రూపం వస్తుంది.",
+  en: "Nimittam: a final n stands before c/ch/ṭ/ṭh/t/th and, in satva-sandhi, yields a nasalized vowel or anusvāra plus s, ś, or ṣ.",
+  sa: "निमित्तम्: पदान्तनकारः च्/छ्/ट्/ठ्/त्/थ्-परः सति सत्वसन्ध्या अनुनासिकपूर्वस्वरम् अथवा अनुस्वारं कृत्वा स/श/षरूपं जनयति।",
+  te: "నిమిత్తం: పదాంత న్ తరువాత చ్/ఛ్/ట్/ఠ్/త్/థ్ వచ్చినప్పుడు సత్వసంధి వల్ల ముందు స్వరం అనునాసికం లేదా అనుస్వారంగా మారి స్/శ్/ష్ రూపం వస్తుంది.",
 } as const;
 
 const YAVALOPA_NIMITTA = {
@@ -272,15 +320,15 @@ const RUNNING_TEXT_NOTE: LocalizedText = {
 };
 
 const SATVA_SHCUTVA_NOTE: LocalizedText = {
-  en: "Here satva creates the s-sound first; the visible śc then appears by the follow-up ścutva step.",
-  sa: "अत्र प्रथमं सत्वेन सकारः सिद्ध्यति; अनन्तरं दृश्यते श्च-रूपं श्चुत्वेन।",
-  te: "ఇక్కడ ముందుగా సత్వం వల్ల స్ సిద్ధిస్తుంది; కనిపించే శ్చ రూపం తరువాతి శ్చుత్వంతో వస్తుంది.",
+  en: "Here satva-sandhi creates the s-sound first; the visible śc then appears by the follow-up ścutva step.",
+  sa: "अत्र प्रथमं सत्वसन्ध्या सकारः सिद्ध्यति; अनन्तरं दृश्यते श्च-रूपं श्चुत्वेन।",
+  te: "ఇక్కడ ముందుగా సత్వసంధి వల్ల స్ సిద్ధిస్తుంది; కనిపించే శ్చ రూపం తరువాతి శ్చుత్వంతో వస్తుంది.",
 };
 
 const SATVA_SHTUTVA_NOTE: LocalizedText = {
-  en: "Here satva creates the s-sound first; the visible ṣṭh/ṣṭ then appears by the follow-up ṣṭutva step.",
-  sa: "अत्र प्रथमं सत्वेन सकारः सिद्ध्यति; अनन्तरं दृश्यते ष्ठ/ष्ट-रूपं ष्टुत्वेन।",
-  te: "ఇక్కడ ముందుగా సత్వం వల్ల స్ సిద్ధిస్తుంది; కనిపించే ష్ఠ/ష్ట రూపం తరువాతి ష్టుత్వంతో వస్తుంది.",
+  en: "Here satva-sandhi creates the s-sound first; the visible ṣṭh/ṣṭ then appears by the follow-up ṣṭutva step.",
+  sa: "अत्र प्रथमं सत्वसन्ध्या सकारः सिद्ध्यति; अनन्तरं दृश्यते ष्ठ/ष्ट-रूपं ष्टुत्वेन।",
+  te: "ఇక్కడ ముందుగా సత్వసంధి వల్ల స్ సిద్ధిస్తుంది; కనిపించే ష్ఠ/ష్ట రూపం తరువాతి ష్టుత్వంతో వస్తుంది.",
 };
 
 const makeCompactHiatusNote = (
@@ -568,6 +616,181 @@ const paramaIshvaralaya = createCut({
     text: "आद्गुणः",
     number: "6.1.87",
   },
+});
+
+const tamshcaJoinNode = createCompositeNode({
+  id: "tamshca-join-node",
+  devanagari: "तांश्च",
+  cuts: [
+    createRuleCut({
+      id: "tamshca-join-node-split",
+      surface: "तांश्च",
+      ruleId: "satva",
+      ruleChain: ["satva", "shcutva"],
+      left: autoLeaf("tan-left-tamshca-join", "तान्"),
+      right: autoLeaf("ca-right-tamshca-join", "च"),
+      nimitta: SATVA_NIMITTA,
+      note: SATVA_SHCUTVA_NOTE,
+    }),
+  ],
+});
+
+const tamshcapiEntry = createCompositeNode({
+  id: "tamshcapi",
+  devanagari: "तांश्चापि",
+  cuts: [
+    createRuleCut({
+      id: "tamshcapi-split",
+      surface: "तांश्चापि",
+      ruleId: "savarna-dirgha",
+      left: tamshcaJoinNode,
+      right: autoLeaf("api-right-tamshcapi", "अपि"),
+      note: {
+        en: "Join in order: first तान् + च -> तांश्च, then तांश्च + अपि -> तांश्चापि.",
+        sa: "अत्र क्रमेण योजनीयम्। प्रथमं तान् + च -> तांश्च, अनन्तरं तांश्च + अपि -> तांश्चापि।",
+        te: "ఇది క్రమంగా కలపాలి. ముందుగా తాన్ + చ -> తాంశ్చ, తరువాత తాంశ్చ + అపి -> తాంశ్చాపి.",
+      },
+    }),
+  ],
+});
+
+const prajnavadamshcaJoinNode = createCompositeNode({
+  id: "prajnavadamshca-join-node",
+  devanagari: "प्रज्ञावादांश्च",
+  cuts: [
+    createRuleCut({
+      id: "prajnavadamshca-join-node-split",
+      surface: "प्रज्ञावादांश्च",
+      ruleId: "satva",
+      ruleChain: ["satva", "shcutva"],
+      left: autoLeaf("prajnavadan-left-join", "प्रज्ञावादान्"),
+      right: autoLeaf("ca-right-prajnavadan-join", "च"),
+      nimitta: SATVA_NIMITTA,
+      note: SATVA_SHCUTVA_NOTE,
+    }),
+  ],
+});
+
+const prajnavadamshcapiEntry = createCompositeNode({
+  id: "prajnavadamshcapi",
+  devanagari: "प्रज्ञावादांश्चापि",
+  cuts: [
+    createRuleCut({
+      id: "prajnavadamshcapi-split",
+      surface: "प्रज्ञावादांश्चापि",
+      ruleId: "savarna-dirgha",
+      left: prajnavadamshcaJoinNode,
+      right: autoLeaf("api-right-prajnavadamshcapi", "अपि"),
+      note: {
+        en: "This is a two-step join: first satva-sandhi with ścutva gives प्रज्ञावादांश्च, then savarṇa dīrgha gives प्रज्ञावादांश्चापि.",
+        sa: "अयं द्विक्रमयोगः। प्रथमं सत्वसन्ध्या श्चुत्वसहितं प्रज्ञावादांश्च भवति, अनन्तरं सवर्णदीर्घेण प्रज्ञावादांश्चापि सिद्ध्यति।",
+        te: "ఇది రెండుదశల కలయిక. ముందుగా సత్వసంధి-శ్చుత్వంతో ప్రజ్ఞావాదాంశ్చ వస్తుంది; తరువాత సవర్ణదీర్ఘంతో ప్రజ్ఞావాదాంశ్చాపి సిద్ధిస్తుంది.",
+      },
+    }),
+  ],
+});
+
+const digambaraJoinNode = createCompositeNode({
+  id: "digambara-join-node",
+  devanagari: "दिगम्बर",
+  cuts: [
+    createRuleCut({
+      id: "digambara-join-node-split",
+      surface: "दिगम्बर",
+      ruleId: "jashtva",
+      left: autoLeaf("dik-left-digambara-join", "दिक्"),
+      right: autoLeaf("ambara-right-digambara-join", "अम्बर"),
+      nimitta: JASHTVA_NIMITTA,
+    }),
+  ],
+});
+
+const digambaralayaEntry = createCompositeNode({
+  id: "digambaralayah",
+  devanagari: "दिगम्बरालयः",
+  cuts: [
+    createRuleCut({
+      id: "digambaralaya-split",
+      surface: "दिगम्बरालयः",
+      ruleId: "savarna-dirgha",
+      left: digambaraJoinNode,
+      right: autoLeaf("alaya-right-digambaralaya", "आलयः"),
+      note: {
+        en: "First make दिगम्बर from दिक् + अम्बर, then join दिगम्बर + आलयः.",
+        sa: "प्रथमं दिक् + अम्बर इत्यस्मात् दिगम्बरः न, दिगम्बर इति पूर्वपदरूपं सिद्ध्यति; अनन्तरं दिगम्बर + आलयः इति योगः।",
+        te: "ముందుగా దిక్ + అంబర నుండి దిగంబర అనే పూర్వపదరూపం సిద్ధిస్తుంది; తరువాత దిగంబర + ఆలయః కలుస్తాయి.",
+      },
+    }),
+  ],
+});
+
+const jagadishaJoinNode = createCompositeNode({
+  id: "jagadisha-join-node",
+  devanagari: "जगदीश",
+  cuts: [
+    createRuleCut({
+      id: "jagadisha-join-node-split",
+      surface: "जगदीश",
+      ruleId: "jashtva",
+      left: autoLeaf("jagat-left-jagadisha-join", "जगत्"),
+      right: autoLeaf("isha-right-jagadisha-join", "ईश"),
+      nimitta: JASHTVA_NIMITTA,
+    }),
+  ],
+});
+
+const jagadishalayaEntry = createCompositeNode({
+  id: "jagadishalayah",
+  devanagari: "जगदीशालयः",
+  cuts: [
+    createRuleCut({
+      id: "jagadishalaya-split",
+      surface: "जगदीशालयः",
+      ruleId: "savarna-dirgha",
+      left: jagadishaJoinNode,
+      right: autoLeaf("alaya-right-jagadishalaya", "आलयः"),
+      note: {
+        en: "This join teaches two steps: जगत् + ईश -> जगदीश, then जगदीश + आलयः -> जगदीशालयः.",
+        sa: "अत्र द्वौ क्रमौ स्तः। जगत् + ईश -> जगदीश, अनन्तरं जगदीश + आलयः -> जगदीशालयः।",
+        te: "ఇక్కడ రెండు దశలు ఉన్నాయి. జగత్ + ఈశ -> జగదీశ, తరువాత జగదీశ + ఆలయః -> జగదీశాలయః.",
+      },
+    }),
+  ],
+});
+
+const sanmargahJoinNode = createCompositeNode({
+  id: "sanmargah-join-node",
+  devanagari: "सन्मार्गः",
+  cuts: [
+    createRuleCut({
+      id: "sanmargah-join-node-split",
+      surface: "सन्मार्गः",
+      ruleId: "anunasika",
+      left: autoLeaf("sat-left-sanmargah-join", "सत्"),
+      right: autoLeaf("margah-right-sanmargah-join", "मार्गः"),
+      nimitta: ANUNASIKA_NIMITTA,
+    }),
+  ],
+});
+
+const sanmargopadeshahEntry = createCompositeNode({
+  id: "sanmargopadeshah",
+  devanagari: "सन्मार्गोपदेशः",
+  cuts: [
+    createRuleCut({
+      id: "sanmargopadeshah-split",
+      surface: "सन्मार्गोपदेशः",
+      ruleId: "visarga-o",
+      left: sanmargahJoinNode,
+      right: autoLeaf("upadeshah-right-sanmargopadesha", "उपदेशः"),
+      nimitta: VISARGA_OTVA_NIMITTA,
+      note: {
+        en: "First form सन्मार्गः by anunāsika sandhi, then join सन्मार्गः + उपदेशः through visarga-o.",
+        sa: "प्रथमम् अनुनासिकसन्धिना सन्मार्गः सिद्ध्यति, अनन्तरं सन्मार्गः + उपदेशः इत्यत्र विसर्ग-ओत्वं भवति।",
+        te: "ముందుగా అనునాసికసంధితో సన్మార్గః వస్తుంది; తరువాత సన్మార్గః + ఉపదేశః లో విసర్గ-ఓత్వం జరుగుతుంది.",
+      },
+    }),
+  ],
 });
 
 const himalayaEntry = createSimpleEntry({
@@ -4370,6 +4593,7 @@ const VYANJANA_BULK_PDF_CONFIGS: SimpleEntryConfig[] = [
     id: "prajnavadamshca",
     devanagari: "प्रज्ञावादांश्च",
     ruleId: "satva",
+    ruleChain: ["satva", "shcutva"],
     left: { id: "prajnavadan-left", devanagari: "प्रज्ञावादान्" },
     right: { id: "ca-right-prajnavadan", devanagari: "च" },
     nimitta: SATVA_NIMITTA,
@@ -4379,6 +4603,7 @@ const VYANJANA_BULK_PDF_CONFIGS: SimpleEntryConfig[] = [
     id: "shlokamshtikabhih",
     devanagari: "श्लोकांष्टीकाभिः",
     ruleId: "satva",
+    ruleChain: ["satva", "shtutva"],
     left: { id: "shlokan-left", devanagari: "श्लोकान्" },
     right: { id: "tikabhih-right", devanagari: "टीकाभिः" },
     nimitta: SATVA_NIMITTA,
@@ -4388,6 +4613,7 @@ const VYANJANA_BULK_PDF_CONFIGS: SimpleEntryConfig[] = [
     id: "tamshca",
     devanagari: "तांश्च",
     ruleId: "satva",
+    ruleChain: ["satva", "shcutva"],
     left: { id: "tan-left-ca", devanagari: "तान्" },
     right: { id: "ca-right-tan", devanagari: "च" },
     nimitta: SATVA_NIMITTA,
@@ -4397,6 +4623,7 @@ const VYANJANA_BULK_PDF_CONFIGS: SimpleEntryConfig[] = [
     id: "agatasumshca",
     devanagari: "अगतासूंश्च",
     ruleId: "satva",
+    ruleChain: ["satva", "shcutva"],
     left: { id: "agatasun-left", devanagari: "अगतासून्" },
     right: { id: "ca-right-agatasun", devanagari: "च" },
     nimitta: SATVA_NIMITTA,
@@ -4406,6 +4633,7 @@ const VYANJANA_BULK_PDF_CONFIGS: SimpleEntryConfig[] = [
     id: "sarvamshthakkuran",
     devanagari: "सर्वांष्ठक्कुरान्",
     ruleId: "satva",
+    ruleChain: ["satva", "shtutva"],
     left: { id: "sarvan-left", devanagari: "सर्वान्" },
     right: { id: "thakkuran-right", devanagari: "ठक्कुरान्" },
     nimitta: SATVA_NIMITTA,
@@ -4423,6 +4651,7 @@ const VYANJANA_BULK_PDF_CONFIGS: SimpleEntryConfig[] = [
     id: "tamshthankaran",
     devanagari: "तांष्ठङ्कारान्",
     ruleId: "satva",
+    ruleChain: ["satva", "shtutva"],
     left: { id: "tan-left-thankaran", devanagari: "तान्" },
     right: { id: "thankaran-right", devanagari: "ठङ्कारान्" },
     nimitta: SATVA_NIMITTA,
@@ -4432,6 +4661,7 @@ const VYANJANA_BULK_PDF_CONFIGS: SimpleEntryConfig[] = [
     id: "viparitamshca",
     devanagari: "विपरीतांश्च",
     ruleId: "satva",
+    ruleChain: ["satva", "shcutva"],
     left: { id: "viparitan-left", devanagari: "विपरीतान्" },
     right: { id: "ca-right-viparitan", devanagari: "च" },
     nimitta: SATVA_NIMITTA,
@@ -4931,6 +5161,11 @@ export const DEFAULT_SANDHI_BANK: WordNode[] = [
     aksharas: ["प", "र", "म", "ई", "श्व", "र", "आ", "ल", "यः"],
     cuts: [parameshvaralayaOuter, paramaIshvaralaya],
   },
+  tamshcapiEntry,
+  prajnavadamshcapiEntry,
+  digambaralayaEntry,
+  jagadishalayaEntry,
+  sanmargopadeshahEntry,
   ...SVARA_EXPANSION_ENTRIES,
   ...VYANJANA_EXPANSION_ENTRIES,
   ...VISARGA_EXPANSION_ENTRIES,
@@ -4948,6 +5183,7 @@ export const cloneWordNode = (node: WordNode): WordNode => ({
   ...node,
   cuts: node.cuts.map((cut) => ({
     ...cut,
+    ruleChain: cut.ruleChain ? [...cut.ruleChain] : undefined,
     explanation: {
       ...cut.explanation,
       nimitta: cut.explanation.nimitta
@@ -4978,6 +5214,31 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 
 const isStringArray = (value: unknown): value is string[] =>
   Array.isArray(value) && value.every((item) => typeof item === "string");
+
+const isSandhiRuleId = (value: unknown): value is SandhiRuleId =>
+  value === "savarna-dirgha" ||
+  value === "guna" ||
+  value === "vrddhi" ||
+  value === "yan" ||
+  value === "ayavayava" ||
+  value === "purvarupa" ||
+  value === "pararupa" ||
+  value === "jashtva" ||
+  value === "chartva" ||
+  value === "anunasika" ||
+  value === "anusvara" ||
+  value === "purvasavarna" ||
+  value === "parasavarna" ||
+  value === "chhatva" ||
+  value === "tugagama" ||
+  value === "shcutva" ||
+  value === "shtutva" ||
+  value === "satva" ||
+  value === "yavalopa" ||
+  value === "visarga-sa" ||
+  value === "visarga-repha" ||
+  value === "visarga-lopa" ||
+  value === "visarga-o";
 
 const parseWordNode = (value: unknown): WordNode | null => {
   if (!isRecord(value)) {
@@ -5031,6 +5292,7 @@ const parseCut = (value: unknown): SandhiCut | null => {
   const {
     id,
     ruleId,
+    ruleChain,
     cutAfterAksharaIndex,
     left,
     right,
@@ -5041,29 +5303,9 @@ const parseCut = (value: unknown): SandhiCut | null => {
 
   if (
     typeof id !== "string" ||
-    (ruleId !== "savarna-dirgha" &&
-      ruleId !== "guna" &&
-      ruleId !== "vrddhi" &&
-      ruleId !== "yan" &&
-      ruleId !== "ayavayava" &&
-      ruleId !== "purvarupa" &&
-      ruleId !== "pararupa" &&
-      ruleId !== "jashtva" &&
-      ruleId !== "chartva" &&
-      ruleId !== "anunasika" &&
-      ruleId !== "anusvara" &&
-      ruleId !== "purvasavarna" &&
-      ruleId !== "parasavarna" &&
-      ruleId !== "chhatva" &&
-      ruleId !== "tugagama" &&
-      ruleId !== "shcutva" &&
-      ruleId !== "shtutva" &&
-      ruleId !== "satva" &&
-      ruleId !== "yavalopa" &&
-      ruleId !== "visarga-sa" &&
-      ruleId !== "visarga-repha" &&
-      ruleId !== "visarga-lopa" &&
-      ruleId !== "visarga-o") ||
+    !isSandhiRuleId(ruleId) ||
+    (ruleChain !== undefined &&
+      (!Array.isArray(ruleChain) || !ruleChain.every((entry) => isSandhiRuleId(entry)))) ||
     typeof cutAfterAksharaIndex !== "number" ||
     !isRecord(explanation) ||
     !isRecord(sutra)
@@ -5091,6 +5333,10 @@ const parseCut = (value: unknown): SandhiCut | null => {
   return {
     id,
     ruleId,
+    ruleChain:
+      Array.isArray(ruleChain) && ruleChain.every((entry) => isSandhiRuleId(entry))
+        ? [...ruleChain]
+        : undefined,
     cutAfterAksharaIndex,
     left: leftNode,
     right: rightNode,

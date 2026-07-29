@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { t } from "../data/uiText";
 import type {
+  AnswerAdvanceMode,
   GameMode,
   Language,
   PlayerStats,
@@ -18,6 +19,11 @@ type ScorePanelProps = {
   onStudyModeChange: (value: StudyMode) => void;
   practiceMode: boolean;
   onPracticeModeChange: (value: boolean) => void;
+  answerAdvanceMode: AnswerAdvanceMode;
+  onAnswerAdvanceModeChange: (value: AnswerAdvanceMode) => void;
+  answerRevealDelayMs: number;
+  onAnswerRevealDelayChange: (value: number) => void;
+  showAnswerFlowSettings: boolean;
   currentWordLabel: string;
   remainingSplits: number;
 };
@@ -34,11 +40,24 @@ export const ScorePanel = ({
   onStudyModeChange,
   practiceMode,
   onPracticeModeChange,
+  answerAdvanceMode,
+  onAnswerAdvanceModeChange,
+  answerRevealDelayMs,
+  onAnswerRevealDelayChange,
+  showAnswerFlowSettings,
   currentWordLabel,
   remainingSplits,
 }: ScorePanelProps) => {
   const modeHint = t(
-    studyMode === "guided" ? "guidedModeHint" : "challengeModeHint",
+    practiceMode
+      ? "practiceHint"
+      : studyMode === "guided"
+        ? "guidedModeHint"
+        : "challengeModeHint",
+    language,
+  );
+  const livesLabel = t(
+    studyMode === "guided" ? "revealLives" : "lives",
     language,
   );
 
@@ -97,27 +116,78 @@ export const ScorePanel = ({
           </div>
         </div>
 
-        <div className="timer-mode-row" aria-label={t("timerStyle", language)}>
-          <span className="timer-mode-row__label">{t("timerStyle", language)}</span>
-          <div className="toggle-row">
-            <button
-              className={`pill-button ${timerMode === "timed" && !practiceMode ? "active" : ""}`}
-              onClick={() => onTimerModeChange("timed")}
-              disabled={practiceMode}
-              type="button"
-            >
-              {t("timedMode", language)}
-            </button>
-            <button
-              className={`pill-button ${timerMode === "untimed" || practiceMode ? "active" : ""}`}
-              onClick={() => onTimerModeChange("untimed")}
-              disabled={practiceMode}
-              type="button"
-            >
-              {t("untimedMode", language)}
-            </button>
+        {!practiceMode ? (
+          <div className="timer-mode-row" aria-label={t("timerStyle", language)}>
+            <span className="timer-mode-row__label">{t("timerStyle", language)}</span>
+            <div className="toggle-row">
+              <button
+                className={`pill-button ${timerMode === "timed" ? "active" : ""}`}
+                onClick={() => onTimerModeChange("timed")}
+                type="button"
+              >
+                {t("timedMode", language)}
+              </button>
+              <button
+                className={`pill-button ${timerMode === "untimed" ? "active" : ""}`}
+                onClick={() => onTimerModeChange("untimed")}
+                type="button"
+              >
+                {t("untimedMode", language)}
+              </button>
+            </div>
           </div>
-        </div>
+        ) : null}
+
+        {showAnswerFlowSettings ? (
+          <div className="timer-mode-row" aria-label={t("afterAnswer", language)}>
+            <span className="timer-mode-row__label">{t("afterAnswer", language)}</span>
+            <div className="toggle-row">
+              <button
+                className={`pill-button ${answerAdvanceMode === "auto" ? "active" : ""}`}
+                onClick={() => onAnswerAdvanceModeChange("auto")}
+                type="button"
+              >
+                {t("autoNext", language)}
+              </button>
+              <button
+                className={`pill-button ${answerAdvanceMode === "manual" ? "active" : ""}`}
+                onClick={() => onAnswerAdvanceModeChange("manual")}
+                type="button"
+              >
+                {t("waitForNext", language)}
+              </button>
+            </div>
+          </div>
+        ) : null}
+
+        {showAnswerFlowSettings && answerAdvanceMode === "auto" ? (
+          <div className="timer-mode-row" aria-label={t("answerTime", language)}>
+            <span className="timer-mode-row__label">{t("answerTime", language)}</span>
+            <div className="toggle-row">
+              <button
+                className={`pill-button ${answerRevealDelayMs === 12000 ? "active" : ""}`}
+                onClick={() => onAnswerRevealDelayChange(12000)}
+                type="button"
+              >
+                {t("answerTimeShort", language)}
+              </button>
+              <button
+                className={`pill-button ${answerRevealDelayMs === 16000 ? "active" : ""}`}
+                onClick={() => onAnswerRevealDelayChange(16000)}
+                type="button"
+              >
+                {t("answerTimeMedium", language)}
+              </button>
+              <button
+                className={`pill-button ${answerRevealDelayMs === 20000 ? "active" : ""}`}
+                onClick={() => onAnswerRevealDelayChange(20000)}
+                type="button"
+              >
+                {t("answerTimeLong", language)}
+              </button>
+            </div>
+          </div>
+        ) : null}
       </div>
 
       <p className="score-panel__mode-copy">{modeHint}</p>
@@ -132,7 +202,7 @@ export const ScorePanel = ({
           <strong>{stats.streak}</strong>
         </div>
         <div className="stat-card">
-          <span>{t("lives", language)}</span>
+          <span>{livesLabel}</span>
           <strong>{stats.lives}</strong>
         </div>
         <div className="stat-card">
