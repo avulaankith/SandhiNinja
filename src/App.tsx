@@ -354,6 +354,15 @@ function App() {
     () => getVisibleRuleIdsFromTokens(activeTokensForUi),
     [activeTokensForUi],
   );
+  const wordRuleOrder = useMemo(
+    () =>
+      stableShuffleBySeed(
+        activeRules,
+        `${effectiveMode}:${selectedFamily}:${currentWord.id}`,
+        (rule) => rule.id,
+      ).map((rule) => rule.id),
+    [activeRules, currentWord.id, effectiveMode, selectedFamily],
+  );
   const visibleRules = useMemo(() => {
     const activeRuleMap = new Map(activeRules.map((rule) => [rule.id, rule]));
     const relevantRules = currentVisibleRuleIds
@@ -387,16 +396,15 @@ function App() {
       }
     }
 
-    const ruleOrderSeed = [
-      currentWord.id,
-      selectedFamily,
-      ...activeTokensForUi.map((token) => `${token.instanceId}:${token.node.id}`),
-      ...currentVisibleRuleIds,
-      ...candidateRules.map((rule) => rule.id),
-    ].join(":");
+    const orderIndex = new Map(wordRuleOrder.map((ruleId, index) => [ruleId, index]));
 
-    return stableShuffleBySeed(candidateRules, ruleOrderSeed, (rule) => rule.id);
-  }, [activeRules, activeTokensForUi, currentVisibleRuleIds, currentWord.id, selectedFamily]);
+    return [...candidateRules].sort((left, right) => {
+      const leftIndex = orderIndex.get(left.id) ?? Number.MAX_SAFE_INTEGER;
+      const rightIndex = orderIndex.get(right.id) ?? Number.MAX_SAFE_INTEGER;
+
+      return leftIndex - rightIndex || left.id.localeCompare(right.id);
+    });
+  }, [activeRules, currentVisibleRuleIds, selectedFamily, wordRuleOrder]);
   const languageRef = useRef(language);
   const modeRef = useRef(mode);
   const familyRef = useRef(selectedFamily);
