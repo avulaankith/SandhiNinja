@@ -192,6 +192,30 @@ const getVisibleRuleIdsFromTokens = (tokens: ActiveToken[]) => {
   return [...ids];
 };
 
+const hashString = (value: string) => {
+  let hash = 0;
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
+  }
+
+  return hash;
+};
+
+const stableShuffleBySeed = <T,>(
+  items: T[],
+  seed: string,
+  getKey: (item: T) => string,
+) =>
+  [...items].sort((left, right) => {
+    const leftKey = getKey(left);
+    const rightKey = getKey(right);
+    const scoreDiff =
+      hashString(`${seed}:${leftKey}`) - hashString(`${seed}:${rightKey}`);
+
+    return scoreDiff !== 0 ? scoreDiff : leftKey.localeCompare(rightKey);
+  });
+
 const getPoolForMode = (entries: WordNode[], family: SandhiFamily) => {
   const gameplayEntries = entries
     .filter(isGameplayEligible)
@@ -331,38 +355,48 @@ function App() {
     [activeTokensForUi],
   );
   const visibleRules = useMemo(() => {
-    if (activeRules.length <= MAX_VISIBLE_RULE_OPTIONS) {
-      return activeRules;
-    }
-
     const activeRuleMap = new Map(activeRules.map((rule) => [rule.id, rule]));
     const relevantRules = currentVisibleRuleIds
       .map((ruleId) => activeRuleMap.get(ruleId) ?? null)
       .filter((rule): rule is (typeof activeRules)[number] => Boolean(rule));
 
-    if (relevantRules.length > MAX_VISIBLE_RULE_OPTIONS) {
-      return relevantRules;
+    let candidateRules = activeRules;
+
+    if (activeRules.length > MAX_VISIBLE_RULE_OPTIONS) {
+      if (relevantRules.length > MAX_VISIBLE_RULE_OPTIONS) {
+        candidateRules = relevantRules;
+      } else {
+        const preferredFamilies =
+          relevantRules.length > 0
+            ? [...new Set(relevantRules.map((rule) => rule.family))]
+            : selectedFamily === "mixed"
+              ? []
+              : [selectedFamily];
+        const relevantIds = new Set(relevantRules.map((rule) => rule.id));
+        const preferredFamilyRules = activeRules.filter(
+          (rule) => preferredFamilies.includes(rule.family) && !relevantIds.has(rule.id),
+        );
+        const remainingRules = activeRules.filter(
+          (rule) => !preferredFamilies.includes(rule.family) && !relevantIds.has(rule.id),
+        );
+
+        candidateRules = [...relevantRules, ...preferredFamilyRules, ...remainingRules].slice(
+          0,
+          MAX_VISIBLE_RULE_OPTIONS,
+        );
+      }
     }
 
-    const preferredFamilies =
-      relevantRules.length > 0
-        ? [...new Set(relevantRules.map((rule) => rule.family))]
-        : selectedFamily === "mixed"
-          ? []
-          : [selectedFamily];
-    const relevantIds = new Set(relevantRules.map((rule) => rule.id));
-    const preferredFamilyRules = activeRules.filter(
-      (rule) => preferredFamilies.includes(rule.family) && !relevantIds.has(rule.id),
-    );
-    const remainingRules = activeRules.filter(
-      (rule) => !preferredFamilies.includes(rule.family) && !relevantIds.has(rule.id),
-    );
+    const ruleOrderSeed = [
+      currentWord.id,
+      selectedFamily,
+      ...activeTokensForUi.map((token) => `${token.instanceId}:${token.node.id}`),
+      ...currentVisibleRuleIds,
+      ...candidateRules.map((rule) => rule.id),
+    ].join(":");
 
-    return [...relevantRules, ...preferredFamilyRules, ...remainingRules].slice(
-      0,
-      MAX_VISIBLE_RULE_OPTIONS,
-    );
-  }, [activeRules, currentVisibleRuleIds, selectedFamily]);
+    return stableShuffleBySeed(candidateRules, ruleOrderSeed, (rule) => rule.id);
+  }, [activeRules, activeTokensForUi, currentVisibleRuleIds, currentWord.id, selectedFamily]);
   const languageRef = useRef(language);
   const modeRef = useRef(mode);
   const familyRef = useRef(selectedFamily);
