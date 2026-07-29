@@ -107,9 +107,9 @@ export const UI_TEXT = {
     te: "వ్యంజనసంధులు మరియు వాటి ఉదాహరణలే చూపించు.",
   },
   familyVisargaHint: {
-    en: "Visarga examples only: satva, repha, lopa, and otva practice from the textbook trail.",
-    sa: "केवलं विसर्गोदाहरणानि: सत्व-, रेफ-, लोप-, ओत्व-प्रकाराणां अभ्यासः।",
-    te: "విసర్గ ఉదాహరణలే: సత్వం, రేఫం, లోపం, ఓత్వం వంటి రూపాల అభ్యాసం.",
+    en: "Visarga examples only: Visarga-Satva, Visarga-Repha, Visarga-Lopa, and Visarga-Ootvam from the textbook trail.",
+    sa: "केवलं विसर्गोदाहरणानि: विसर्ग-सत्व-, विसर्ग-रेफ-, विसर्ग-लोप-, विसर्ग-ओत्व-प्रकाराणां अभ्यासः।",
+    te: "విసర్గ ఉదాహరణలే: విసర్గ-సత్వం, విసర్గ-రేఫం, విసర్గ-లోపం, విసర్గ-ఓత్వం వంటి రూపాల అభ్యాసం.",
   },
   familyExamples: {
     en: "Likely knives",

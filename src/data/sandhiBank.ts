@@ -205,6 +205,42 @@ const PARASAVARNA_NIMITTA = {
   te: "నిమిత్తం: తరువాతి వ్యంజనం ముందు ఉన్న అనుస్వారం ఆ వ్యంజన వర్గానికి చెందిన నాసిక్యరూపంగా స్థిరపడుతుంది.",
 } as const;
 
+const CHHATVA_NIMITTA = {
+  en: "Nimittam: a word-final class-first consonant is followed by ś, and that ś is followed by a vowel, y, v, r, l, m, or n; the ś may shift to chh.",
+  sa: "निमित्तम्: पदान्ते वर्गप्रथमव्यञ्जनस्य परे शकारः, तस्मात् परे स्वरः य् व् र् ल् म् न् वा भवति; तदा शकारस्य विकल्पेन छकारादेशः भवति।",
+  te: "నిమిత్తం: పదాంత వర్గప్రథమ వ్యంజనం తరువాత శ్ ఉండి, దాని తరువాత స్వరం లేదా య్/వ్/ర్/ల్/మ్/న్ వస్తే, ఆ శ్ వికల్పంగా ఛ్ అవుతుంది.",
+} as const;
+
+const TUGAGAMA_NIMITTA = {
+  en: "Nimittam: a short vowel before छ receives a t-augment and surfaces as cch; in taught final long-vowel cases the same insertion may also appear optionally.",
+  sa: "निमित्तम्: ह्रस्वस्वरात् परे छकारे तुगागमः भवति; शिक्षितेषु पदान्तदीर्घप्रयोगेषु स एव विकल्पेन दृश्यते।",
+  te: "నిమిత్తం: హ్రస్వ స్వరం తరువాత ఛ వస్తే తుగాగమం వచ్చి చ్ఛ రూపం వస్తుంది; పాఠ్య దీర్ఘాంత రూపాల్లో అదే వికల్పంగా కూడా కనిపించవచ్చు.",
+} as const;
+
+const SHCUTVA_NIMITTA = {
+  en: "Nimittam: s or a dental stands in contact with ś or a palatal, so the sound changes toward ś or the ca-varga.",
+  sa: "निमित्तम्: सकारः तवर्गो वा शकारचवर्गाभ्यां योगे स्थितः; तदा शकारचवर्गादेशः भवति।",
+  te: "నిమిత్తం: స్ లేదా తవర్గం, శ్ లేదా చవర్గంతో సంబంధంలో ఉన్నప్పుడు శ్ లేదా చవర్గాదేశం వస్తుంది.",
+} as const;
+
+const SHTUTVA_NIMITTA = {
+  en: "Nimittam: s or a dental stands in contact with ṣ or a retroflex, so the sound changes toward ṣ or the ṭa-varga.",
+  sa: "निमित्तम्: सकारः तवर्गो वा षकारटवर्गाभ्यां योगे स्थितः; तदा षकारटवर्गादेशः भवति।",
+  te: "నిమిత్తం: స్ లేదా తవర్గం, ష్ లేదా టవర్గంతో సంబంధంలో ఉన్నప్పుడు ష్ లేదా టవర్గాదేశం వస్తుంది.",
+} as const;
+
+const SATVA_NIMITTA = {
+  en: "Nimittam: a final n stands before c/ch/ṭ/ṭh/t/th and changes through satva into a nasalized vowel or anusvāra plus s, ś, or ṣ.",
+  sa: "निमित्तम्: पदान्तनकारः च्/छ्/ट्/ठ्/त्/थ्-परः सति सत्वप्रक्रियया अनुनासिकपूर्वस्वरम् अथवा अनुस्वारं कृत्वा स/श/षरूपं जनयति।",
+  te: "నిమిత్తం: పదాంత న్ తరువాత చ్/ఛ్/ట్/ఠ్/త్/థ్ వచ్చినప్పుడు సత్వప్రక్రియ ద్వారా ముందు స్వరం అనునాసికం లేదా అనుస్వారంగా మారి స్/శ్/ష్ రూపం వస్తుంది.",
+} as const;
+
+const YAVALOPA_NIMITTA = {
+  en: "Nimittam: a final y or v, preceded by a or ā, stands before a vowel or soft sound and may drop without forcing a new vowel sandhi.",
+  sa: "निमित्तम्: पदान्ते अकार-आकारपूर्वौ यकारवकारौ स्वर-मृदुवर्णपरत्वे विकल्पेन लुप्येते, लोपे कृतेऽपि अनन्तरस्वरसन्धिः न अनिवार्या भवति।",
+  te: "నిమిత్తం: పదాంతంలో అ/ఆ తరువాత ఉన్న య్ లేదా వ్, స్వరం లేదా మృదు ధ్వని ముందు వికల్పంగా లోపించి, లోపం తర్వాత కొత్త స్వరసంధి బలవంతం కాదు.",
+} as const;
+
 const VISARGA_SATVA_NIMITTA = {
   en: "Nimittam: visarga stands before a hard consonant or sibilant and reshapes into s, ś, or ṣ according to the following sound.",
   sa: "निमित्तम्: विसर्गात् परतः खर् अथवा शर् वर्तते; तदा स/श/ष-आदेशः परवर्णानुसारं भवति।",
@@ -218,9 +254,9 @@ const VISARGA_REPHA_NIMITTA = {
 } as const;
 
 const VISARGA_LOPA_NIMITTA = {
-  en: "Nimittam: in these taught visarga patterns the visarga drops, and the earlier vowel may remain, lengthen, or show a helper y-sound.",
-  sa: "निमित्तम्: अस्मिन् शिक्षितप्रयोगे विसर्गलोपः भवति; पूर्वस्वरः स्थितिं, दीर्घत्वं, यकारसाहाय्यं वा दर्शयति।",
-  te: "నిమిత్తం: ఈ బోధనా రూపాల్లో విసర్గం లోపించి, ముందు స్వరం అలాగే ఉండవచ్చు, దీర్ఘమవవచ్చు, లేదా యకారసహాయం కనిపించవచ్చు.",
+  en: "Nimittam: in these taught visarga-lopa patterns the visarga itself drops. The result may stay in plain prakṛtibhāva, lengthen before r, or in a few optional school forms appear beside a y-shaped variant.",
+  sa: "निमित्तम्: अस्मिन् शिक्षितेषु विसर्गलोपप्रयोगेषु स्वयं विसर्गः लुप्यते। फलरूपे प्रकृतिभावः, रेफे परे पूर्वस्वरदीर्घः, केषुचित् शैक्षिकविकल्पेषु यकारयुक्तरूपं च दृश्यते।",
+  te: "నిమిత్తం: ఈ బోధనా విసర్గలోప రూపాల్లో నిజంగా లోపించేది విసర్గమే. ఫలంగా ప్రకృతిభావం, ర్ ముందు పూర్వస్వరదీర్ఘం, కొన్ని పాఠ్య వికల్పాల్లో యకారరూపం కూడా కనిపించవచ్చు.",
 } as const;
 
 const VISARGA_OTVA_NIMITTA = {
@@ -234,6 +270,27 @@ const RUNNING_TEXT_NOTE: LocalizedText = {
   sa: "क्रीडायां सन्धिच्छेदाभ्यासाय अयं प्रयोगः एकरूपेण प्रदर्शितः।",
   te: "గేమ్‌లో సంధిచ్ఛేదాన్ని నేరుగా సాధన చేయడానికి ఈ రూపాన్ని ఒక్క పరిగెత్తే పాఠంలా చూపిస్తున్నాం.",
 };
+
+const SATVA_SHCUTVA_NOTE: LocalizedText = {
+  en: "Here satva creates the s-sound first; the visible śc then appears by the follow-up ścutva step.",
+  sa: "अत्र प्रथमं सत्वेन सकारः सिद्ध्यति; अनन्तरं दृश्यते श्च-रूपं श्चुत्वेन।",
+  te: "ఇక్కడ ముందుగా సత్వం వల్ల స్ సిద్ధిస్తుంది; కనిపించే శ్చ రూపం తరువాతి శ్చుత్వంతో వస్తుంది.",
+};
+
+const SATVA_SHTUTVA_NOTE: LocalizedText = {
+  en: "Here satva creates the s-sound first; the visible ṣṭh/ṣṭ then appears by the follow-up ṣṭutva step.",
+  sa: "अत्र प्रथमं सत्वेन सकारः सिद्ध्यति; अनन्तरं दृश्यते ष्ठ/ष्ट-रूपं ष्टुत्वेन।",
+  te: "ఇక్కడ ముందుగా సత్వం వల్ల స్ సిద్ధిస్తుంది; కనిపించే ష్ఠ/ష్ట రూపం తరువాతి ష్టుత్వంతో వస్తుంది.",
+};
+
+const makeCompactHiatusNote = (
+  spacedSurface: string,
+  compactSurface: string,
+): LocalizedText => ({
+  en: `The textbook prints this as ${spacedSurface}. The game compacts it as ${compactSurface} so the word stays sliceable as one token.`,
+  sa: `पुस्तके एतत् ${spacedSurface} इति विरामेन लिख्यते। क्रीडायां तु एकपदरूपेण छेदाभ्यासाय ${compactSurface} इति संक्षिप्य दर्श्यते।`,
+  te: `పుస్తకంలో ఇది ${spacedSurface}లా విరామంతో ముద్రితమవుతుంది. గేమ్‌లో ఒక్క టోకెన్‌గా కోయటానికి ${compactSurface}గా కుదించి చూపిస్తున్నాం.`,
+});
 
 const shivaAlaya = createCut({
   id: "shivalaya-split",
@@ -1171,6 +1228,22 @@ const uposhatiEntry = createSimpleEntry({
   nimitta: PARARUPA_NIMITTA,
 });
 
+const shivayomnamahEntry = createSimpleEntry({
+  id: "shivayomnamah",
+  devanagari: "शिवायोंनमः",
+  ruleId: "pararupa",
+  left: {
+    id: "shivaya-left",
+    devanagari: "शिवाय",
+  },
+  right: {
+    id: "omnamah-right",
+    devanagari: "ओं नमः",
+  },
+  nimitta: PARARUPA_NIMITTA,
+  note: RUNNING_TEXT_NOTE,
+});
+
 const digambaraEntry = createSimpleEntry({
   id: "digambara",
   devanagari: "दिगम्बरः",
@@ -1529,6 +1602,76 @@ const uddhrtaEntry = createSimpleEntry({
     devanagari: "हृतम्",
   },
   nimitta: PURVASAVARNA_NIMITTA,
+});
+
+const dhaddhiEntry = createSimpleEntry({
+  id: "dhaddhi",
+  devanagari: "धाद्धि",
+  ruleId: "purvasavarna",
+  left: {
+    id: "dhad-left",
+    devanagari: "धाद्",
+  },
+  right: {
+    id: "hi-right-dhad",
+    devanagari: "हि",
+  },
+  nimitta: PURVASAVARNA_NIMITTA,
+});
+
+const vanigghasatiEntry = createSimpleEntry({
+  id: "vanigghasati",
+  devanagari: "वणिग्घसति",
+  ruleId: "purvasavarna",
+  left: {
+    id: "vanig-left",
+    devanagari: "वणिग्",
+  },
+  right: {
+    id: "hasati-right-vanig",
+    devanagari: "हसति",
+  },
+  nimitta: PURVASAVARNA_NIMITTA,
+});
+
+const utthanamEntry = createSimpleEntry({
+  id: "utthanam",
+  devanagari: "उत्थानम्",
+  ruleId: "purvasavarna",
+  left: {
+    id: "ut-left-sthanam",
+    devanagari: "उत्",
+  },
+  right: {
+    id: "sthanam-right",
+    devanagari: "स्थानम्",
+  },
+  nimitta: PURVASAVARNA_NIMITTA,
+  note: {
+    en: "This comes from the textbook’s special ud/upasarga treatment before स्था-family words.",
+    sa: "अयं ग्रन्थोक्तः विशेषः उदुपसर्गात् स्था-परिवारशब्देषु दर्शितः।",
+    te: "ఇది పుస్తకంలో ఉద్/ఉపసర్గానికి స్థా-కుటుంబ పదాల ముందు చెప్పిన ప్రత్యేక రూపం.",
+  },
+});
+
+const uttambhanamEntry = createSimpleEntry({
+  id: "uttambhanam",
+  devanagari: "उत्तम्भनम्",
+  ruleId: "purvasavarna",
+  left: {
+    id: "ut-left-stambhanam",
+    devanagari: "उत्",
+  },
+  right: {
+    id: "stambhanam-right",
+    devanagari: "स्तम्भनम्",
+  },
+  nimitta: PURVASAVARNA_NIMITTA,
+  note: {
+    en: "This comes from the textbook’s special ud/upasarga treatment before स्था-family words.",
+    sa: "अयं ग्रन्थोक्तः विशेषः उदुपसर्गात् स्था-परिवारशब्देषु दर्शितः।",
+    te: "ఇది పుస్తకంలో ఉద్/ఉపసర్గానికి స్థా-కుటుంబ పదాల ముందు చెప్పిన ప్రత్యేక రూపం.",
+  },
 });
 
 const sankalpahEntry = createSimpleEntry({
@@ -2092,7 +2235,11 @@ const VISARGA_EXPANSION_ENTRIES: WordNode[] = [
       devanagari: "आगच्छति",
     },
     nimitta: VISARGA_LOPA_NIMITTA,
-    note: RUNNING_TEXT_NOTE,
+    note: {
+      en: "This is the optional y-form taught in the lopa lesson. The plain lopa/prakṛtibhāva form एष आगच्छति is also valid in the textbook.",
+      sa: "एतत् लोप्रकरणे उपदिष्टं विकल्पेन यकारयुक्तं रूपम्। ग्रन्थे एष आगच्छति इति प्रकृतिभावलोपरूपमपि ग्राह्यम्।",
+      te: "ఇది లోపపాఠంలో చెప్పే వికల్ప యకారరూపం. పుస్తకంలో ఎష ఆగచ్ఛతి అనే ప్రకృతిభావ లోపరూపం కూడా సమ్మతమే.",
+    },
   }),
   createSimpleEntry({
     id: "sayucyate",
@@ -2107,7 +2254,11 @@ const VISARGA_EXPANSION_ENTRIES: WordNode[] = [
       devanagari: "उच्यते",
     },
     nimitta: VISARGA_LOPA_NIMITTA,
-    note: RUNNING_TEXT_NOTE,
+    note: {
+      en: "This is the optional y-form taught in the lopa lesson. The plain lopa/prakṛtibhāva form स उच्यते is also valid in the textbook.",
+      sa: "एतत् लोप्रकरणे उपदिष्टं विकल्पेन यकारयुक्तं रूपम्। ग्रन्थे स उच्यते इति प्रकृतिभावलोपरूपमपि ग्राह्यम्।",
+      te: "ఇది లోపపాఠంలో చెప్పే వికల్ప యకారరూపం. పుస్తకంలో స ఉచ్యతే అనే ప్రకృతిభావ లోపరూపం కూడా సమ్మతమే.",
+    },
   }),
   createSimpleEntry({
     id: "sayeva",
@@ -2122,6 +2273,176 @@ const VISARGA_EXPANSION_ENTRIES: WordNode[] = [
       devanagari: "एव",
     },
     nimitta: VISARGA_LOPA_NIMITTA,
+    note: {
+      en: "This is the optional y-form taught in the lopa lesson. The plain lopa/prakṛtibhāva form स एव is also valid in the textbook.",
+      sa: "एतत् लोप्रकरणे उपदिष्टं विकल्पेन यकारयुक्तं रूपम्। ग्रन्थे स एव इति प्रकृतिभावलोपरूपमपि ग्राह्यम्।",
+      te: "ఇది లోపపాఠంలో చెప్పే వికల్ప యకారరూపం. పుస్తకంలో స ఏవ అనే ప్రకృతిభావ లోపరూపం కూడా సమ్మతమే.",
+    },
+  }),
+  createSimpleEntry({
+    id: "devaaapi",
+    devanagari: "देवाअपि",
+    ruleId: "visarga-lopa",
+    left: {
+      id: "devaah-left-api-lopa",
+      devanagari: "देवाः",
+    },
+    right: {
+      id: "api-right-lopa-plain",
+      devanagari: "अपि",
+    },
+    nimitta: VISARGA_LOPA_NIMITTA,
+    note: makeCompactHiatusNote("देवा अपि", "देवाअपि"),
+  }),
+  createSimpleEntry({
+    id: "shanmaasauttarayanam",
+    devanagari: "षण्मासाउत्तरायणम्",
+    ruleId: "visarga-lopa",
+    left: {
+      id: "shanmaasaah-left",
+      devanagari: "षण्मासाः",
+    },
+    right: {
+      id: "uttarayanam-right",
+      devanagari: "उत्तरायणम्",
+    },
+    nimitta: VISARGA_LOPA_NIMITTA,
+    note: makeCompactHiatusNote("षण्मासा उत्तरायणम्", "षण्मासाउत्तरायणम्"),
+  }),
+  createSimpleEntry({
+    id: "devaarishayah",
+    devanagari: "देवाऋषयः",
+    ruleId: "visarga-lopa",
+    left: {
+      id: "devaah-left-rishayah",
+      devanagari: "देवाः",
+    },
+    right: {
+      id: "rishayah-right",
+      devanagari: "ऋषयः",
+    },
+    nimitta: VISARGA_LOPA_NIMITTA,
+    note: makeCompactHiatusNote("देवा ऋषयः", "देवाऋषयः"),
+  }),
+  createSimpleEntry({
+    id: "gunaaguneshu",
+    devanagari: "गुणागुणेषु",
+    ruleId: "visarga-lopa",
+    left: {
+      id: "gunaah-left",
+      devanagari: "गुणाः",
+    },
+    right: {
+      id: "guneshu-right",
+      devanagari: "गुणेषु",
+    },
+    nimitta: VISARGA_LOPA_NIMITTA,
+    note: makeCompactHiatusNote("गुणा गुणेषु", "गुणागुणेषु"),
+  }),
+  createSimpleEntry({
+    id: "purushaadharmasya",
+    devanagari: "पुरुषाधर्मस्य",
+    ruleId: "visarga-lopa",
+    left: {
+      id: "purushaah-left",
+      devanagari: "पुरुषाः",
+    },
+    right: {
+      id: "dharmasya-right",
+      devanagari: "धर्मस्य",
+    },
+    nimitta: VISARGA_LOPA_NIMITTA,
+    note: makeCompactHiatusNote("पुरुषा धर्मस्य", "पुरुषाधर्मस्य"),
+  }),
+  createSimpleEntry({
+    id: "antavantaime",
+    devanagari: "अन्तवन्तइमे",
+    ruleId: "visarga-lopa",
+    left: {
+      id: "antavantah-left",
+      devanagari: "अन्तवन्तः",
+    },
+    right: {
+      id: "ime-right-lopa",
+      devanagari: "इमे",
+    },
+    nimitta: VISARGA_LOPA_NIMITTA,
+    note: makeCompactHiatusNote("अन्तवन्त इमे", "अन्तवन्तइमे"),
+  }),
+  createSimpleEntry({
+    id: "avyayaishvarah",
+    devanagari: "अव्ययईश्वरः",
+    ruleId: "visarga-lopa",
+    left: {
+      id: "avyayah-left",
+      devanagari: "अव्ययः",
+    },
+    right: {
+      id: "ishvarah-right-avyaya",
+      devanagari: "ईश्वरः",
+    },
+    nimitta: VISARGA_LOPA_NIMITTA,
+    note: makeCompactHiatusNote("अव्यय ईश्वरः", "अव्ययईश्वरः"),
+  }),
+  createSimpleEntry({
+    id: "ataurdhvam",
+    devanagari: "अतऊर्ध्वम्",
+    ruleId: "visarga-lopa",
+    left: {
+      id: "atah-left",
+      devanagari: "अतः",
+    },
+    right: {
+      id: "urdhvam-right",
+      devanagari: "ऊर्ध्वम्",
+    },
+    nimitta: VISARGA_LOPA_NIMITTA,
+    note: makeCompactHiatusNote("अत ऊर्ध्वम्", "अतऊर्ध्वम्"),
+  }),
+  createSimpleEntry({
+    id: "eshavah",
+    devanagari: "एषवः",
+    ruleId: "visarga-lopa",
+    left: {
+      id: "eshah-left-vah",
+      devanagari: "एषः",
+    },
+    right: {
+      id: "vah-right",
+      devanagari: "वः",
+    },
+    nimitta: VISARGA_LOPA_NIMITTA,
+    note: makeCompactHiatusNote("एष वः", "एषवः"),
+  }),
+  createSimpleEntry({
+    id: "sajivati",
+    devanagari: "सजीवति",
+    ruleId: "visarga-lopa",
+    left: {
+      id: "sah-left-jivati",
+      devanagari: "सः",
+    },
+    right: {
+      id: "jivati-right",
+      devanagari: "जीवति",
+    },
+    nimitta: VISARGA_LOPA_NIMITTA,
+    note: makeCompactHiatusNote("स जीवति", "सजीवति"),
+  }),
+  createSimpleEntry({
+    id: "sasarveshu",
+    devanagari: "ससर्वेषु",
+    ruleId: "visarga-lopa",
+    left: {
+      id: "sah-left-sarveshu",
+      devanagari: "सः",
+    },
+    right: {
+      id: "sarveshu-right",
+      devanagari: "सर्वेषु",
+    },
+    nimitta: VISARGA_LOPA_NIMITTA,
+    note: makeCompactHiatusNote("स सर्वेषु", "ससर्वेषु"),
   }),
   createSimpleEntry({
     id: "kaviracayati",
@@ -2200,15 +2521,60 @@ const VISARGA_EXPANSION_ENTRIES: WordNode[] = [
   }),
   createSimpleEntry({
     id: "ghoshodhritarashtranam",
-    devanagari: "घोषोधृतराष्ट्राणाम्",
+    devanagari: "घोषोधार्तराष्ट्राणाम्",
     ruleId: "visarga-o",
     left: {
       id: "ghoshah-left",
       devanagari: "घोषः",
     },
     right: {
-      id: "dhritarashtranam-right",
-      devanagari: "धृतराष्ट्राणाम्",
+      id: "dhartarashtranam-right",
+      devanagari: "धार्तराष्ट्राणाम्",
+    },
+    nimitta: VISARGA_OTVA_NIMITTA,
+    note: RUNNING_TEXT_NOTE,
+  }),
+  createSimpleEntry({
+    id: "bahavojnanatapasa",
+    devanagari: "बहवोज्ञानतपसा",
+    ruleId: "visarga-o",
+    left: {
+      id: "bahavah-left",
+      devanagari: "बहवः",
+    },
+    right: {
+      id: "jnanatapasa-right",
+      devanagari: "ज्ञानतपसा",
+    },
+    nimitta: VISARGA_OTVA_NIMITTA,
+    note: RUNNING_TEXT_NOTE,
+  }),
+  createSimpleEntry({
+    id: "saubhadrodraupadeyah",
+    devanagari: "सौभद्रोद्रौपदेयाः",
+    ruleId: "visarga-o",
+    left: {
+      id: "saubhadrah-left",
+      devanagari: "सौभद्रः",
+    },
+    right: {
+      id: "draupadeyah-right",
+      devanagari: "द्रौपदेयाः",
+    },
+    nimitta: VISARGA_OTVA_NIMITTA,
+    note: RUNNING_TEXT_NOTE,
+  }),
+  createSimpleEntry({
+    id: "sankaronarakaya",
+    devanagari: "सङ्करोनरकाय",
+    ruleId: "visarga-o",
+    left: {
+      id: "sankarah-left",
+      devanagari: "सङ्करः",
+    },
+    right: {
+      id: "narakaya-right",
+      devanagari: "नरकाय",
     },
     nimitta: VISARGA_OTVA_NIMITTA,
     note: RUNNING_TEXT_NOTE,
@@ -2229,6 +2595,21 @@ const VISARGA_EXPANSION_ENTRIES: WordNode[] = [
     note: RUNNING_TEXT_NOTE,
   }),
   createSimpleEntry({
+    id: "dhruvomrtyuh",
+    devanagari: "ध्रुवोमृत्युः",
+    ruleId: "visarga-o",
+    left: {
+      id: "dhruvah-left",
+      devanagari: "ध्रुवः",
+    },
+    right: {
+      id: "mrtyuh-right",
+      devanagari: "मृत्युः",
+    },
+    nimitta: VISARGA_OTVA_NIMITTA,
+    note: RUNNING_TEXT_NOTE,
+  }),
+  createSimpleEntry({
     id: "kuntiputroyudhishthirah",
     devanagari: "कुन्तीपुत्रोयुधिष्ठिरः",
     ruleId: "visarga-o",
@@ -2239,6 +2620,66 @@ const VISARGA_EXPANSION_ENTRIES: WordNode[] = [
     right: {
       id: "yudhishthirah-right",
       devanagari: "युधिष्ठिरः",
+    },
+    nimitta: VISARGA_OTVA_NIMITTA,
+    note: RUNNING_TEXT_NOTE,
+  }),
+  createSimpleEntry({
+    id: "norajyena",
+    devanagari: "नोराज्येन",
+    ruleId: "visarga-o",
+    left: {
+      id: "nah-left-rajyena",
+      devanagari: "नः",
+    },
+    right: {
+      id: "rajyena-right",
+      devanagari: "राज्येन",
+    },
+    nimitta: VISARGA_OTVA_NIMITTA,
+    note: RUNNING_TEXT_NOTE,
+  }),
+  createSimpleEntry({
+    id: "pravrddholokan",
+    devanagari: "प्रवृद्धोलोकान्",
+    ruleId: "visarga-o",
+    left: {
+      id: "pravrddhah-left",
+      devanagari: "प्रवृद्धः",
+    },
+    right: {
+      id: "lokan-right",
+      devanagari: "लोकान्",
+    },
+    nimitta: VISARGA_OTVA_NIMITTA,
+    note: RUNNING_TEXT_NOTE,
+  }),
+  createSimpleEntry({
+    id: "yuyudhanoviratah",
+    devanagari: "युयुधानोविराटः",
+    ruleId: "visarga-o",
+    left: {
+      id: "yuyudhanah-left",
+      devanagari: "युयुधानः",
+    },
+    right: {
+      id: "viratah-right",
+      devanagari: "विराटः",
+    },
+    nimitta: VISARGA_OTVA_NIMITTA,
+    note: RUNNING_TEXT_NOTE,
+  }),
+  createSimpleEntry({
+    id: "uktohrishikeshah",
+    devanagari: "उक्तोहृषीकेशः",
+    ruleId: "visarga-o",
+    left: {
+      id: "uktah-left",
+      devanagari: "उक्तः",
+    },
+    right: {
+      id: "hrishikeshah-right-ukta",
+      devanagari: "हृषीकेशः",
     },
     nimitta: VISARGA_OTVA_NIMITTA,
     note: RUNNING_TEXT_NOTE,
@@ -3500,6 +3941,572 @@ const VYANJANA_BULK_PDF_CONFIGS: SimpleEntryConfig[] = [
     right: { id: "darshanam-right", devanagari: "दर्शनम्" },
     nimitta: PARASAVARNA_NIMITTA,
   },
+  {
+    id: "vakshuddhih",
+    devanagari: "वाक्छुद्धिः",
+    ruleId: "chhatva",
+    left: { id: "vak-left-shuddhi", devanagari: "वाक्" },
+    right: { id: "shuddhih-right", devanagari: "शुद्धिः" },
+    nimitta: CHHATVA_NIMITTA,
+  },
+  {
+    id: "vaksharah",
+    devanagari: "वाक्छरः",
+    ruleId: "chhatva",
+    left: { id: "vak-left-shara", devanagari: "वाक्" },
+    right: { id: "sharah-right", devanagari: "शरः" },
+    nimitta: CHHATVA_NIMITTA,
+  },
+  {
+    id: "bhishakchete",
+    devanagari: "भिषक्छेते",
+    ruleId: "chhatva",
+    left: { id: "bhishak-left-shete", devanagari: "भिषक्" },
+    right: { id: "shete-right-bhishak", devanagari: "शेते" },
+    nimitta: CHHATVA_NIMITTA,
+  },
+  {
+    id: "yacchokam",
+    devanagari: "यच्छोकम्",
+    ruleId: "chhatva",
+    left: { id: "yac-left-shokam", devanagari: "यच्" },
+    right: { id: "shokam-right-yac", devanagari: "शोकम्" },
+    nimitta: CHHATVA_NIMITTA,
+    note: {
+      en: "This textbook example presents the immediate chhatva stage directly for practice.",
+      sa: "अयं पाठ्यदृष्टान्तः अभ्यासार्थं छत्वस्य तात्कालिकं रूपं साक्षात् दर्शयति।",
+      te: "ఈ పాఠ్య ఉదాహరణలో అభ్యాసార్థం ఛత్వానికి ముందున్న తక్షణ రూపాన్నే నేరుగా చూపించాం.",
+    },
+  },
+  {
+    id: "madhulitchhete",
+    devanagari: "मधुलिट्छेते",
+    ruleId: "chhatva",
+    left: { id: "madhulit-left-shete", devanagari: "मधुलिट्" },
+    right: { id: "shete-right-madhulit", devanagari: "शेते" },
+    nimitta: CHHATVA_NIMITTA,
+  },
+  {
+    id: "tacchlokah",
+    devanagari: "तच्छ्लोकः",
+    ruleId: "chhatva",
+    left: { id: "tac-left-shloka", devanagari: "तच्" },
+    right: { id: "shlokah-right-tac", devanagari: "श्लोकः" },
+    nimitta: CHHATVA_NIMITTA,
+    note: {
+      en: "This is the taught intermediate left member used in the chhatva drill trail.",
+      sa: "अयं छत्वाभ्यासश्रृङ्खलायां उपदिष्टः मध्यवर्ती वामभागः अस्ति।",
+      te: "ఇది ఛత్వ అభ్యాస క్రమంలో బోధించే మధ్యవర్తి ఎడమ భాగం.",
+    },
+  },
+  {
+    id: "sacchilam",
+    devanagari: "सच्छीलम्",
+    ruleId: "chhatva",
+    left: { id: "sac-left-shilam", devanagari: "सच्" },
+    right: { id: "shilam-right", devanagari: "शीलम्" },
+    nimitta: CHHATVA_NIMITTA,
+  },
+  {
+    id: "ucchvasah",
+    devanagari: "उच्छ्वासः",
+    ruleId: "chhatva",
+    left: { id: "uc-left-shvasah", devanagari: "उच्" },
+    right: { id: "shvasah-right", devanagari: "श्वासः" },
+    nimitta: CHHATVA_NIMITTA,
+  },
+  {
+    id: "etacchmashanam",
+    devanagari: "एतच्छ्मशानम्",
+    ruleId: "chhatva",
+    left: { id: "etac-left-shmashanam", devanagari: "एतच्" },
+    right: { id: "shmashanam-right", devanagari: "श्मशानम्" },
+    nimitta: CHHATVA_NIMITTA,
+  },
+  {
+    id: "svacchaya",
+    devanagari: "स्वच्छाया",
+    ruleId: "tugagama",
+    left: { id: "sva-left-chhaya", devanagari: "स्व" },
+    right: { id: "chhaya-right-sva", devanagari: "छाया" },
+    nimitta: TUGAGAMA_NIMITTA,
+  },
+  {
+    id: "shivacchaya",
+    devanagari: "शिवच्छाया",
+    ruleId: "tugagama",
+    left: { id: "shiva-left-chhaya", devanagari: "शिव" },
+    right: { id: "chhaya-right-shiva", devanagari: "छाया" },
+    nimitta: TUGAGAMA_NIMITTA,
+  },
+  {
+    id: "vrkshacchaya",
+    devanagari: "वृक्षच्छाया",
+    ruleId: "tugagama",
+    left: { id: "vrksha-left-chhaya", devanagari: "वृक्ष" },
+    right: { id: "chhaya-right-vrksha", devanagari: "छाया" },
+    nimitta: TUGAGAMA_NIMITTA,
+  },
+  {
+    id: "priyacchatrah",
+    devanagari: "प्रियच्छात्रः",
+    ruleId: "tugagama",
+    left: { id: "priya-left-chatra", devanagari: "प्रिय" },
+    right: { id: "chatrah-right-priya", devanagari: "छात्रः" },
+    nimitta: TUGAGAMA_NIMITTA,
+  },
+  {
+    id: "jagaticchandah",
+    devanagari: "जगतिच्छन्दः",
+    ruleId: "tugagama",
+    left: { id: "jagati-left-chandas", devanagari: "जगति" },
+    right: { id: "chandah-right-jagati", devanagari: "छन्दः" },
+    nimitta: TUGAGAMA_NIMITTA,
+  },
+  {
+    id: "vrkshacchedah",
+    devanagari: "वृक्षच्छेदः",
+    ruleId: "tugagama",
+    left: { id: "vrksha-left-chedah", devanagari: "वृक्ष" },
+    right: { id: "chedah-right-vrksha", devanagari: "छेदः" },
+    nimitta: TUGAGAMA_NIMITTA,
+  },
+  {
+    id: "shikharinicchandah",
+    devanagari: "शिखरिणीच्छन्दः",
+    ruleId: "tugagama",
+    left: { id: "shikharini-left-chandas", devanagari: "शिखरिणी" },
+    right: { id: "chandah-right-shikharini", devanagari: "छन्दः" },
+    nimitta: TUGAGAMA_NIMITTA,
+    note: {
+      en: "The textbook also allows a non-inserted teaching variant here; this entry practices the tugāgama form.",
+      sa: "अत्र ग्रन्थे तुगागमरहितः शिक्षणप्रयोगोऽपि स्वीकृतः; अयं तु तुगागमरूपाभ्यासः।",
+      te: "ఇక్కడ పుస్తకంలో తుగాగమం లేని బోధనారూపం కూడా ఉంది; ఈ ప్రవేశం మాత్రం తుగాగమ రూపాన్నే అభ్యసిస్తుంది.",
+    },
+  },
+  {
+    id: "grhacchadanam",
+    devanagari: "गृहच्छादनम्",
+    ruleId: "tugagama",
+    left: { id: "grha-left", devanagari: "गृह" },
+    right: { id: "chadanam-right", devanagari: "छादनम्" },
+    nimitta: TUGAGAMA_NIMITTA,
+  },
+  {
+    id: "manavacchaya",
+    devanagari: "मानवच्छाया",
+    ruleId: "tugagama",
+    left: { id: "manava-left", devanagari: "मानव" },
+    right: { id: "chhaya-right-manava", devanagari: "छाया" },
+    nimitta: TUGAGAMA_NIMITTA,
+  },
+  {
+    id: "matracchandah",
+    devanagari: "मात्राच्छन्दः",
+    ruleId: "tugagama",
+    left: { id: "matra-left", devanagari: "मात्रा" },
+    right: { id: "chandah-right-matra", devanagari: "छन्दः" },
+    nimitta: TUGAGAMA_NIMITTA,
+    note: {
+      en: "The textbook treats this as an optional long-vowel tugāgama form; this entry practices the inserted cch version.",
+      sa: "ग्रन्थे एतत् दीर्घान्ते विकल्पेन तुगागमरूपं दर्शितम्; अत्र तु च्छरूपाभ्यासः क्रियते।",
+      te: "పుస్తకంలో ఇది దీర్ఘాంతంలో వికల్ప తుగాగమరూపంగా చూపబడింది; ఇక్కడ మాత్రం చ్ఛ రూపాన్నే సాధన చేస్తాం.",
+    },
+  },
+  {
+    id: "sukshmacchidram",
+    devanagari: "सूक्ष्मच्छिद्रम्",
+    ruleId: "tugagama",
+    left: { id: "sukshma-left", devanagari: "सूक्ष्म" },
+    right: { id: "chidram-right-sukshma", devanagari: "छिद्रम्" },
+    nimitta: TUGAGAMA_NIMITTA,
+  },
+  {
+    id: "saccidrupam",
+    devanagari: "सच्चिद्रूपम्",
+    ruleId: "shcutva",
+    left: { id: "sat-left-cidrupa", devanagari: "सत्" },
+    right: { id: "cidrupam-right", devanagari: "चिद्रूपम्" },
+    nimitta: SHCUTVA_NIMITTA,
+  },
+  {
+    id: "tajjvalati",
+    devanagari: "तज्ज्वलति",
+    ruleId: "shcutva",
+    left: { id: "tad-left-jvalati", devanagari: "तद्" },
+    right: { id: "jvalati-right", devanagari: "ज्वलति" },
+    nimitta: SHCUTVA_NIMITTA,
+  },
+  {
+    id: "ujjvalam",
+    devanagari: "उज्ज्वलम्",
+    ruleId: "shcutva",
+    left: { id: "ud-left-jvalam", devanagari: "उद्" },
+    right: { id: "jvalam-right", devanagari: "ज्वलम्" },
+    nimitta: SHCUTVA_NIMITTA,
+  },
+  {
+    id: "brhacchatram",
+    devanagari: "बृहच्छत्रम्",
+    ruleId: "shcutva",
+    left: { id: "brhat-left-chatra", devanagari: "बृहत्" },
+    right: { id: "chatram-right-brhat", devanagari: "छत्रम्" },
+    nimitta: SHCUTVA_NIMITTA,
+  },
+  {
+    id: "tacca",
+    devanagari: "तच्च",
+    ruleId: "shcutva",
+    left: { id: "tat-left-ca", devanagari: "तत्" },
+    right: { id: "ca-right-tat", devanagari: "च" },
+    nimitta: SHCUTVA_NIMITTA,
+  },
+  {
+    id: "anyacca",
+    devanagari: "अन्यच्च",
+    ruleId: "shcutva",
+    left: { id: "anyat-left-ca", devanagari: "अन्यत्" },
+    right: { id: "ca-right-anyat", devanagari: "च" },
+    nimitta: SHCUTVA_NIMITTA,
+  },
+  {
+    id: "tapashcarya",
+    devanagari: "तपश्चर्या",
+    ruleId: "shcutva",
+    left: { id: "tapas-left-carya", devanagari: "तपस्" },
+    right: { id: "carya-right", devanagari: "चर्या" },
+    nimitta: SHCUTVA_NIMITTA,
+  },
+  {
+    id: "kiyacchiram",
+    devanagari: "कियच्चिरम्",
+    ruleId: "shcutva",
+    left: { id: "kiyat-left-ciram", devanagari: "कियत्" },
+    right: { id: "ciram-right", devanagari: "चिरम्" },
+    nimitta: SHCUTVA_NIMITTA,
+  },
+  {
+    id: "sakrccharvanam",
+    devanagari: "सकृच्चर्वणम्",
+    ruleId: "shcutva",
+    left: { id: "sakrt-left-carvanam", devanagari: "सकृत्" },
+    right: { id: "carvanam-right", devanagari: "चर्वणम्" },
+    nimitta: SHCUTVA_NIMITTA,
+  },
+  {
+    id: "bhubhrcchalati",
+    devanagari: "भूभृच्चलति",
+    ruleId: "shcutva",
+    left: { id: "bhubhrit-left-calati", devanagari: "भूभृत्" },
+    right: { id: "calati-right", devanagari: "चलति" },
+    nimitta: SHCUTVA_NIMITTA,
+  },
+  {
+    id: "taccintyam",
+    devanagari: "तच्चिन्त्यम्",
+    ruleId: "shcutva",
+    left: { id: "tat-left-cintyam", devanagari: "तत्" },
+    right: { id: "cintyam-right", devanagari: "चिन्त्यम्" },
+    nimitta: SHCUTVA_NIMITTA,
+  },
+  {
+    id: "brhacchidram",
+    devanagari: "बृहच्छिद्रम्",
+    ruleId: "shcutva",
+    left: { id: "brhat-left-chidram", devanagari: "बृहत्" },
+    right: { id: "chidram-right", devanagari: "छिद्रम्" },
+    nimitta: SHCUTVA_NIMITTA,
+  },
+  {
+    id: "etajjnatva",
+    devanagari: "एतज्ज्ञात्वा",
+    ruleId: "shcutva",
+    left: { id: "etad-left-jnatva", devanagari: "एतद्" },
+    right: { id: "jnatva-right", devanagari: "ज्ञात्वा" },
+    nimitta: SHCUTVA_NIMITTA,
+  },
+  {
+    id: "pratipaccandrah",
+    devanagari: "प्रतिपच्चन्द्रः",
+    ruleId: "shcutva",
+    left: { id: "pratipat-left-candra", devanagari: "प्रतिपत्" },
+    right: { id: "candrah-right", devanagari: "चन्द्रः" },
+    nimitta: SHCUTVA_NIMITTA,
+  },
+  {
+    id: "brhatika",
+    devanagari: "बृहट्टीका",
+    ruleId: "shtutva",
+    left: { id: "brhat-left-tika", devanagari: "बृहत्" },
+    right: { id: "tika-right", devanagari: "टीका" },
+    nimitta: SHTUTVA_NIMITTA,
+  },
+  {
+    id: "taddamaruh",
+    devanagari: "तड्डमरुः",
+    ruleId: "shtutva",
+    left: { id: "tad-left-damaru", devanagari: "तद्" },
+    right: { id: "damaruh-right", devanagari: "डमरुः" },
+    nimitta: SHTUTVA_NIMITTA,
+  },
+  {
+    id: "akrishtah",
+    devanagari: "आकृष्टः",
+    ruleId: "shtutva",
+    left: { id: "akrish-left", devanagari: "आकृष्" },
+    right: { id: "tah-right-akrish", devanagari: "तः" },
+    nimitta: SHTUTVA_NIMITTA,
+  },
+  {
+    id: "ishtah",
+    devanagari: "इष्टः",
+    ruleId: "shtutva",
+    left: { id: "ish-left", devanagari: "इष्" },
+    right: { id: "tah-right-ish", devanagari: "तः" },
+    nimitta: SHTUTVA_NIMITTA,
+  },
+  {
+    id: "vishthitam",
+    devanagari: "विष्ठितम्",
+    ruleId: "shtutva",
+    left: { id: "vis-left-thitam", devanagari: "विस्" },
+    right: { id: "thitam-right", devanagari: "थितम्" },
+    nimitta: SHTUTVA_NIMITTA,
+  },
+  {
+    id: "tattika",
+    devanagari: "तट्टीका",
+    ruleId: "shtutva",
+    left: { id: "tat-left-tika", devanagari: "तत्" },
+    right: { id: "tika-right-tat", devanagari: "टीका" },
+    nimitta: SHTUTVA_NIMITTA,
+  },
+  {
+    id: "sharaddambarah",
+    devanagari: "शरड्डम्बरः",
+    ruleId: "shtutva",
+    left: { id: "sharad-left-dambara", devanagari: "शरद्" },
+    right: { id: "dambarah-right", devanagari: "डम्बरः" },
+    nimitta: SHTUTVA_NIMITTA,
+  },
+  {
+    id: "uttankanam",
+    devanagari: "उट्टङ्कनम्",
+    ruleId: "shtutva",
+    left: { id: "ut-left-tankana", devanagari: "उत्" },
+    right: { id: "tankana-right", devanagari: "टङ्कनम्" },
+    nimitta: SHTUTVA_NIMITTA,
+  },
+  {
+    id: "katamashtakarah",
+    devanagari: "कतमष्टकारः",
+    ruleId: "shtutva",
+    left: { id: "katamas-left-takara", devanagari: "कतमस्" },
+    right: { id: "takarah-right", devanagari: "टकारः" },
+    nimitta: SHTUTVA_NIMITTA,
+  },
+  {
+    id: "sattippani",
+    devanagari: "सट्टिप्पणी",
+    ruleId: "shtutva",
+    left: { id: "sat-left-tippani", devanagari: "सत्" },
+    right: { id: "tippani-right", devanagari: "टिप्पणी" },
+    nimitta: SHTUTVA_NIMITTA,
+  },
+  {
+    id: "uddayanam",
+    devanagari: "उड्डयनम्",
+    ruleId: "shtutva",
+    left: { id: "ud-left-dayana", devanagari: "उद्" },
+    right: { id: "dayanam-right", devanagari: "डयनम्" },
+    nimitta: SHTUTVA_NIMITTA,
+  },
+  {
+    id: "syaddhakka",
+    devanagari: "स्याड्ढक्का",
+    ruleId: "shtutva",
+    left: { id: "syad-left-dhakka", devanagari: "स्याद्" },
+    right: { id: "dhakka-right", devanagari: "ढक्का" },
+    nimitta: SHTUTVA_NIMITTA,
+  },
+  {
+    id: "brhaddindimah",
+    devanagari: "बृहड्डिण्डिमः",
+    ruleId: "shtutva",
+    left: { id: "brhad-left-dindima", devanagari: "बृहद्" },
+    right: { id: "dindimah-right", devanagari: "डिण्डिमः" },
+    nimitta: SHTUTVA_NIMITTA,
+  },
+  {
+    id: "brhattankashala",
+    devanagari: "बृहट्टङ्कशाला",
+    ruleId: "shtutva",
+    left: { id: "brhat-left-tankashala", devanagari: "बृहत्" },
+    right: { id: "tankashala-right", devanagari: "टङ्कशाला" },
+    nimitta: SHTUTVA_NIMITTA,
+  },
+  {
+    id: "maruddindimah",
+    devanagari: "मरुड्डिण्डिमः",
+    ruleId: "shtutva",
+    left: { id: "marud-left-dindima", devanagari: "मरुद्" },
+    right: { id: "dindimah-right-marud", devanagari: "डिण्डिमः" },
+    nimitta: SHTUTVA_NIMITTA,
+  },
+  {
+    id: "arthakamanstu",
+    devanagari: "अर्थकामांस्तु",
+    ruleId: "satva",
+    left: { id: "arthakaman-left", devanagari: "अर्थकामान्" },
+    right: { id: "tu-right-arthakaman", devanagari: "तु" },
+    nimitta: SATVA_NIMITTA,
+    note: {
+      en: "The textbook also allows a nasalized-vowel writing here; this gameplay entry uses the anusvāra form.",
+      sa: "अत्र ग्रन्थे अनुनासिकस्वररूपमपि स्वीकृतम्; अयं अभ्यासः अनुस्वाररूपेण दर्शितः।",
+      te: "ఇక్కడ పుస్తకంలో అనునాసిక స్వరరూపం కూడా ఉంది; ఈ గేమ్ ప్రవేశంలో అనుస్వార రూపాన్ని తీసుకున్నాం.",
+    },
+  },
+  {
+    id: "prajnavadamshca",
+    devanagari: "प्रज्ञावादांश्च",
+    ruleId: "satva",
+    left: { id: "prajnavadan-left", devanagari: "प्रज्ञावादान्" },
+    right: { id: "ca-right-prajnavadan", devanagari: "च" },
+    nimitta: SATVA_NIMITTA,
+    note: SATVA_SHCUTVA_NOTE,
+  },
+  {
+    id: "shlokamshtikabhih",
+    devanagari: "श्लोकांष्टीकाभिः",
+    ruleId: "satva",
+    left: { id: "shlokan-left", devanagari: "श्लोकान्" },
+    right: { id: "tikabhih-right", devanagari: "टीकाभिः" },
+    nimitta: SATVA_NIMITTA,
+    note: SATVA_SHTUTVA_NOTE,
+  },
+  {
+    id: "tamshca",
+    devanagari: "तांश्च",
+    ruleId: "satva",
+    left: { id: "tan-left-ca", devanagari: "तान्" },
+    right: { id: "ca-right-tan", devanagari: "च" },
+    nimitta: SATVA_NIMITTA,
+    note: SATVA_SHCUTVA_NOTE,
+  },
+  {
+    id: "agatasumshca",
+    devanagari: "अगतासूंश्च",
+    ruleId: "satva",
+    left: { id: "agatasun-left", devanagari: "अगतासून्" },
+    right: { id: "ca-right-agatasun", devanagari: "च" },
+    nimitta: SATVA_NIMITTA,
+    note: SATVA_SHCUTVA_NOTE,
+  },
+  {
+    id: "sarvamshthakkuran",
+    devanagari: "सर्वांष्ठक्कुरान्",
+    ruleId: "satva",
+    left: { id: "sarvan-left", devanagari: "सर्वान्" },
+    right: { id: "thakkuran-right", devanagari: "ठक्कुरान्" },
+    nimitta: SATVA_NIMITTA,
+    note: SATVA_SHTUTVA_NOTE,
+  },
+  {
+    id: "etamstrin",
+    devanagari: "एतांस्त्रीन्",
+    ruleId: "satva",
+    left: { id: "etan-left", devanagari: "एतान्" },
+    right: { id: "trin-right", devanagari: "त्रीन्" },
+    nimitta: SATVA_NIMITTA,
+  },
+  {
+    id: "tamshthankaran",
+    devanagari: "तांष्ठङ्कारान्",
+    ruleId: "satva",
+    left: { id: "tan-left-thankaran", devanagari: "तान्" },
+    right: { id: "thankaran-right", devanagari: "ठङ्कारान्" },
+    nimitta: SATVA_NIMITTA,
+    note: SATVA_SHTUTVA_NOTE,
+  },
+  {
+    id: "viparitamshca",
+    devanagari: "विपरीतांश्च",
+    ruleId: "satva",
+    left: { id: "viparitan-left", devanagari: "विपरीतान्" },
+    right: { id: "ca-right-viparitan", devanagari: "च" },
+    nimitta: SATVA_NIMITTA,
+    note: SATVA_SHCUTVA_NOTE,
+  },
+  {
+    id: "sakhimstatha",
+    devanagari: "सखींस्तथा",
+    ruleId: "satva",
+    left: { id: "sakhin-left", devanagari: "सखीन्" },
+    right: { id: "tatha-right-sakhin", devanagari: "तथा" },
+    nimitta: SATVA_NIMITTA,
+  },
+  {
+    id: "hatamstvam",
+    devanagari: "हतांस्त्वम्",
+    ruleId: "satva",
+    left: { id: "hatan-left", devanagari: "हतान्" },
+    right: { id: "tvam-right-hatan", devanagari: "त्वम्" },
+    nimitta: SATVA_NIMITTA,
+  },
+  {
+    id: "taime",
+    devanagari: "तइमे",
+    ruleId: "yavalopa",
+    left: { id: "te-left", devanagari: "ते" },
+    right: { id: "ime-right", devanagari: "इमे" },
+    nimitta: YAVALOPA_NIMITTA,
+    note: makeCompactHiatusNote("त इमे", "तइमे"),
+  },
+  {
+    id: "tasmaaetat",
+    devanagari: "तस्माएतत्",
+    ruleId: "yavalopa",
+    left: { id: "tasmai-left", devanagari: "तस्मै" },
+    right: { id: "etat-right", devanagari: "एतत्" },
+    nimitta: YAVALOPA_NIMITTA,
+    note: makeCompactHiatusNote("तस्मा एतत्", "तस्माएतत्"),
+  },
+  {
+    id: "guraehi",
+    devanagari: "गुरएहि",
+    ruleId: "yavalopa",
+    left: { id: "guro-left", devanagari: "गुरो" },
+    right: { id: "ehi-right", devanagari: "एहि" },
+    nimitta: YAVALOPA_NIMITTA,
+    note: makeCompactHiatusNote("गुर एहि", "गुरएहि"),
+  },
+  {
+    id: "ubhaapi",
+    devanagari: "उभाअपि",
+    ruleId: "yavalopa",
+    left: { id: "ubhau-left", devanagari: "उभौ" },
+    right: { id: "api-right-ubhau", devanagari: "अपि" },
+    nimitta: YAVALOPA_NIMITTA,
+    note: makeCompactHiatusNote("उभा अपि", "उभाअपि"),
+  },
+  {
+    id: "balaiha",
+    devanagari: "बालइह",
+    ruleId: "yavalopa",
+    left: { id: "balay-left", devanagari: "बालय्" },
+    right: { id: "iha-right", devanagari: "इह" },
+    nimitta: YAVALOPA_NIMITTA,
+    note: makeCompactHiatusNote("बाल इह", "बालइह"),
+  },
+  {
+    id: "purushaagacchatah",
+    devanagari: "पुरुषाआगच्छतः",
+    ruleId: "yavalopa",
+    left: { id: "purushav-left", devanagari: "पुरुषाव्" },
+    right: { id: "agacchatah-right", devanagari: "आगच्छतः" },
+    nimitta: YAVALOPA_NIMITTA,
+    note: makeCompactHiatusNote("पुरुषा आगच्छतः", "पुरुषाआगच्छतः"),
+  },
 ];
 
 const VYANJANA_BULK_PDF_ENTRIES = VYANJANA_BULK_PDF_CONFIGS.map((config) =>
@@ -3853,6 +4860,7 @@ export const DEFAULT_SANDHI_BANK: WordNode[] = [
   tumuloBhavatEntry,
   prejateEntry,
   uposhatiEntry,
+  shivayomnamahEntry,
   digambaraEntry,
   vagishaEntry,
   diggajaEntry,
@@ -3877,6 +4885,10 @@ export const DEFAULT_SANDHI_BANK: WordNode[] = [
   uddharahEntry,
   taddhetuEntry,
   uddhrtaEntry,
+  dhaddhiEntry,
+  vanigghasatiEntry,
+  utthanamEntry,
+  uttambhanamEntry,
   sankalpahEntry,
   sanjayaEntry,
   sampataEntry,
@@ -4042,6 +5054,12 @@ const parseCut = (value: unknown): SandhiCut | null => {
       ruleId !== "anusvara" &&
       ruleId !== "purvasavarna" &&
       ruleId !== "parasavarna" &&
+      ruleId !== "chhatva" &&
+      ruleId !== "tugagama" &&
+      ruleId !== "shcutva" &&
+      ruleId !== "shtutva" &&
+      ruleId !== "satva" &&
+      ruleId !== "yavalopa" &&
       ruleId !== "visarga-sa" &&
       ruleId !== "visarga-repha" &&
       ruleId !== "visarga-lopa" &&

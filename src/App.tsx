@@ -619,11 +619,17 @@ function App() {
 
       if (payload.roundCompleted) {
         setInteractionLocked(true);
-        if (practiceModeRef.current) {
+        const shouldWaitForManualAdvance =
+          practiceModeRef.current || timerModeRef.current === "untimed";
+
+        if (shouldWaitForManualAdvance) {
           clearNextWordTimer();
-          clearFeedbackTimer();
           setAwaitingPracticeAdvance(true);
-          setFeedback(t("practiceNextHint", languageRef.current));
+
+          if (practiceModeRef.current) {
+            clearFeedbackTimer();
+            setFeedback(t("practiceNextHint", languageRef.current));
+          }
           return;
         }
         scheduleNextWord();

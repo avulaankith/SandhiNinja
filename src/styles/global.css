@@ -92,6 +92,7 @@ button {
 .app-shell--game .hero-controls {
   gap: 6px;
   align-content: start;
+  min-width: 0;
 }
 
 .app-shell--game .mode-card {
@@ -116,10 +117,11 @@ button {
   display: grid;
   gap: 6px;
   align-content: start;
+  min-width: 0;
 }
 
 .app-shell--game .hero-brand {
-  gap: 12px;
+  gap: 10px;
 }
 
 .app-shell--game .hero-brand__text {
@@ -214,8 +216,8 @@ button {
 }
 
 .app-shell--game .brand-mark {
-  width: clamp(52px, 5vw, 68px);
-  height: clamp(52px, 5vw, 68px);
+  width: clamp(48px, 4.5vw, 62px);
+  height: clamp(48px, 4.5vw, 62px);
 }
 
 .ambient {
@@ -273,6 +275,7 @@ button {
 
 .hero-brand__text h1 {
   margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .brand-mark {
@@ -304,6 +307,7 @@ button {
 .hero-controls {
   display: grid;
   gap: 8px;
+  min-width: 0;
 }
 
 .hero-controls__top {
@@ -542,6 +546,7 @@ button {
   color: #ddeaf5;
   font-size: 0.83rem;
   line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 .family-spotlight {
@@ -773,6 +778,7 @@ button {
 .knife-card--floating strong {
   font-size: 0.87rem;
   line-height: 1.2;
+  overflow-wrap: anywhere;
 }
 
 .knife-card span {
@@ -1259,6 +1265,7 @@ button {
     linear-gradient(180deg, rgba(11, 17, 29, 0.97), rgba(8, 13, 22, 0.97)),
     rgba(8, 13, 22, 0.97);
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.32);
+  min-width: 0;
 }
 
 .floating-dock__topline {
@@ -1291,6 +1298,7 @@ button {
   border-radius: 18px;
   border: 1px solid rgba(255, 255, 255, 0.06);
   background: var(--surface-soft);
+  min-width: 0;
 }
 
 .knife-detail__topline {
@@ -1358,6 +1366,7 @@ button {
   overflow: visible;
   position: sticky;
   top: 18px;
+  min-width: 0;
 }
 
 .lesson-panel {
@@ -1647,15 +1656,21 @@ select {
   display: grid;
   place-items: center;
   padding: 24px;
+  overflow-y: auto;
   background: rgba(2, 7, 14, 0.74);
   backdrop-filter: blur(14px);
   z-index: 20;
 }
 
 .overlay-card {
+  width: min(100%, 620px);
   max-width: 620px;
+  max-height: min(88vh, 760px);
+  display: grid;
+  gap: 0;
   padding: 28px;
   border-radius: 30px;
+  overflow-y: auto;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background:
     radial-gradient(circle at top left, rgba(244, 177, 98, 0.18), transparent 38%),
@@ -1695,15 +1710,29 @@ select {
 
 @media (max-width: 1320px) {
   .app-shell--game {
-    height: auto;
-    overflow: visible;
-    display: block;
+    min-height: 100vh;
   }
 
-  .hero,
-  .main-grid,
-  .studio-grid {
-    grid-template-columns: 1fr;
+  .app-shell--game .hero {
+    grid-template-columns: minmax(220px, 0.66fr) minmax(0, 1.34fr);
+  }
+
+  .main-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(248px, 284px);
+  }
+
+  .app-shell--game .hero-copy h1 {
+    font-size: clamp(1.8rem, 2.5vw, 2.35rem);
+  }
+
+  .app-shell--game .hero-copy p {
+    max-width: 34ch;
+    font-size: 0.8rem;
+  }
+
+  .app-shell--game .brand-mark {
+    width: 56px;
+    height: 56px;
   }
 
   .analyzer-grid {
@@ -1740,6 +1769,37 @@ select {
     justify-content: stretch;
   }
 
+  .knife-grid--floating {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1180px) {
+  .app-shell--game {
+    height: auto;
+    overflow: visible;
+    display: block;
+  }
+
+  .hero,
+  .main-grid,
+  .studio-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-controls__top {
+    grid-template-columns: 1fr;
+  }
+
+  .app-shell--game .family-selector {
+    grid-template-columns: 1fr;
+  }
+
+  .app-shell--game .family-grid,
+  .app-shell--game .family-spotlight {
+    grid-column: auto;
+  }
+
   .floating-dock {
     grid-template-columns: 1fr;
   }
@@ -1773,6 +1833,47 @@ select {
 }
 
 @media (max-width: 760px) {
+  .overlay {
+    align-items: end;
+    padding: 12px;
+  }
+
+  .overlay-card {
+    width: 100%;
+    max-height: calc(100vh - 24px);
+    padding: 18px 16px 16px;
+    border-radius: 22px;
+  }
+
+  .overlay-card h2 {
+    margin: 10px 0 14px;
+    font-size: 1rem;
+    line-height: 1.35;
+  }
+
+  .onboarding-steps {
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+
+  .onboarding-step {
+    padding: 10px 12px;
+    border-radius: 16px;
+  }
+
+  .onboarding-step strong {
+    font-size: 0.88rem;
+  }
+
+  .onboarding-step p {
+    font-size: 0.8rem;
+    line-height: 1.4;
+  }
+
+  .overlay-card .primary-button {
+    width: 100%;
+  }
+
   .app-shell {
     width: 100%;
     padding: 12px;
@@ -1786,6 +1887,10 @@ select {
 
   .app-shell--game .hero {
     gap: 10px;
+  }
+
+  .app-shell--game .hero-brand {
+    align-items: flex-start;
   }
 
   .app-shell--game .hero-copy {
@@ -1936,6 +2041,12 @@ select {
     padding: 8px 10px;
   }
 
+  .pill-button,
+  .ghost-button,
+  .primary-button {
+    padding: 9px 12px;
+  }
+
   .score-panel,
   .lesson-panel,
   .arena-frame,
@@ -2029,6 +2140,32 @@ select {
 }
 
 @media (max-width: 520px) {
+  .overlay {
+    padding: 8px;
+  }
+
+  .overlay-card {
+    max-height: calc(100vh - 16px);
+    padding: 14px 12px 12px;
+    border-radius: 18px;
+  }
+
+  .overlay-card h2 {
+    font-size: 0.94rem;
+  }
+
+  .onboarding-step {
+    padding: 9px 10px;
+  }
+
+  .onboarding-step strong {
+    font-size: 0.84rem;
+  }
+
+  .onboarding-step p {
+    font-size: 0.76rem;
+  }
+
   .app-shell {
     padding: 10px;
   }
@@ -2065,20 +2202,55 @@ select {
   }
 
   .hero-utility-row .toggle-row {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .knife-grid--floating {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .floating-dock__actions {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .knife-card--floating {
+    min-height: 50px;
+    padding: 8px;
   }
 
   .reveal-banner__row,
   .knife-detail__topline {
     flex-direction: column;
     align-items: flex-start;
+  }
+}
+
+@media (max-width: 380px) {
+  .mode-grid,
+  .knife-grid--floating,
+  .floating-dock__actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .hero-utility-row .toggle-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .stat-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-utility-row .ghost-button,
+  .hero-utility-row .pill-button,
+  .floating-dock__actions > button {
+    font-size: 0.84rem;
+  }
+}
+
+@media (max-width: 340px) {
+  .mode-grid,
+  .knife-grid--floating,
+  .floating-dock__actions {
+    grid-template-columns: 1fr;
   }
 }

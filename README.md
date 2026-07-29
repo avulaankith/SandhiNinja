@@ -1,29 +1,48 @@
 # Sandhi Ninja
 
-Live website: [https://sandhi-ninja.vercel.app](https://sandhi-ninja.vercel.app)
+Live site: [https://sandhi-ninja.vercel.app](https://sandhi-ninja.vercel.app)
 
-Sandhi Ninja is a Sanskrit sandhi practice web app built with React, Phaser, Vite, and a same-repo TypeScript backend. The current version combines fast gameplay, guided feedback, and a separate sandhi analysis section for trying supported chedas on new samasta padams.
+Sandhi Ninja is a Sanskrit sandhi practice app built with React, Phaser, Vite, and a same-repo TypeScript backend. It combines game-style sandhi splitting and joining with guided explanations, sutra references, and a separate explorer for analyzing new samasta padams.
 
-## What The Current Version Includes
+## What It Does
 
-- `Arcade Slice`: fast rounds focused on choosing the correct sandhi and cutting at the correct split point
-- `Full Split`: recursive play for words that can be split more than once
-- `Practice mode`: the solved word stays on screen until the user clicks `Next word`
-- `Timed` and `Untimed` play modes
-- Randomized word order on refresh and across sessions
-- Rule-aware feedback that tells the learner whether:
-  - both the split place and sandhi were correct
-  - the place was correct but the sandhi was wrong
-  - the sandhi was valid but at a different place
-  - both were wrong
-- `Sandhi Explorer`: a separate section where the user can enter a word in `IAST`, `Devanagari`, or `Telugu` and inspect supported svara-sandhi analyses step by step
-- `Custom Builder`: analyzer results can be saved into the local game bank for future practice
-- Multilingual UI in `English`, `Sanskrit`, and `Telugu`
-- Updated `Sandhi Ninja` branding and logo mark
+- `Sandhi Splitting`: choose the correct sandhi, then split at the correct akshara boundary
+- `Sandhi Joining`: choose the correct sandhi and join adjacent padani back into a compound
+- `Practice mode`: the current word stays on screen until the learner presses `Next word`
+- `Timed` and `Untimed` play
+- `Guided` and `Challenge` study modes
+- `Mixed`, `Svara`, `Vyanjana`, and `Visarga` family filters
+- feedback that distinguishes:
+  - correct place + correct sandhi
+  - correct place + wrong sandhi
+  - wrong place + sandhi valid elsewhere in the word
+  - both wrong
+- answer reveal after repeated misses, including sandhi name, split place, sutra number, nimittam, and explanation
+- randomized word flow with stable per-word rule ordering in the dock
+- separate `Sandhi Explorer` for entering a word in `IAST`, `Devanagari`, or `Telugu`
+- local custom entry workflow with save, edit, delete, import, and export
+- responsive desktop and mobile layout
+- UI in `English`, `Sanskrit`, and `Telugu`
 
-## Supported Svara-Sandhi Rules
+## Current Scope
 
-The current analyzer and gameplay bank support these deterministic svara-sandhi reversals:
+### Gameplay Bank
+
+The gameplay bank covers three sandhi families:
+
+- `Svara`
+- `Vyanjana`
+- `Visarga`
+
+Gameplay includes 23 taught rule types:
+
+- `Svara`: Savarṇa Dīrgha, Guṇa, Vṛddhi, Yaṇ, Ayavāyāva, Pūrvarūpa, Pararūpa
+- `Vyanjana`: Jaśtva, Charva, Anunāsika, Anusvāra, Pūrvasavarṇa, Parasavarṇa, Chhatva, Tugāgama, Ścutva, Ṣṭutva, N-Final Satva, Yavalopa
+- `Visarga`: Visarga-Satva, Visarga-Repha, Visarga-Lopa, Visarga-Ootvam
+
+### Explorer / Analyzer
+
+The explorer backend currently supports deterministic `svara-sandhi reversal` for:
 
 - `Savarna Dirgha`
 - `Guna`
@@ -33,6 +52,37 @@ The current analyzer and gameplay bank support these deterministic svara-sandhi 
 - `Purvarupa`
 - `Pararupa`
 
+The explorer returns normalized forms, ranked candidate analyses, split steps, sutra metadata, nimitta, and multilingual explanations.
+
+## Product Areas
+
+### 1. Game Modes
+
+- `Sandhi Splitting`: Phaser-based slicing interaction
+- `Sandhi Joining`: choose sandhi and join valid neighboring pieces
+- `Practice mode`: no forced advance after success
+
+### 2. Coaching
+
+- guided hints after repeated misses
+- reveal after repeated failures
+- clear distinction between boundary mistakes and rule mistakes
+- “splits left” indicator during play
+
+### 3. Sandhi Explorer
+
+- separate section from gameplay
+- input in `IAST`, `Devanagari`, or `Telugu`
+- same-repo API via `POST /api/sandhi/analyze`
+- client fallback for supported analyzer rules if the API is unavailable
+
+### 4. Custom Content
+
+- locally save analyzer results into the practice bank
+- create manual entries in Dev Studio
+- import/export JSON
+- edit or delete custom entries stored in browser storage
+
 ## Tech Stack
 
 - `React 19`
@@ -40,34 +90,35 @@ The current analyzer and gameplay bank support these deterministic svara-sandhi 
 - `Vite`
 - `Phaser 4`
 - `Framer Motion`
-- `Node.js` + `Express`
+- `Node.js` HTTP server for same-origin production serving
+- Vercel-compatible serverless route wrappers in `api/`
 
-## Architecture
-
-The repo is split into a small client/server/shared structure:
+## Repo Layout
 
 ```text
 src/
   components/        React UI
-  data/              game bank, rules, copy
+  data/              sandhi bank, rules, and UI copy
   game/              Phaser runtime and scene logic
-  styles/            global visual system
-  types/             gameplay types
+  styles/            global styling and responsive layout
+  types/             gameplay and content types
   utils/             client helpers and explorer adapter
 
 server/
-  engine/            sandhi analyzer engine
-  routes/            API handlers
+  engine/            recursive sandhi analyzer
+  routes/            API route logic shared by local server and Vercel wrappers
 
 shared/
   contracts/         request/response types
-  core/              normalization and transliteration helpers
+  core/              rules, normalization, transliteration helpers
+
+api/
+  health.ts          Vercel health route
+  sandhi/analyze.ts  Vercel analyzer route
 
 tests/
-  engine.test.mjs    engine and API contract tests
+  engine.test.mjs    analyzer and API tests
 ```
-
-The `Sandhi Explorer` calls `POST /api/sandhi/analyze` when the backend is available. For supported rules, the client also has a local fallback path so the explorer can still function if the API is unavailable.
 
 ## Local Development
 
@@ -83,7 +134,7 @@ Run frontend and backend together:
 npm run dev
 ```
 
-Run them separately if needed:
+Run them separately:
 
 ```bash
 npm run dev:client
@@ -97,35 +148,71 @@ npm run build
 npm run build:client
 npm run build:server
 npm run test
+npm run preview
 npm start
 ```
 
 During local development, Vite proxies `/api/*` to `http://127.0.0.1:3001`.
 
-## Production Build
+## Production
 
-Create production assets:
+### Node Server
+
+Build:
 
 ```bash
 npm run build
 ```
 
-Start the Node server:
+Start:
 
 ```bash
 npm start
 ```
 
-The production server serves:
+The Node server:
 
-- the built frontend from `dist/`
-- the API from `/api/*`
+- serves the built frontend from `dist/`
+- serves `/api/sandhi/analyze`
+- serves `/api/health`
+
+### Vercel
+
+Current production:
+
+- [https://sandhi-ninja.vercel.app](https://sandhi-ninja.vercel.app)
+
+Deploy from the repo root:
+
+```bash
+npx vercel@latest deploy --prod --yes
+```
+
+This repo already includes:
+
+- `vercel.json` for frontend + API rewrites
+- `api/` serverless entrypoints for Vercel
+
+### Render
+
+This repo includes [render.yaml](/Users/ankith/github/SandhiNinja/render.yaml:1) for a single Node service deploy.
+
+Manual settings:
+
+```bash
+Build Command: npm install && npm run build
+Start Command: npm start
+```
+
+Health check:
+
+- `/api/health`
 
 ## API
 
 ### `POST /api/sandhi/analyze`
 
-Request body:
+Request:
 
 ```json
 {
@@ -152,7 +239,7 @@ Response includes:
 
 ### `GET /api/health`
 
-Health response:
+Response:
 
 ```json
 {
@@ -160,55 +247,17 @@ Health response:
 }
 ```
 
-## Deployment
-
-### Vercel
-
-Current live deployment:
-
-- [https://sandhi-ninja.vercel.app](https://sandhi-ninja.vercel.app)
-
-To deploy from GitHub:
-
-1. Push this repo to GitHub.
-2. In Vercel, create a new project from the repo.
-3. Use these settings:
-
-```bash
-Framework Preset: Vite
-Build Command: npm run build
-Output Directory: dist
-```
-
-4. Deploy.
-
-The app uses same-origin `/api/*` requests when the backend is available. The explorer also includes a client fallback for supported rule analysis, which keeps the feature usable even if the deployed environment is frontend-first.
-
-### Render
-
-This repo also includes [render.yaml](/Users/ankith/github/SandhiNinja/render.yaml:1) for a single Node service deploy.
-
-Manual settings:
-
-```bash
-Build Command: npm install && npm run build
-Start Command: npm start
-```
-
-Health check:
-
-- `/api/health`
-
 ## Testing
 
-Run the analyzer and API tests with:
+Run the analyzer and API tests:
 
 ```bash
 npm test
 ```
 
-## Notes And Limitations
+## Notes
 
-- The current analyzer is rule-based and does not yet do dictionary or morphology validation.
-- Custom entries are stored locally in browser storage.
-- Gameplay and explorer share rule data, but only the explorer depends on the API path.
+- gameplay support is broader than analyzer support; the analyzer is still `svara-first`
+- the analyzer is rule-based and does not yet validate against a lexical or morphology database
+- custom entries live in browser storage
+- the explorer and the game share the same rule definitions, but only the explorer depends on the analyzer API path

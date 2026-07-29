@@ -150,7 +150,8 @@ export class SliceScene extends Phaser.Scene {
   }
 
   private handleResize() {
-    this.syncTokenViews();
+    this.clearTrail();
+    this.rebuildTokenViews();
   }
 
   private handlePointerDown(pointer: Phaser.Input.Pointer) {
@@ -547,6 +548,38 @@ export class SliceScene extends Phaser.Scene {
     return guides;
   }
 
+  private rebuildTokenViews() {
+    for (const [, view] of this.tokenViews) {
+      view.container.destroy(true);
+    }
+    this.tokenViews.clear();
+    this.syncTokenViews();
+  }
+
+  private getTokenMetrics(node: WordNode) {
+    const stageWidth = this.scale.width;
+    const compactStage = stageWidth < 520;
+    const baseWidth =
+      node.devanagari.length * (compactStage ? 18 : 24) + (compactStage ? 96 : 120);
+    const minWidth = compactStage ? 180 : 210;
+    const maxWidth = Math.max(minWidth, stageWidth - (compactStage ? 36 : 72));
+    const tokenWidth = Math.min(maxWidth, Math.max(minWidth, baseWidth));
+    const longWord = node.devanagari.length > 12;
+
+    return {
+      badgeY: compactStage ? 56 : 64,
+      glowHeight: compactStage ? 132 : 148,
+      labelFontSize: compactStage ? (longWord ? 28 : 32) : longWord ? 38 : 44,
+      orbHeight: compactStage ? 104 : 118,
+      sheenHeight: compactStage ? 22 : 26,
+      sheenWidth: tokenWidth * 0.58,
+      sheenY: compactStage ? -24 : -28,
+      sublabelFontSize: compactStage ? 15 : 16,
+      sublabelY: compactStage ? 22 : 26,
+      tokenWidth,
+    };
+  }
+
   private syncTokenViews(options?: {
     removedId?: string;
     spawnOrigin?: LayoutPosition;
@@ -616,23 +649,35 @@ export class SliceScene extends Phaser.Scene {
   }
 
   private buildTokenView(token: ActiveToken) {
-    const tokenWidth = Math.min(
-      420,
-      Math.max(210, token.node.devanagari.length * 24 + 120),
-    );
+    const metrics = this.getTokenMetrics(token.node);
+    const tokenWidth = metrics.tokenWidth;
 
     const isSplittable = isFurtherSplittable(token.node);
     const glowColor = isSplittable ? 0xffbe70 : 0x7df5c7;
     const orbColor = isSplittable ? 0x1d1521 : 0x13261d;
 
-    const outerGlow = this.add.ellipse(0, 10, tokenWidth + 64, 148, glowColor, 0.2);
-    const orb = this.add.ellipse(0, 0, tokenWidth, 118, orbColor, 0.94);
-    const sheen = this.add.ellipse(0, -28, tokenWidth * 0.58, 26, 0xffffff, 0.08);
+    const outerGlow = this.add.ellipse(
+      0,
+      10,
+      tokenWidth + (tokenWidth < 240 ? 44 : 64),
+      metrics.glowHeight,
+      glowColor,
+      0.2,
+    );
+    const orb = this.add.ellipse(0, 0, tokenWidth, metrics.orbHeight, orbColor, 0.94);
+    const sheen = this.add.ellipse(
+      0,
+      metrics.sheenY,
+      metrics.sheenWidth,
+      metrics.sheenHeight,
+      0xffffff,
+      0.08,
+    );
     orb.setStrokeStyle(1, 0xffffff, 0.12);
 
     const label = this.add.text(0, -12, token.node.devanagari, {
       fontFamily: '"Noto Serif Devanagari", "Palatino Linotype", serif',
-      fontSize: token.node.devanagari.length > 12 ? "38px" : "44px",
+      fontSize: `${metrics.labelFontSize}px`,
       color: "#f8f1ff",
       stroke: "#140c1e",
       strokeThickness: 5,
@@ -650,16 +695,16 @@ export class SliceScene extends Phaser.Scene {
     label.setResolution(TEXT_RESOLUTION);
     const sliceGuides = this.buildSliceGuides(label, token);
 
-    const sublabel = this.add.text(0, 26, this.getSubLabel(token.node), {
+    const sublabel = this.add.text(0, metrics.sublabelY, this.getSubLabel(token.node), {
       fontFamily: this.getSubLabelFont(token.node),
-      fontSize: "16px",
+      fontSize: `${metrics.sublabelFontSize}px`,
       color: "#d9d7e6",
       align: "center",
     });
     sublabel.setOrigin(0.5);
     sublabel.setResolution(TEXT_RESOLUTION);
 
-    const badge = this.add.text(0, 64, this.getBadgeLabel(token.node), {
+    const badge = this.add.text(0, metrics.badgeY, this.getBadgeLabel(token.node), {
       fontFamily: this.getUiFontFamily(),
       fontSize: "13px",
       color: isSplittable ? "#ffdca8" : "#baf7d1",

@@ -317,9 +317,9 @@ export const SANDHI_RULES: SandhiRule[] = [
     shortcut: "9",
     accent: "#ffb874",
     label: {
-      en: "Cartva",
-      sa: "चर्त्वम्",
-      te: "చర్త్వం",
+      en: "Charva",
+      sa: "चर्वसन्धिः",
+      te: "చర్వసంధి",
     },
     helper: {
       en: "Nimittam: a word-final voiced stop turns into the first sound of its class before a hard consonant.",
@@ -337,9 +337,9 @@ export const SANDHI_RULES: SandhiRule[] = [
     },
     sources: [
       bookSource(
-        "Sandhi-2, pp. 103-104: cartva table and examples.",
-        "सन्धि-२, पृ. १०३-१०४: चर्त्वसन्धेः कोष्ठकं उदाहरणानि च।",
-        "సంధి-2, పుటలు 103-104: చర్త్వసంధి పట్టిక మరియు ఉదాహరణలు.",
+        "Sandhi-2, pp. 103-104: charva section and example table.",
+        "सन्धि-२, पृ. १०३-१०४: चर्वसन्धिविभागः, चर्त्वसन्धेः कोष्ठकं, उदाहरणानि च।",
+        "సంధి-2, పుటలు 103-104: చర్వసంధి విభాగం, చర్త్వసంధి పట్టిక, ఉదాహరణలు.",
       ),
       sutraSource(
         "8.4.55 खरि च",
@@ -492,19 +492,235 @@ export const SANDHI_RULES: SandhiRule[] = [
     ],
   },
   {
+    id: "chhatva",
+    family: "vyanjana",
+    shortcut: "A",
+    accent: "#ff9fb3",
+    label: {
+      en: "Chhatva",
+      sa: "छत्वम्",
+      te: "ఛత్వం",
+    },
+    helper: {
+      en: "Nimittam: a word-final class-first consonant stands before ś, and that ś is followed by a vowel, y, v, r, l, m, or n; ś may become chh.",
+      sa: "निमित्तम्: पदान्ते वर्गप्रथमव्यञ्जनात् परः शकारः, तस्मात् परे स्वराः य् व् र् ल् म् न् च सन्ति; तदा शकारस्य विकल्पेन छकारादेशः भवति।",
+      te: "నిమిత్తం: పదాంత వర్గప్రథమ వ్యంజనం తరువాత శ్ వచ్చి, దాని తరువాత స్వరం లేదా య్/వ్/ర్/ల్/మ్/న్ ఉంటే, శ్ వికల్పంగా ఛ్ అవుతుంది.",
+    },
+    pattern: {
+      en: "Final class-first consonant + ś + vowel/y-v-r-l-m-n -> optional chh.",
+      sa: "पदान्तप्रथमव्यञ्जनम् + श् + स्वर/यवर्लमन् → विकल्पेन छ्।",
+      te: "పదాంత ప్రథమ వ్యంజనం + శ్ + స్వరం/యవర్లమన్ -> వికల్పంగా ఛ్.",
+    },
+    sutra: {
+      text: "शश्छोऽटि",
+      number: "8.4.63",
+    },
+    sources: [
+      bookSource(
+        "Sandhi-2: chhatva section with worked examples such as वाक्छरः, भिषक्छेते, and तच्छ्लोकः.",
+        "सन्धि-२: छत्वप्रकरणे वाक्छरः, भिषक्छेते, तच्छ्लोकः इत्यादीनि उदाहरणानि विवृणोति।",
+        "సంధి-2: ఛత్వ విభాగంలో వాక్ఛరః, భిషక్ఛేతే, తచ్ఛ్లోకః వంటి ఉదాహరణలు ఇచ్చాయి.",
+      ),
+      sutraSource(
+        "8.4.63 शश्छोऽटि",
+        "https://ashtadhyayi.com/sutraani/lsk76",
+      ),
+    ],
+  },
+  {
+    id: "tugagama",
+    family: "vyanjana",
+    shortcut: "S",
+    accent: "#8fe79c",
+    label: {
+      en: "Tugāgama",
+      sa: "तुगागमः",
+      te: "తుగాగమం",
+    },
+    helper: {
+      en: "Nimittam: a short vowel before छ receives a t-augment and is heard as cch; in taught final long-vowel cases the insertion may also appear optionally.",
+      sa: "निमित्तम्: ह्रस्वस्वरात् परे छकारे तुगागमः भवति; शिक्षितेषु पदान्तदीर्घप्रयोगेषु स एव विकल्पेन दृश्यते।",
+      te: "నిమిత్తం: హ్రస్వ స్వరం తరువాత ఛ వస్తే తుగాగమం వచ్చి చ్ఛ రూపం వినిపిస్తుంది; పాఠ్య దీర్ఘాంత రూపాల్లో అది వికల్పంగా కూడా కనిపించవచ్చు.",
+    },
+    pattern: {
+      en: "Short vowel + छ -> च्छ; taught final long-vowel cases may also show optional च्छ.",
+      sa: "ह्रस्वस्वरः + छ् → च्छ; शिक्षितदीर्घान्तप्रयोगेषु विकल्पेन च्छ अपि।",
+      te: "హ్రస్వ స్వరం + ఛ్ -> చ్ఛ; పాఠ్య దీర్ఘాంత రూపాల్లో వికల్పంగా చ్ఛ కూడా వస్తుంది.",
+    },
+    sutra: {
+      text: "छे च",
+      number: "6.1.73",
+    },
+    sources: [
+      bookSource(
+        "Sandhi-2: tugāgama section with examples such as वृक्षच्छाया and शिखरिणीच्छन्दः.",
+        "सन्धि-२: तुगागमप्रकरणे वृक्षच्छाया, शिखरिणीच्छन्दः इत्यादीनि दृष्टान्तानि दत्तानि।",
+        "సంధి-2: తుగాగమ విభాగంలో వృక్షచ్చాయా, శిఖరిణీచ్చందః వంటి ఉదాహరణలు ఉన్నాయి.",
+      ),
+      sutraSource(
+        "6.1.73 छे च",
+        "https://ashtadhyayi.com/sutraani/lsk101",
+      ),
+    ],
+  },
+  {
+    id: "shcutva",
+    family: "vyanjana",
+    shortcut: "D",
+    accent: "#83d6ff",
+    label: {
+      en: "Shcutva",
+      sa: "श्चुत्वम्",
+      te: "శ్చుత్వం",
+    },
+    helper: {
+      en: "Nimittam: s or a dental stands in contact with ś or a palatal, so the sound shifts toward ś / the ca-varga.",
+      sa: "निमित्तम्: सकारः तवर्गो वा शकारचवर्गाभ्यां योगे स्थितः; तदा शकारचवर्गादेशः भवति।",
+      te: "నిమిత్తం: స్ లేదా తవర్గం, శ్ లేదా చవర్గంతో సంబంధంలో ఉన్నప్పుడు, శ్ లేదా చవర్గాదేశం వస్తుంది.",
+    },
+    pattern: {
+      en: "s/t-series + ś/ca-varga -> ś / ca-varga.",
+      sa: "स्/तवर्गः + श्/चवर्गः → श्/चवर्गः।",
+      te: "స్/తవర్గం + శ్/చవర్గం -> శ్/చవర్గం.",
+    },
+    sutra: {
+      text: "स्तोः श्चुना श्चुः",
+      number: "8.4.40",
+    },
+    sources: [
+      bookSource(
+        "Sandhi-2: ścutva section with examples such as सच्चिद्रूपम्, तज्ज्वलति, बृहच्छत्रम्, and तपश्चर्या.",
+        "सन्धि-२: श्चुत्वप्रकरणे सच्चिद्रूपम्, तज्ज्वलति, बृहच्छत्रम्, तपश्चर्या इत्यादीनि उदाहरणानि।",
+        "సంధి-2: శ్చుత్వ విభాగంలో సచ్చిద్రూపమ్, తజ్జ్వలతి, బృహచ్చత్రమ్, తపశ్చర్యా వంటి ఉదాహరణలు ఉన్నాయి.",
+      ),
+      sutraSource(
+        "8.4.40 स्तोः श्चुना श्चुः",
+        "https://ashtadhyayi.com/sutraani/sk111?expand=sutra-commentary-sudha-region&scroll=sutra-commentary-sudha-region",
+      ),
+    ],
+  },
+  {
+    id: "shtutva",
+    family: "vyanjana",
+    shortcut: "F",
+    accent: "#ffcf8f",
+    label: {
+      en: "Shtutva",
+      sa: "ष्टुत्वम्",
+      te: "ష్టుత్వం",
+    },
+    helper: {
+      en: "Nimittam: s or a dental comes into contact with ṣ or a retroflex, so the sound shifts toward ṣ / the ṭa-varga.",
+      sa: "निमित्तम्: सकारः तवर्गो वा षकारटवर्गाभ्यां योगे स्थितः; तदा षकारटवर्गादेशः भवति।",
+      te: "నిమిత్తం: స్ లేదా తవర్గం, ష్ లేదా టవర్గంతో సంబంధంలో ఉన్నప్పుడు, ష్ లేదా టవర్గాదేశం వస్తుంది.",
+    },
+    pattern: {
+      en: "s/t-series + ṣ/ṭa-varga -> ṣ / ṭa-varga.",
+      sa: "स्/तवर्गः + ष्/टवर्गः → ष्/टवर्गः।",
+      te: "స్/తవర్గం + ష్/టవర్గం -> ష్/టవర్గం.",
+    },
+    sutra: {
+      text: "ष्टुना ष्टुः",
+      number: "8.4.41",
+    },
+    sources: [
+      bookSource(
+        "Sandhi-2: ṣṭutva section with examples such as बृहट्टीका, तड्डमरुः, आकृष्टः, and उड्डयनम्.",
+        "सन्धि-२: ष्टुत्वप्रकरणे बृहट्टीका, तड्डमरुः, आकृष्टः, उड्डयनम् इत्यादीनि उदाहरणानि।",
+        "సంధి-2: ష్టుత్వ విభాగంలో బృహట్టీకా, తడ్డమరుః, ఆకృష్టః, ఉడ్డయనం వంటి ఉదాహరణలు ఉన్నాయి.",
+      ),
+      sutraSource(
+        "8.4.41 ष्टुना ष्टुः",
+        "https://ashtadhyayi.com/sutraani/8/4/41",
+      ),
+    ],
+  },
+  {
+    id: "satva",
+    family: "vyanjana",
+    shortcut: "G",
+    accent: "#ffc47f",
+    label: {
+      en: "N-Final Satva",
+      sa: "नकारसत्वम्",
+      te: "నకార సత్వం",
+    },
+    helper: {
+      en: "Nimittam: a final n stands before c/ch/ṭ/ṭh/t/th and changes through the satva process into a nasalized vowel or anusvāra plus s, ś, or ṣ. This is the n-final satva taught in vyanjana sandhi, not visarga satva.",
+      sa: "निमित्तम्: पदान्तनकारः च्/छ्/ट्/ठ्/त्/थ्-परः सति सत्वप्रक्रियया अनुनासिकपूर्वस्वरम् अथवा अनुस्वारं कृत्वा स/श/षादेशं जनयति। एषः व्यञ्जनसन्धौ नकारान्तसत्वप्रकारः, न तु विसर्गसत्वम्।",
+      te: "నిమిత్తం: పదాంత న్ తరువాత చ్/ఛ్/ట్/ఠ్/త్/థ్ వచ్చినప్పుడు సత్వప్రక్రియ ద్వారా ముందు స్వరం అనునాసికం లేదా అనుస్వారంగా మారి స్/శ్/ష్ రూపం వస్తుంది. ఇది వ్యంజనసంధిలోని న్-ఆధారిత సత్వం; విసర్గసత్వం కాదు.",
+    },
+    pattern: {
+      en: "Final n + c/ch/ṭ/ṭh/t/th -> nasalized vowel/anusvāra + s, then ścutva or ṣṭutva may shape the visible surface.",
+      sa: "पदान्तनकारः + च्/छ्/ट्/ठ्/त्/थ् → अनुनासिकपूर्वस्वरः/अनुस्वारः + स; अनन्तरं श्चुत्वं वा ष्टुत्वं वा दृश्यरूपं निर्माति।",
+      te: "పదాంత న్ + చ్/ఛ్/ట్/ఠ్/త్/థ్ -> అనునాసిక స్వరం/అనుస్వారం + స్; తరువాత శ్చుత్వం లేదా ష్టుత్వం కనిపించే రూపాన్ని ఖరారు చేయవచ్చు.",
+    },
+    sutra: {
+      text: "नश्छव्यप्रशान्",
+      number: "8.3.7",
+    },
+    sources: [
+      bookSource(
+        "Sandhi-2: satva section with worked examples such as अर्थकामांस्तु, प्रज्ञावादांश्च, and श्लोकांष्टीकाभिः.",
+        "सन्धि-२: सत्वप्रकरणे अर्थकामांस्तु, प्रज्ञावादांश्च, श्लोकांष्टीकाभिः इत्यादीनि उदाहरणानि दत्तानि।",
+        "సంధి-2: సత్వ విభాగంలో అర్థకామాంస్తు, ప్రజ్ఞావాదాంశ్చ, శ్లోకాంష్టీకాభిః వంటి ఉదాహరణలు ఉన్నాయి.",
+      ),
+      sutraSource(
+        "8.3.7 नश्छव्यप्रशान्",
+        "https://ashtadhyayi.com/sutraani/8/3/7",
+      ),
+    ],
+  },
+  {
+    id: "yavalopa",
+    family: "vyanjana",
+    shortcut: "H",
+    accent: "#91ecdb",
+    label: {
+      en: "Yavalopa",
+      sa: "यवलोपः",
+      te: "యవలోపం",
+    },
+    helper: {
+      en: "Nimittam: a final y or v, preceded by a or ā, stands before a vowel or other soft sound and may drop. After the drop, a fresh vowel sandhi is not forced.",
+      sa: "निमित्तम्: पदान्ते अकार-आकारपूर्वौ यकारवकारौ स्वर-मृदुवर्णपरत्वे विकल्पेन लुप्येते। लोपे कृतेऽपि अनन्तरस्वरसन्धिः न अनिवार्या भवति।",
+      te: "నిమిత్తం: పదాంతంలో అ/ఆ తరువాత ఉన్న య్ లేదా వ్, స్వరం లేదా మృదు ధ్వని ముందు వికల్పంగా లోపిస్తుంది. లోపం జరిగిన తర్వాత కొత్త స్వరసంధి బలవంతం కాదు.",
+    },
+    pattern: {
+      en: "Final -ay / -āv / -e / -o style y/v support may drop before the next vowel or soft sound, and the hiatus remains visible.",
+      sa: "पदान्तस्थितः अ/आपूर्वकः य्/व् स्वर-मृदुवर्णपरत्वे लुप्यते; तदा विरामवत् स्वरसमीप्यं दृश्यते।",
+      te: "పదాంత అ/ఆపూర్వక య్/వ్ తరువాత స్వరం లేదా మృదు ధ్వని వచ్చినప్పుడు లోపించి, మధ్య విరామంలా స్వరసమీప్యం కనిపిస్తుంది.",
+    },
+    sutra: {
+      text: "लोपः शाकल्यस्य",
+      number: "8.3.19",
+    },
+    sources: [
+      bookSource(
+        "Sandhi-2: yavalopa section with examples such as ते इमे, तस्मा एतत्, गुर एहि, and उभा अपि.",
+        "सन्धि-२: यवलोपप्रकरणे ते इमे, तस्मा एतत्, गुर एहि, उभा अपि इत्यादयः दृष्टान्ताः दत्ताः।",
+        "సంధి-2: యవలోప విభాగంలో త ఇమే, తస్మా ఏతత్, గుర ఏహి, ఉభా అపి వంటి ఉదాహరణలు ఉన్నాయి.",
+      ),
+      sutraSource(
+        "8.3.19 लोपः शाकल्यस्य",
+        "https://ashtadhyayi.com/sutraani/ssk30?expand=sutra-commentary-bhashya-region&scroll=sutra-commentary-bhashya-region",
+      ),
+    ],
+  },
+  {
     id: "visarga-sa",
     family: "visarga",
     shortcut: "Y",
     accent: "#8ee7ff",
     label: {
-      en: "Visarga Satva",
-      sa: "सत्वम्",
-      te: "సత్వం",
+      en: "Visarga-Satva",
+      sa: "विसर्ग-सत्वम्",
+      te: "విసర్గ-సత్వం",
     },
     helper: {
-      en: "When visarga meets a hard consonant or sibilant, it often turns into s, ś, or ṣ.",
-      sa: "विसर्गस्य परे खरि वा शरि सति स/श/ष-आदेशः दृश्यते।",
-      te: "విసర్గం తరువాత కఠిన వ్యంజనం లేదా శ, ష, స వంటివి వస్తే అది స్/శ్/ష్ రూపం దాల్చుతుంది.",
+      en: "Nimittam: visarga stands before a hard consonant or sibilant and turns into s, ś, or ṣ. This visarga satva starts from ḥ, not from a final n.",
+      sa: "निमित्तम्: विसर्गस्य परे खर् अथवा शर् सति स/श/षादेशः भवति। एतत् विसर्गजन्यं सत्वम्, न तु पदान्तनकारजन्यम्।",
+      te: "నిమిత్తం: విసర్గం తరువాత కఠిన వ్యంజనం లేదా శర వర్ణం వస్తే అది స్/శ్/ష్ రూపం దాల్చుతుంది. ఇది విసర్గం నుంచి వచ్చే సత్వం; పదాంత న్ నుంచి వచ్చే సత్వం కాదు.",
     },
     pattern: {
       en: "ḥ + hard consonant/sibilant -> s, ś, or ṣ according to the next sound.",
@@ -533,9 +749,9 @@ export const SANDHI_RULES: SandhiRule[] = [
     shortcut: "U",
     accent: "#ffcb86",
     label: {
-      en: "Visarga Repha",
-      sa: "रेफादेशः",
-      te: "రేఫాదేశం",
+      en: "Visarga-Repha",
+      sa: "विसर्ग-रेफादेशः",
+      te: "విసర్గ-రేఫాదేశం",
     },
     helper: {
       en: "When visarga follows a non-a/ā vowel, or an avyaya visarga is involved, a following vowel or soft consonant can pull out r.",
@@ -569,19 +785,19 @@ export const SANDHI_RULES: SandhiRule[] = [
     shortcut: "I",
     accent: "#d5a4ff",
     label: {
-      en: "Visarga Lopa",
-      sa: "विसर्गलोपः",
-      te: "విసర్గలోపం",
+      en: "Visarga-Lopa",
+      sa: "विसर्ग-लोपः",
+      te: "విసర్గ-లోపం",
     },
     helper: {
-      en: "In several taught school patterns, visarga drops, and the earlier vowel may stay, lengthen, or show a helping y-sound.",
-      sa: "शिक्षणप्रसिद्धेषु केषुचित् प्रयोगेषु विसर्गलोपः भवति; पूर्वस्वरः स्थितिं, दीर्घत्वं, यकारसाहाय्यं वा दर्शयति।",
-      te: "పాఠ్యగ్రంథాలలో బోధించే కొన్ని రూపాల్లో విసర్గం లుప్తమై, ముందు స్వరం అలాగే ఉండవచ్చు, దీర్ఘమవవచ్చు, లేదా యకారసహాయం కనిపించవచ్చు.",
+      en: "Nimittam: in taught visarga-lopa patterns the visarga itself disappears. The result may show plain prakṛtibhāva, vowel lengthening before r, or in some optional school cases a y-form beside the lopa-form.",
+      sa: "निमित्तम्: शिक्षितेषु विसर्गलोपप्रयोगेषु स्वयं विसर्गः लुप्यते। फलरूपे प्रकृतिभावः, रेफे परे पूर्वस्वरदीर्घः, केषुचित् शैक्षिकविकल्पेषु यकारयुक्तरूपं च लोपरूपेण सह दृश्यते।",
+      te: "నిమిత్తం: బోధనలో చెప్పే విసర్గలోపరూపాల్లో నిజంగా లోపించేది విసర్గమే. ఫలంగా ప్రకృతిభావరూపం, ర్ ముందు పూర్వస్వర దీర్ఘం, కొన్ని పాఠ్య వికల్పాల్లో లోపరూపంతో పాటు యకారరూపం కూడా కనిపించవచ్చు.",
     },
     pattern: {
-      en: "ḥ may drop before selected vowels, soft consonants, or r-based continuations in taught visarga patterns.",
-      sa: "शिक्षितेषु विसर्गरूपेषु स्वर/मृदुव्यञ्जन/रेफपरत्वे विसर्गलोपः दृश्यते।",
-      te: "బోధనలో ఉపయోగించే కొన్ని విసర్గరూపాల్లో స్వరం, మృదు వ్యంజనం, లేదా రేఫపర సందర్భంలో విసర్గలోపం కనిపిస్తుంది.",
+      en: "ḥ may drop before selected vowels or soft consonants, and before r the earlier vowel may lengthen after the lopa.",
+      sa: "विसर्गः केषुचित् स्वर-मृदुव्यञ्जनपरप्रयोगेषु लुप्यते; रेफे परे लोपानन्तरं पूर्वस्वरदीर्घोऽपि भवति।",
+      te: "కొన్ని స్వర/మృదు వ్యంజన పర రూపాల్లో విసర్గం లోపిస్తుంది; ర్ ముందు లోపం తర్వాత పూర్వస్వరం దీర్ఘమవవచ్చు.",
     },
     sutra: {
       text: "हलि सर्वेषाम्",
@@ -605,9 +821,9 @@ export const SANDHI_RULES: SandhiRule[] = [
     shortcut: "O",
     accent: "#9ad9ff",
     label: {
-      en: "Visarga Otva",
-      sa: "ओत्वम्",
-      te: "ఓత్వం",
+      en: "Visarga-Ootvam",
+      sa: "विसर्ग-ओत्वम्",
+      te: "విసర్గ-ఓత్వం",
     },
     helper: {
       en: "A final aḥ can move through ru/utva into o before a following vowel or soft consonant.",
