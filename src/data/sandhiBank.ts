@@ -218,13 +218,13 @@ const YAN_NIMITTA = {
 } as const;
 
 const JASHTVA_NIMITTA = {
-  en: "Nimittam: a word-final consonant stands before a vowel or a soft consonant and shifts to the third sound of its class.",
+  en: "Nimittam: a final jhal before a svara or mṛdu-vyañjana takes its jaś form.",
   sa: "निमित्तम्: पदान्तव्यञ्जनात् परतः स्वरः अथवा मृदुव्यञ्जनं भवति, तदा तत्तद्वर्गतृतीयादेशः भवति।",
   te: "నిమిత్తం: పదాంత వ్యంజనం తరువాత స్వరం లేదా మృదు వ్యంజనం వచ్చినప్పుడు అది తన వర్గంలోని మూడవ అక్షరంగా మారుతుంది.",
 } as const;
 
 const CHARTVA_NIMITTA = {
-  en: "Nimittam: a word-final voiced stop stands before a hard consonant and becomes the first sound of its class.",
+  en: "Nimittam: a final jaś before khar returns to the first sound of its varga.",
   sa: "निमित्तम्: पदान्ते स्थितः जश् खरि परतः तत्तद्वर्गप्रथमादेशं प्राप्नोति।",
   te: "నిమిత్తం: పదాంతంలోని మృదు ఘోషవ్యంజనం తరువాత కఠిన వ్యంజనం వచ్చినప్పుడు అది తన వర్గంలోని మొదటి అక్షరంగా మారుతుంది.",
 } as const;
@@ -242,19 +242,19 @@ const ANUSVARA_NIMITTA = {
 } as const;
 
 const PURVASAVARNA_NIMITTA = {
-  en: "Nimittam: h follows a class consonant and takes that earlier consonant's class-colored fourth sound.",
+  en: "Nimittam: h after a varga consonant may take the fourth sound of that same varga.",
   sa: "निमित्तम्: वर्गीयव्यञ्जनात् परे हकारे सति हस्य पूर्ववर्णसवर्णचतुर्थादेशः भवति।",
   te: "నిమిత్తం: వర్గీయ వ్యంజనం తరువాత హకారం వచ్చినప్పుడు హకారం ముందున్న వర్ణానికి అనుగుణమైన నాలుగవ ధ్వనిని తీసుకుంటుంది.",
 } as const;
 
 const PARASAVARNA_NIMITTA = {
-  en: "Nimittam: anusvāra stands before a following consonant and settles into that consonant-class nasal sound.",
+  en: "Nimittam: anusvāra before a following consonant takes that consonant's parasavarṇa nasal form.",
   sa: "निमित्तम्: परव्यञ्जनात् पूर्वं स्थितः अनुस्वारः तस्य वर्गस्य नासिक्यसवर्णरूपं गृह्णाति।",
   te: "నిమిత్తం: తరువాతి వ్యంజనం ముందు ఉన్న అనుస్వారం ఆ వ్యంజన వర్గానికి చెందిన నాసిక్యరూపంగా స్థిరపడుతుంది.",
 } as const;
 
 const CHHATVA_NIMITTA = {
-  en: "Nimittam: a word-final class-first consonant is followed by ś, and that ś is followed by a vowel, y, v, r, l, m, or n; the ś may shift to chh.",
+  en: "Nimittam: a final first-varga consonant stands before ś, and ś is followed by a svara, y, v, r, l, m, or n; ś may become chh.",
   sa: "निमित्तम्: पदान्ते वर्गप्रथमव्यञ्जनस्य परे शकारः, तस्मात् परे स्वरः य् व् र् ल् म् न् वा भवति; तदा शकारस्य विकल्पेन छकारादेशः भवति।",
   te: "నిమిత్తం: పదాంత వర్గప్రథమ వ్యంజనం తరువాత శ్ ఉండి, దాని తరువాత స్వరం లేదా య్/వ్/ర్/ల్/మ్/న్ వస్తే, ఆ శ్ వికల్పంగా ఛ్ అవుతుంది.",
 } as const;
@@ -266,13 +266,13 @@ const TUGAGAMA_NIMITTA = {
 } as const;
 
 const SHCUTVA_NIMITTA = {
-  en: "Nimittam: s or a dental stands in contact with ś or a palatal, so the sound changes toward ś or the ca-varga.",
+  en: "Nimittam: s or ta-varga stands in contact with ś or ca-varga, so the sound shifts toward ś / ca-varga.",
   sa: "निमित्तम्: सकारः तवर्गो वा शकारचवर्गाभ्यां योगे स्थितः; तदा शकारचवर्गादेशः भवति।",
   te: "నిమిత్తం: స్ లేదా తవర్గం, శ్ లేదా చవర్గంతో సంబంధంలో ఉన్నప్పుడు శ్ లేదా చవర్గాదేశం వస్తుంది.",
 } as const;
 
 const SHTUTVA_NIMITTA = {
-  en: "Nimittam: s or a dental stands in contact with ṣ or a retroflex, so the sound changes toward ṣ or the ṭa-varga.",
+  en: "Nimittam: s or ta-varga stands in contact with ṣ or ṭa-varga, so the sound shifts toward ṣ / ṭa-varga.",
   sa: "निमित्तम्: सकारः तवर्गो वा षकारटवर्गाभ्यां योगे स्थितः; तदा षकारटवर्गादेशः भवति।",
   te: "నిమిత్తం: స్ లేదా తవర్గం, ష్ లేదా టవర్గంతో సంబంధంలో ఉన్నప్పుడు ష్ లేదా టవర్గాదేశం వస్తుంది.",
 } as const;
@@ -284,37 +284,37 @@ const SATVA_NIMITTA = {
 } as const;
 
 const YAVALOPA_NIMITTA = {
-  en: "Nimittam: a final y or v, preceded by a or ā, stands before a vowel or soft sound and may drop without forcing a new vowel sandhi.",
+  en: "Nimittam: a final y or v, preceded by a or ā, stands before a svara or mṛdu sound and may drop without forcing a fresh svara-sandhi.",
   sa: "निमित्तम्: पदान्ते अकार-आकारपूर्वौ यकारवकारौ स्वर-मृदुवर्णपरत्वे विकल्पेन लुप्येते, लोपे कृतेऽपि अनन्तरस्वरसन्धिः न अनिवार्या भवति।",
   te: "నిమిత్తం: పదాంతంలో అ/ఆ తరువాత ఉన్న య్ లేదా వ్, స్వరం లేదా మృదు ధ్వని ముందు వికల్పంగా లోపించి, లోపం తర్వాత కొత్త స్వరసంధి బలవంతం కాదు.",
 } as const;
 
 const VISARGA_SATVA_NIMITTA = {
-  en: "Nimittam: visarga stands before a hard consonant or sibilant and reshapes into s, ś, or ṣ according to the following sound.",
+  en: "Nimittam: visarga before khar or śar becomes s, ś, or ṣ according to the following sound.",
   sa: "निमित्तम्: विसर्गात् परतः खर् अथवा शर् वर्तते; तदा स/श/ष-आदेशः परवर्णानुसारं भवति।",
   te: "నిమిత్తం: విసర్గం తరువాత కఠిన వ్యంజనం లేదా శ/ష/స వస్తే అది తరువాతి ధ్వనికి తగిన స్/శ్/ష్ రూపం దాల్చుతుంది.",
 } as const;
 
 const VISARGA_REPHA_NIMITTA = {
-  en: "Nimittam: visarga after a non-a/ā vowel, or in avyaya usage, meets a vowel or soft consonant and turns into r.",
+  en: "Nimittam: visarga after a non-a/ā vowel, or avyaya-visarga, before a svara or mṛdu-vyañjana becomes r.",
   sa: "निमित्तम्: अ/आ-वर्जितस्वरात् परो वा अव्ययसम्बद्धो विसर्गः स्वरं मृदुव्यञ्जनं वा प्राप्य रेफादेशं लभते।",
   te: "నిమిత్తం: అ/ఆ కాని స్వరం తరువాత వచ్చిన విసర్గం, లేదా అవ్యయ విసర్గం, తరువాత స్వరం లేదా మృదు వ్యంజనం వస్తే ర్‌గా మారుతుంది.",
 } as const;
 
 const VISARGA_LOPA_NIMITTA = {
-  en: "Nimittam: in these taught visarga-lopa patterns the visarga itself drops. The result may stay in plain prakṛtibhāva, lengthen before r, or in a few optional school forms appear beside a y-shaped variant.",
+  en: "Nimittam: in these taught visarga-lopa patterns the visarga itself drops. The result may stay in plain prakṛtibhāva, lengthen before r, or in a few optional taught forms appear beside a y-shaped variant.",
   sa: "निमित्तम्: अस्मिन् शिक्षितेषु विसर्गलोपप्रयोगेषु स्वयं विसर्गः लुप्यते। फलरूपे प्रकृतिभावः, रेफे परे पूर्वस्वरदीर्घः, केषुचित् शैक्षिकविकल्पेषु यकारयुक्तरूपं च दृश्यते।",
   te: "నిమిత్తం: ఈ బోధనా విసర్గలోప రూపాల్లో నిజంగా లోపించేది విసర్గమే. ఫలంగా ప్రకృతిభావం, ర్ ముందు పూర్వస్వరదీర్ఘం, కొన్ని పాఠ్య వికల్పాల్లో యకారరూపం కూడా కనిపించవచ్చు.",
 } as const;
 
 const VISARGA_OTVA_NIMITTA = {
-  en: "Nimittam: final aḥ meets a following vowel or soft consonant and moves through ru/utva into an o-sound.",
+  en: "Nimittam: final aḥ before a svara or mṛdu-vyañjana moves through ru/utva into o.",
   sa: "निमित्तम्: पदान्ते अः परतः स्वरं मृदुव्यञ्जनं वा प्राप्य रु-उत्वक्रमेण ओ-रूपं भवति।",
   te: "నిమిత్తం: పదాంత అః తరువాత స్వరం లేదా మృదు వ్యంజనం వస్తే రు/ఉత్వ క్రమంలో ఓ ధ్వని వస్తుంది.",
 } as const;
 
 const RUNNING_TEXT_NOTE: LocalizedText = {
-  en: "Shown as one running-text string in the game so you can practice the sandhi cut directly.",
+  en: "Shown as one running-text string in the game so you can practice the sandhi split directly.",
   sa: "क्रीडायां सन्धिच्छेदाभ्यासाय अयं प्रयोगः एकरूपेण प्रदर्शितः।",
   te: "గేమ్‌లో సంధిచ్ఛేదాన్ని నేరుగా సాధన చేయడానికి ఈ రూపాన్ని ఒక్క పరిగెత్తే పాఠంలా చూపిస్తున్నాం.",
 };
@@ -646,7 +646,7 @@ const tamshcapiEntry = createCompositeNode({
       left: tamshcaJoinNode,
       right: autoLeaf("api-right-tamshcapi", "अपि"),
       note: {
-        en: "Join in order: first तान् + च -> तांश्च, then तांश्च + अपि -> तांश्चापि.",
+        en: "Make the sandhi joins in order: first तान् + च -> तांश्च, then तांश्च + अपि -> तांश्चापि.",
         sa: "अत्र क्रमेण योजनीयम्। प्रथमं तान् + च -> तांश्च, अनन्तरं तांश्च + अपि -> तांश्चापि।",
         te: "ఇది క్రమంగా కలపాలి. ముందుగా తాన్ + చ -> తాంశ్చ, తరువాత తాంశ్చ + అపి -> తాంశ్చాపి.",
       },
@@ -682,7 +682,7 @@ const prajnavadamshcapiEntry = createCompositeNode({
       left: prajnavadamshcaJoinNode,
       right: autoLeaf("api-right-prajnavadamshcapi", "अपि"),
       note: {
-        en: "This is a two-step join: first satva-sandhi with ścutva gives प्रज्ञावादांश्च, then savarṇa dīrgha gives प्रज्ञावादांश्चापि.",
+        en: "This is a two-step sandhi join: first satva-sandhi with ścutva gives प्रज्ञावादांश्च, then savarṇa dīrgha gives प्रज्ञावादांश्चापि.",
         sa: "अयं द्विक्रमयोगः। प्रथमं सत्वसन्ध्या श्चुत्वसहितं प्रज्ञावादांश्च भवति, अनन्तरं सवर्णदीर्घेण प्रज्ञावादांश्चापि सिद्ध्यति।",
         te: "ఇది రెండుదశల కలయిక. ముందుగా సత్వసంధి-శ్చుత్వంతో ప్రజ్ఞావాదాంశ్చ వస్తుంది; తరువాత సవర్ణదీర్ఘంతో ప్రజ్ఞావాదాంశ్చాపి సిద్ధిస్తుంది.",
       },
@@ -716,7 +716,7 @@ const digambaralayaEntry = createCompositeNode({
       left: digambaraJoinNode,
       right: autoLeaf("alaya-right-digambaralaya", "आलयः"),
       note: {
-        en: "First make दिगम्बर from दिक् + अम्बर, then join दिगम्बर + आलयः.",
+        en: "First make दिगम्बर from दिक् + अम्बर, then make the sandhi join दिगम्बर + आलयः.",
         sa: "प्रथमं दिक् + अम्बर इत्यस्मात् दिगम्बरः न, दिगम्बर इति पूर्वपदरूपं सिद्ध्यति; अनन्तरं दिगम्बर + आलयः इति योगः।",
         te: "ముందుగా దిక్ + అంబర నుండి దిగంబర అనే పూర్వపదరూపం సిద్ధిస్తుంది; తరువాత దిగంబర + ఆలయః కలుస్తాయి.",
       },
@@ -750,7 +750,7 @@ const jagadishalayaEntry = createCompositeNode({
       left: jagadishaJoinNode,
       right: autoLeaf("alaya-right-jagadishalaya", "आलयः"),
       note: {
-        en: "This join teaches two steps: जगत् + ईश -> जगदीश, then जगदीश + आलयः -> जगदीशालयः.",
+        en: "This sandhi join teaches two steps: जगत् + ईश -> जगदीश, then जगदीश + आलयः -> जगदीशालयः.",
         sa: "अत्र द्वौ क्रमौ स्तः। जगत् + ईश -> जगदीश, अनन्तरं जगदीश + आलयः -> जगदीशालयः।",
         te: "ఇక్కడ రెండు దశలు ఉన్నాయి. జగత్ + ఈశ -> జగదీశ, తరువాత జగదీశ + ఆలయః -> జగదీశాలయః.",
       },
@@ -785,7 +785,7 @@ const sanmargopadeshahEntry = createCompositeNode({
       right: autoLeaf("upadeshah-right-sanmargopadesha", "उपदेशः"),
       nimitta: VISARGA_OTVA_NIMITTA,
       note: {
-        en: "First form सन्मार्गः by anunāsika sandhi, then join सन्मार्गः + उपदेशः through visarga-o.",
+        en: "First form सन्मार्गः by anunāsika sandhi, then make the sandhi join सन्मार्गः + उपदेशः through visarga-o.",
         sa: "प्रथमम् अनुनासिकसन्धिना सन्मार्गः सिद्ध्यति, अनन्तरं सन्मार्गः + उपदेशः इत्यत्र विसर्ग-ओत्वं भवति।",
         te: "ముందుగా అనునాసికసంధితో సన్మార్గః వస్తుంది; తరువాత సన్మార్గః + ఉపదేశః లో విసర్గ-ఓత్వం జరుగుతుంది.",
       },

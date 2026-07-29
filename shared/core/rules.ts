@@ -286,12 +286,12 @@ export const SANDHI_RULES: SandhiRule[] = [
       te: "జశ్త్వం",
     },
     helper: {
-      en: "Nimittam: a word-final consonant softens to the third sound of its class before a vowel or soft consonant.",
+      en: "Nimittam: a final jhal before a svara or mṛdu-vyañjana takes its jaś form.",
       sa: "निमित्तम्: पदान्ते स्थितः झल् स्वरात् वा मृदुव्यञ्जनात् परतः तत्तद्वर्गतृतीयत्वं प्राप्नोति।",
       te: "నిమిత్తం: పదాంతంలోని వ్యంజనం తరువాత స్వరం లేదా మృదు వ్యంజనం వస్తే తన వర్గంలోని మూడవ అక్షరంగా మారుతుంది.",
     },
     pattern: {
-      en: "Word-final stop + vowel/soft consonant becomes the class-third consonant.",
+      en: "Final jhal + svara/mṛdu-vyañjana -> jaś.",
       sa: "पदान्तव्यञ्जनम् + स्वर/मृदुव्यञ्जन → तृतीयवर्णादेशः।",
       te: "పదాంత వ్యంజనం + స్వరం/మృదు వ్యంజనం → ఆ వర్గంలోని మూడవ అక్షరం.",
     },
@@ -322,12 +322,12 @@ export const SANDHI_RULES: SandhiRule[] = [
       te: "చర్వసంధి",
     },
     helper: {
-      en: "Nimittam: a word-final voiced stop turns into the first sound of its class before a hard consonant.",
+      en: "Nimittam: a final jaś before khar returns to the first sound of its varga.",
       sa: "निमित्तम्: पदान्ते स्थितः जश् खरि परतः तत्तद्वर्गप्रथमत्वं गच्छति।",
       te: "నిమిత్తం: పదాంతంలోని మృదు ఘోషవ్యంజనం తరువాత కఠిన వ్యంజనం వస్తే తన వర్గంలోని మొదటి అక్షరంగా మారుతుంది.",
     },
     pattern: {
-      en: "Word-final class-third consonant + hard consonant becomes class-first.",
+      en: "Final jaś + khar -> first varga sound.",
       sa: "पदान्ततृतीयव्यञ्जनम् + खर् → प्रथमवर्णादेशः।",
       te: "పదాంత మూడవ వర్గవ్యంజనం + కఠిన వ్యంజనం → మొదటి వర్ణం.",
     },
@@ -358,12 +358,12 @@ export const SANDHI_RULES: SandhiRule[] = [
       te: "అనునాసికం",
     },
     helper: {
-      en: "Nimittam: a word-final consonant before a nasal becomes the matching nasal sound.",
+      en: "Nimittam: a final consonant before an anunāsika takes the matching nasal form.",
       sa: "निमित्तम्: पदान्तव्यञ्जनस्य परे अनुनासिके सति तदनुरूपो नासिकादेशः भवति।",
       te: "నిమిత్తం: పదాంత వ్యంజనం తరువాత అనునాసికం వస్తే దానికి సరిపోయే నాసిక్య ధ్వని వస్తుంది.",
     },
     pattern: {
-      en: "Class consonant + nasal shifts to the class-fifth nasal.",
+      en: "Varga consonant + anunāsika -> fifth varga nasal.",
       sa: "वर्गीयव्यञ्जनम् + अनुनासिकः → पञ्चमवर्णादेशः।",
       te: "వర్గీయ వ్యంజనం + అనునాసికం → ఆ వర్గంలోని పంచమ నాసిక్య వర్ణం.",
     },
@@ -430,12 +430,12 @@ export const SANDHI_RULES: SandhiRule[] = [
       te: "పూర్వసవర్ణం",
     },
     helper: {
-      en: "Nimittam: when h follows a class consonant, h can take the earlier consonant's class-colored fourth sound.",
+      en: "Nimittam: when h follows a varga consonant, h may take the fourth sound of that same varga.",
       sa: "निमित्तम्: वर्गीयव्यञ्जनात् परे हकारे सति हस्य पूर्ववर्णसवर्णचतुर्थादेशः विकल्पेन भवति।",
       te: "నిమిత్తం: వర్గీయ వ్యంజనం తరువాత హకారం వస్తే హకారం ముందున్న వర్ణానికి అనుగుణమైన నాలుగవ ధ్వనిగా మారవచ్చు.",
     },
     pattern: {
-      en: "Jaś-class consonant + h may shift h into the class-fourth sound.",
+      en: "Jaś + h -> optional fourth sound of that varga.",
       sa: "जश् + ह → तद्वर्गीयचतुर्थादेशः।",
       te: "జశ్ వర్ణం + హ → ఆ వర్గంలోని నాలుగవ ధ్వని.",
     },
@@ -466,12 +466,12 @@ export const SANDHI_RULES: SandhiRule[] = [
       te: "పరసవర్ణం",
     },
     helper: {
-      en: "Nimittam: anusvāra before a following consonant takes that consonant-class nasal sound.",
+      en: "Nimittam: anusvāra before a following consonant takes that consonant's parasavarṇa nasal form.",
       sa: "निमित्तम्: परव्यञ्जने परतः अनुस्वारः तस्य वर्गस्य नासिक्यसवर्णं रूपं गृह्णाति।",
       te: "నిమిత్తం: తరువాతి వ్యంజనం ముందు వచ్చిన అనుస్వారం ఆ వ్యంజన వర్గానికి చెందిన నాసిక్యరూపాన్ని స్వీకరిస్తుంది.",
     },
     pattern: {
-      en: "ṃ before a class consonant/y-v-r-l becomes the matching nasal or nasalized glide.",
+      en: "ṃ before a varga consonant or y-v-r-l becomes the matching parasavarṇa nasal or nasalized glide.",
       sa: "अनुस्वारः + वर्गीयव्यञ्जन/यवर्ल → परसवर्णनासिक्यादेशः।",
       te: "అనుస్వారం + వర్గీయ వ్యంజనం/యవర్ల → సరిపోయే నాసిక్య ఆదేశం.",
     },
@@ -502,12 +502,12 @@ export const SANDHI_RULES: SandhiRule[] = [
       te: "ఛత్వం",
     },
     helper: {
-      en: "Nimittam: a word-final class-first consonant stands before ś, and that ś is followed by a vowel, y, v, r, l, m, or n; ś may become chh.",
+      en: "Nimittam: a final first-varga consonant stands before ś, and ś is followed by a svara, y, v, r, l, m, or n; ś may become chh.",
       sa: "निमित्तम्: पदान्ते वर्गप्रथमव्यञ्जनात् परः शकारः, तस्मात् परे स्वराः य् व् र् ल् म् न् च सन्ति; तदा शकारस्य विकल्पेन छकारादेशः भवति।",
       te: "నిమిత్తం: పదాంత వర్గప్రథమ వ్యంజనం తరువాత శ్ వచ్చి, దాని తరువాత స్వరం లేదా య్/వ్/ర్/ల్/మ్/న్ ఉంటే, శ్ వికల్పంగా ఛ్ అవుతుంది.",
     },
     pattern: {
-      en: "Final class-first consonant + ś + vowel/y-v-r-l-m-n -> optional chh.",
+      en: "Final first-varga consonant + ś + svara/y-v-r-l-m-n -> optional chh.",
       sa: "पदान्तप्रथमव्यञ्जनम् + श् + स्वर/यवर्लमन् → विकल्पेन छ्।",
       te: "పదాంత ప్రథమ వ్యంజనం + శ్ + స్వరం/యవర్లమన్ -> వికల్పంగా ఛ్.",
     },
@@ -574,12 +574,12 @@ export const SANDHI_RULES: SandhiRule[] = [
       te: "శ్చుత్వం",
     },
     helper: {
-      en: "Nimittam: s or a dental stands in contact with ś or a palatal, so the sound shifts toward ś / the ca-varga.",
+      en: "Nimittam: s or ta-varga stands in contact with ś or ca-varga, so the sound shifts toward ś / ca-varga.",
       sa: "निमित्तम्: सकारः तवर्गो वा शकारचवर्गाभ्यां योगे स्थितः; तदा शकारचवर्गादेशः भवति।",
       te: "నిమిత్తం: స్ లేదా తవర్గం, శ్ లేదా చవర్గంతో సంబంధంలో ఉన్నప్పుడు, శ్ లేదా చవర్గాదేశం వస్తుంది.",
     },
     pattern: {
-      en: "s/t-series + ś/ca-varga -> ś / ca-varga.",
+      en: "s/ta-varga + ś/ca-varga -> ś / ca-varga.",
       sa: "स्/तवर्गः + श्/चवर्गः → श्/चवर्गः।",
       te: "స్/తవర్గం + శ్/చవర్గం -> శ్/చవర్గం.",
     },
@@ -610,12 +610,12 @@ export const SANDHI_RULES: SandhiRule[] = [
       te: "ష్టుత్వం",
     },
     helper: {
-      en: "Nimittam: s or a dental comes into contact with ṣ or a retroflex, so the sound shifts toward ṣ / the ṭa-varga.",
+      en: "Nimittam: s or ta-varga stands in contact with ṣ or ṭa-varga, so the sound shifts toward ṣ / ṭa-varga.",
       sa: "निमित्तम्: सकारः तवर्गो वा षकारटवर्गाभ्यां योगे स्थितः; तदा षकारटवर्गादेशः भवति।",
       te: "నిమిత్తం: స్ లేదా తవర్గం, ష్ లేదా టవర్గంతో సంబంధంలో ఉన్నప్పుడు, ష్ లేదా టవర్గాదేశం వస్తుంది.",
     },
     pattern: {
-      en: "s/t-series + ṣ/ṭa-varga -> ṣ / ṭa-varga.",
+      en: "s/ta-varga + ṣ/ṭa-varga -> ṣ / ṭa-varga.",
       sa: "स्/तवर्गः + ष्/टवर्गः → ष्/टवर्गः।",
       te: "స్/తవర్గం + ష్/టవర్గం -> ష్/టవర్గం.",
     },
@@ -682,12 +682,12 @@ export const SANDHI_RULES: SandhiRule[] = [
       te: "యవలోపం",
     },
     helper: {
-      en: "Nimittam: a final y or v, preceded by a or ā, stands before a vowel or other soft sound and may drop. After the drop, a fresh vowel sandhi is not forced.",
+      en: "Nimittam: a final y or v, preceded by a or ā, stands before a svara or mṛdu sound and may drop. After the lopa, a fresh svara-sandhi is not forced.",
       sa: "निमित्तम्: पदान्ते अकार-आकारपूर्वौ यकारवकारौ स्वर-मृदुवर्णपरत्वे विकल्पेन लुप्येते। लोपे कृतेऽपि अनन्तरस्वरसन्धिः न अनिवार्या भवति।",
       te: "నిమిత్తం: పదాంతంలో అ/ఆ తరువాత ఉన్న య్ లేదా వ్, స్వరం లేదా మృదు ధ్వని ముందు వికల్పంగా లోపిస్తుంది. లోపం జరిగిన తర్వాత కొత్త స్వరసంధి బలవంతం కాదు.",
     },
     pattern: {
-      en: "Final -ay / -āv / -e / -o style y/v support may drop before the next vowel or soft sound, and the hiatus remains visible.",
+      en: "Final y/v support in -ay, -āv, -e, or -o forms may drop before the next svara or mṛdu sound, and the hiatus remains visible.",
       sa: "पदान्तस्थितः अ/आपूर्वकः य्/व् स्वर-मृदुवर्णपरत्वे लुप्यते; तदा विरामवत् स्वरसमीप्यं दृश्यते।",
       te: "పదాంత అ/ఆపూర్వక య్/వ్ తరువాత స్వరం లేదా మృదు ధ్వని వచ్చినప్పుడు లోపించి, మధ్య విరామంలా స్వరసమీప్యం కనిపిస్తుంది.",
     },
@@ -718,12 +718,12 @@ export const SANDHI_RULES: SandhiRule[] = [
       te: "విసర్గ-సత్వం",
     },
     helper: {
-      en: "Nimittam: visarga stands before a hard consonant or sibilant and turns into s, ś, or ṣ. This visarga satva starts from ḥ, not from a final n.",
+      en: "Nimittam: visarga before khar or śar becomes s, ś, or ṣ. This visarga-satva starts from ḥ, not from final n.",
       sa: "निमित्तम्: विसर्गस्य परे खर् अथवा शर् सति स/श/षादेशः भवति। एतत् विसर्गजन्यं सत्वम्, न तु पदान्तनकारजन्यम्।",
       te: "నిమిత్తం: విసర్గం తరువాత కఠిన వ్యంజనం లేదా శర వర్ణం వస్తే అది స్/శ్/ష్ రూపం దాల్చుతుంది. ఇది విసర్గం నుంచి వచ్చే సత్వం; పదాంత న్ నుంచి వచ్చే సత్వం కాదు.",
     },
     pattern: {
-      en: "ḥ + hard consonant/sibilant -> s, ś, or ṣ according to the next sound.",
+      en: "ḥ + khar/śar -> s, ś, or ṣ according to the next sound.",
       sa: "ः + खर्/शर् → परवर्णानुसारं स/श/ष।",
       te: "ః + కఠిన వ్యంజనం/శర వర్ణం → తరువాతి ధ్వనికి తగిన స్/శ్/ష్.",
     },
@@ -733,7 +733,7 @@ export const SANDHI_RULES: SandhiRule[] = [
     },
     sources: [
       bookSource(
-        "Sandhi-2, pp. 171-176: visarga before hard consonants, sibilants, and the school examples for satva.",
+        "Sandhi-2, pp. 171-176: visarga before khar and śar letters, with the textbook examples for visarga-satva.",
         "सन्धि-२, पृ. १७१-१७६: खरि-शरि परे विसर्गस्य सत्वरूपाणि, उदाहरणानि च।",
         "సంధి-2, పుటలు 171-176: కఠిన వ్యంజనాల ముందు విసర్గం సత్వరూపం దాల్చే సందర్భాలు, ఉదాహరణలు.",
       ),
@@ -754,12 +754,12 @@ export const SANDHI_RULES: SandhiRule[] = [
       te: "విసర్గ-రేఫాదేశం",
     },
     helper: {
-      en: "When visarga follows a non-a/ā vowel, or an avyaya visarga is involved, a following vowel or soft consonant can pull out r.",
+      en: "When visarga follows a non-a/ā vowel, or avyaya-visarga is involved, a following svara or mṛdu-vyañjana can pull out r.",
       sa: "अ/आ-वर्जितस्वरात् परो वा अव्ययसम्बद्धो विसर्गः स्वरे मृदुव्यञ्जने च परे रेफादेशं ददाति।",
       te: "అ/ఆ కాని స్వరం తరువాత వచ్చిన విసర్గం, లేదా అవ్యయ విసర్గం, తరువాత స్వరం లేదా మృదు వ్యంజనం వస్తే ర్‌గా మారుతుంది.",
     },
     pattern: {
-      en: "ḥ + vowel/soft consonant -> r before the next sound.",
+      en: "ḥ + svara/mṛdu-vyañjana -> r before the next sound.",
       sa: "ः + स्वर/मृदुव्यञ्जन → रेफादेशः।",
       te: "ః + స్వరం/మృదు వ్యంజనం → రేఫాదేశం.",
     },
@@ -790,12 +790,12 @@ export const SANDHI_RULES: SandhiRule[] = [
       te: "విసర్గ-లోపం",
     },
     helper: {
-      en: "Nimittam: in taught visarga-lopa patterns the visarga itself disappears. The result may show plain prakṛtibhāva, vowel lengthening before r, or in some optional school cases a y-form beside the lopa-form.",
+      en: "Nimittam: in taught visarga-lopa patterns the visarga itself disappears. The result may show plain prakṛtibhāva, vowel lengthening before r, or in some optional taught cases a y-form beside the lopa-form.",
       sa: "निमित्तम्: शिक्षितेषु विसर्गलोपप्रयोगेषु स्वयं विसर्गः लुप्यते। फलरूपे प्रकृतिभावः, रेफे परे पूर्वस्वरदीर्घः, केषुचित् शैक्षिकविकल्पेषु यकारयुक्तरूपं च लोपरूपेण सह दृश्यते।",
       te: "నిమిత్తం: బోధనలో చెప్పే విసర్గలోపరూపాల్లో నిజంగా లోపించేది విసర్గమే. ఫలంగా ప్రకృతిభావరూపం, ర్ ముందు పూర్వస్వర దీర్ఘం, కొన్ని పాఠ్య వికల్పాల్లో లోపరూపంతో పాటు యకారరూపం కూడా కనిపించవచ్చు.",
     },
     pattern: {
-      en: "ḥ may drop before selected vowels or soft consonants, and before r the earlier vowel may lengthen after the lopa.",
+      en: "ḥ may drop before selected svaras or mṛdu-vyañjanas, and before r the earlier vowel may lengthen after the lopa.",
       sa: "विसर्गः केषुचित् स्वर-मृदुव्यञ्जनपरप्रयोगेषु लुप्यते; रेफे परे लोपानन्तरं पूर्वस्वरदीर्घोऽपि भवति।",
       te: "కొన్ని స్వర/మృదు వ్యంజన పర రూపాల్లో విసర్గం లోపిస్తుంది; ర్ ముందు లోపం తర్వాత పూర్వస్వరం దీర్ఘమవవచ్చు.",
     },
@@ -826,12 +826,12 @@ export const SANDHI_RULES: SandhiRule[] = [
       te: "విసర్గ-ఓత్వం",
     },
     helper: {
-      en: "A final aḥ can move through ru/utva into o before a following vowel or soft consonant.",
+      en: "A final aḥ can move through ru/utva into o before a following svara or mṛdu-vyañjana.",
       sa: "अः पदान्तः परे स्वर-मृदुव्यञ्जने च रु-उत्वक्रमेण ओ-रूपं प्राप्नोति।",
       te: "పదాంత అః తరువాత స్వరం లేదా మృదు వ్యంజనం వస్తే రు/ఉత్వ క్రమంలో ఓ రూపం వస్తుంది.",
     },
     pattern: {
-      en: "aḥ + vowel/soft consonant -> o, and before initial a this may continue into o'.",
+      en: "aḥ + svara/mṛdu-vyañjana -> o, and before initial a this may continue into o'.",
       sa: "अः + स्वर/मृदुव्यञ्जन → ओ; आद्य-अकारे परे ओऽ अपि दृश्यते।",
       te: "అః + స్వరం/మృదు వ్యంజనం → ఓ; మొదటి అ ముందు ఓऽ రూపం కూడా కనిపిస్తుంది.",
     },

@@ -430,8 +430,9 @@ button {
 
 .mode-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+  min-width: 0;
 }
 
 .family-selector {
@@ -456,6 +457,7 @@ button {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
+  min-width: 0;
 }
 
 .family-grid--compact {
@@ -498,7 +500,8 @@ button {
 .family-card--compact strong {
   font-size: 0.94rem;
   line-height: 1.2;
-  overflow-wrap: anywhere;
+  overflow-wrap: normal;
+  word-break: keep-all;
 }
 
 .family-card--compact .family-card__count {
@@ -527,6 +530,8 @@ button {
 .family-card__topline strong {
   font-family: "Iowan Old Style", "Palatino Linotype", serif;
   font-size: 1rem;
+  overflow-wrap: normal;
+  word-break: keep-all;
 }
 
 .family-card__count {
@@ -621,7 +626,8 @@ button {
   font-family: "Iowan Old Style", "Palatino Linotype", serif;
   font-size: 0.98rem;
   line-height: 1.2;
-  overflow-wrap: anywhere;
+  overflow-wrap: normal;
+  word-break: keep-all;
 }
 
 .mode-card.active {
@@ -1288,10 +1294,10 @@ button {
 
 .split-token__word-shell {
   position: relative;
-  display: inline-grid;
-  width: max-content;
-  justify-self: center;
-  max-width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
   padding: 20px 28px 22px;
   border-radius: 999px;
   background:
@@ -1303,6 +1309,14 @@ button {
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: none;
+}
+
+.split-token__word-layer {
+  position: relative;
+  flex: 0 0 auto;
+  width: max-content;
+  max-width: none;
+  padding: 2px 0;
 }
 
 .split-token__word-shell--compound {
@@ -1348,6 +1362,7 @@ button {
   width: max-content;
   color: #f6f0ff;
   text-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+  z-index: 1;
 }
 
 .split-token--final .split-token__word {
@@ -1379,8 +1394,8 @@ button {
 }
 
 .split-marker__line {
-  width: 1px;
-  height: 62%;
+  width: 2px;
+  height: 100%;
   border-radius: 999px;
   background: linear-gradient(
     180deg,
@@ -1393,24 +1408,28 @@ button {
 
 .split-marker--overlay {
   position: absolute;
-  top: 50%;
-  width: 18px;
-  height: calc(100% - 22px);
+  top: 0;
+  width: 28px;
+  height: 100%;
+  min-height: 0;
   padding: 0;
   border: 0;
   border-radius: 999px;
   background: transparent;
   box-shadow: none;
-  transform: translate(-50%, -50%);
+  transform: translateX(-50%);
+  cursor: pointer;
+  touch-action: manipulation;
+  z-index: 2;
 }
 
 .split-marker--overlay:hover:not(:disabled) {
   background: rgba(244, 177, 98, 0.04);
-  transform: translate(-50%, -50%);
+  transform: translateX(-50%);
 }
 
 .split-marker--guided .split-marker__line {
-  width: 1.5px;
+  width: 2px;
   background: linear-gradient(
     180deg,
     rgba(255, 220, 168, 0.06),
@@ -1697,14 +1716,13 @@ button {
 }
 
 .knife-detail__notes {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 8px;
+  display: grid;
+  gap: 6px;
 }
 
 .knife-detail__note {
-  padding: 4px 8px;
-  border-radius: 999px;
+  padding: 6px 10px;
+  border-radius: 14px;
   background: rgba(255, 255, 255, 0.045);
   color: var(--text-muted);
   font-size: 0.82rem;
@@ -2104,6 +2122,7 @@ select {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .app-shell--game .hero-controls__top,
   .hero-controls__top {
     grid-template-columns: 1fr;
   }
@@ -2142,14 +2161,21 @@ select {
     display: block;
   }
 
+  .app-shell--game .hero,
   .hero,
   .main-grid,
   .studio-grid {
     grid-template-columns: 1fr;
   }
 
+  .app-shell--game .hero-controls__top,
   .hero-controls__top {
     grid-template-columns: 1fr;
+  }
+
+  .app-shell--game .hero-utility-row {
+    justify-content: flex-start;
+    width: 100%;
   }
 
   .app-shell--game .family-selector {
@@ -2291,7 +2317,7 @@ select {
   }
 
   .mode-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(132px, 1fr));
     gap: 6px;
   }
 
@@ -2305,10 +2331,13 @@ select {
   .mode-card__eyebrow {
     font-size: 0.62rem;
     letter-spacing: 0.14em;
+    white-space: nowrap;
   }
 
   .mode-card__title {
     font-size: 0.8rem;
+    overflow-wrap: normal;
+    word-break: keep-all;
   }
 
   .family-grid {
@@ -2323,6 +2352,8 @@ select {
 
   .family-card--compact strong {
     font-size: 0.82rem;
+    overflow-wrap: normal;
+    word-break: keep-all;
   }
 
   .family-card--compact .family-card__count,
@@ -2377,8 +2408,6 @@ select {
   }
 
   .split-token__word-shell {
-    width: 100%;
-    max-width: 100%;
     padding: 14px 16px 16px;
   }
 
@@ -2403,9 +2432,15 @@ select {
     gap: 8px;
   }
 
+  .app-shell--game .hero,
+  .app-shell--game .hero-controls__top,
   .hero-controls__top,
   .family-selector__header {
     grid-template-columns: 1fr;
+  }
+
+  .app-shell--game .hero-utility-row {
+    justify-content: flex-start;
   }
 
   .hero-utility-row > * {
@@ -2580,7 +2615,7 @@ select {
   }
 
   .mode-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(120px, 1fr));
   }
 
   .mode-card__title {
@@ -2613,13 +2648,17 @@ select {
     flex-direction: column;
     align-items: flex-start;
   }
+
+  .mode-card__eyebrow {
+    display: none;
+  }
 }
 
 @media (max-width: 380px) {
   .mode-grid,
   .knife-grid--floating,
   .floating-dock__actions {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(110px, 1fr));
   }
 
   .hero-utility-row .toggle-row {

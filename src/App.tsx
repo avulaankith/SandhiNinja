@@ -1205,7 +1205,6 @@ function App() {
   const dockNotes = [
     t(isJoinMode ? "joinBoundaryHint" : "splitMarkerHint", language),
     t(isJoinMode ? "joinRuleHint" : "splitRuleHint", language),
-    practiceMode ? t("practiceHint", language) : null,
   ].filter((value): value is string => Boolean(value));
   const dockShortcutLegend = `${t(
     isJoinMode ? "glueShortcutLegend" : "shortcutLegend",

@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { cloneWordNode, isFurtherSplittable } from "../data/sandhiBank";
 import { UI_TEXT, t } from "../data/uiText";
+import { splitDevanagariAksharas } from "../utils/sanskrit";
 import type {
   ActiveToken,
   Language,
@@ -33,6 +34,18 @@ const localizedMessage = (key: keyof typeof UI_TEXT): SliceFeedback["message"] =
   sa: t(key, "sa"),
   te: t(key, "te"),
 });
+
+const DEVANAGARI_VIRAMA = "्";
+const R_VOWEL_INITIAL_PATTERN = /^[ऋॠऌॡ]/;
+const SVARA_RULE_IDS = new Set<SandhiRuleId>([
+  "savarna-dirgha",
+  "guna",
+  "vrddhi",
+  "yan",
+  "ayavayava",
+  "purvarupa",
+  "pararupa",
+]);
 
 const collectAvailableRuleIds = (tokens: ActiveToken[]) => {
   const ids = new Set<SandhiRuleId>();
@@ -77,11 +90,15 @@ const getRevealLesson = (tokens: ActiveToken[]) => {
     return undefined;
   }
 
-  const targetBoundaryOffset = getCutSurfaceBoundaryOffset(stuck.node.devanagari, cut);
+  const targetBoundarySignature = getTeachingCutBoundaryOffsets(
+    stuck.node.devanagari,
+    cut,
+  ).join("\u0001");
   const variantCount = stuck.node.cuts.filter(
     (entry) =>
       !entry.reviewNeeded &&
-      getCutSurfaceBoundaryOffset(stuck.node.devanagari, entry) === targetBoundaryOffset,
+      getTeachingCutBoundaryOffsets(stuck.node.devanagari, entry).join("\u0001") ===
+        targetBoundarySignature,
   ).length;
 
   return buildLesson(stuck.node, cut, variantCount || 1);
@@ -165,37 +182,24 @@ const buildPrefixAlignmentMap = (sourceChars: string[], targetChars: string[]) =
   return prefixMap;
 };
 
-const getSurfaceBoundaryCharOffsets = (aksharas: string[], surface: string) => {
-  if (aksharas.length < 2 || !surface) {
+const getVisibleAksharaBoundaryCharOffsets = (surface: string) => {
+  if (!surface) {
     return [];
   }
 
-  const sourceChars = Array.from(aksharas.join(""));
-  const targetChars = Array.from(surface);
-
-  if (sourceChars.length === 0 || targetChars.length === 0) {
+  const aksharas = splitDevanagariAksharas(surface);
+  if (aksharas.length < 2) {
     return [];
   }
 
-  const prefixMap = buildPrefixAlignmentMap(sourceChars, targetChars);
-  let consumedSourceChars = 0;
-
-  const offsets = aksharas.slice(0, -1).map((akshara) => {
-    consumedSourceChars += Array.from(akshara).length;
-
-    const mappedCount = prefixMap[consumedSourceChars] ?? targetChars.length;
-    const clampedCount = Math.min(
-      Math.max(mappedCount, 1),
-      Math.max(targetChars.length - 1, 1),
-    );
-
-    return targetChars.slice(0, clampedCount).join("").length;
+  let consumedChars = 0;
+  return aksharas.slice(0, -1).map((akshara) => {
+    consumedChars += Array.from(akshara).length;
+    return consumedChars;
   });
-
-  return [...new Set(offsets)].sort((left, right) => left - right);
 };
 
-const getCutSurfaceBoundaryOffset = (surface: string, cut: SandhiCut) => {
+const getRawCutSurfaceBoundaryOffset = (surface: string, cut: SandhiCut) => {
   if (!surface) {
     return -1;
   }
@@ -218,13 +222,100 @@ const getCutSurfaceBoundaryOffset = (surface: string, cut: SandhiCut) => {
   return targetChars.slice(0, clampedCount).join("").length;
 };
 
+const getTeachingCutBoundaryOffsets = (surface: string, cut: SandhiCut) => {
+  const rawBoundaryOffset = getRawCutSurfaceBoundaryOffset(surface, cut);
+  if (rawBoundaryOffset < 0) {
+    return [];
+  }
+
+  const visibleBoundaryOffsets = getVisibleAksharaBoundaryCharOffsets(surface);
+  const targetChars = Array.from(surface);
+
+  if (
+    cut.ruleId === "guna" &&
+    R_VOWEL_INITIAL_PATTERN.test(cut.right.devanagari) &&
+    targetChars[rawBoundaryOffset] === DEVANAGARI_VIRAMA
+  ) {
+    const previousVisibleBoundary = [...visibleBoundaryOffsets]
+      .reverse()
+      .find((boundaryOffset) => boundaryOffset < rawBoundaryOffset);
+
+    if (previousVisibleBoundary !== undefined) {
+      return [previousVisibleBoundary];
+    }
+  }
+
+  if (SVARA_RULE_IDS.has(cut.ruleId) && !visibleBoundaryOffsets.includes(rawBoundaryOffset)) {
+    const nextVisibleBoundary = visibleBoundaryOffsets.find(
+      (boundaryOffset) => boundaryOffset > rawBoundaryOffset,
+    );
+
+    if (nextVisibleBoundary !== undefined) {
+      return [nextVisibleBoundary];
+    }
+  }
+
+  return [rawBoundaryOffset];
+};
+
+const getAcceptedCutBoundaryOffsets = (surface: string, cut: SandhiCut) => {
+  const visibleBoundaryOffsets = getVisibleAksharaBoundaryCharOffsets(surface);
+  const rawBoundaryOffset = getRawCutSurfaceBoundaryOffset(surface, cut);
+  const teachingBoundaryOffsets = getTeachingCutBoundaryOffsets(surface, cut);
+
+  if (rawBoundaryOffset < 0) {
+    return teachingBoundaryOffsets;
+  }
+
+  const acceptableOffsets = new Set(teachingBoundaryOffsets);
+
+  // When a grammatical split lands inside a transformed cluster, accept the
+  // adjacent visible teaching guides as well so the player is not forced to
+  // guess one hidden internal Unicode boundary.
+  if (!visibleBoundaryOffsets.includes(rawBoundaryOffset)) {
+    const previousVisibleBoundary = [...visibleBoundaryOffsets]
+      .reverse()
+      .find((boundaryOffset) => boundaryOffset < rawBoundaryOffset);
+    const nextVisibleBoundary = visibleBoundaryOffsets.find(
+      (boundaryOffset) => boundaryOffset > rawBoundaryOffset,
+    );
+
+    if (previousVisibleBoundary !== undefined) {
+      acceptableOffsets.add(previousVisibleBoundary);
+    }
+
+    if (nextVisibleBoundary !== undefined) {
+      acceptableOffsets.add(nextVisibleBoundary);
+    }
+  }
+
+  return [...acceptableOffsets].sort((left, right) => left - right);
+};
+
+const getDisplayBoundaryCharOffsets = (node: WordNode) => {
+  const visibleBoundaryOffsets = getVisibleAksharaBoundaryCharOffsets(node.devanagari);
+  const cutBoundaryOffsets = node.cuts
+    .filter((cut) => !cut.reviewNeeded)
+    .flatMap((cut) => getTeachingCutBoundaryOffsets(node.devanagari, cut))
+    .filter((boundaryOffset) => boundaryOffset > 0);
+
+  return [...new Set([...visibleBoundaryOffsets, ...cutBoundaryOffsets])].sort(
+    (left, right) => left - right,
+  );
+};
+
 type SplitTokenWordProps = {
   interactionLocked: boolean;
   language: Language;
-  onBoundaryClick: (boundaryCharOffset: number) => void;
+  onBoundaryClick: (candidateBoundaryCharOffsets: number[]) => void;
   splittable: boolean;
   studyMode: StudyMode;
   token: ActiveToken;
+};
+
+type SplitMarker = {
+  candidateBoundaryCharOffsets: number[];
+  offset: number;
 };
 
 const SplitTokenWord = ({
@@ -235,78 +326,74 @@ const SplitTokenWord = ({
   studyMode,
   token,
 }: SplitTokenWordProps) => {
-  const wordRef = useRef<HTMLSpanElement | null>(null);
-  const [markerOffsets, setMarkerOffsets] = useState<number[]>([]);
-  const boundaryCharOffsets = getSurfaceBoundaryCharOffsets(
-    token.node.aksharas,
-    token.node.devanagari,
-  );
+  const wordLayerRef = useRef<HTMLDivElement | null>(null);
+  const prefixMeasureRefs = useRef<Record<number, HTMLSpanElement | null>>({});
+  const [markers, setMarkers] = useState<SplitMarker[]>([]);
+  const boundaryCharOffsets = getDisplayBoundaryCharOffsets(token.node);
   const measurementKey = boundaryCharOffsets.join("\u0001");
 
   useLayoutEffect(() => {
-    const word = wordRef.current;
-    const textNode = word?.firstChild;
+    const wordLayer = wordLayerRef.current;
 
-    if (!word || textNode?.nodeType !== Node.TEXT_NODE) {
-      setMarkerOffsets([]);
+    if (!wordLayer) {
+      setMarkers([]);
       return;
     }
 
     const measureMarkers = () => {
-      const wordRect = word.getBoundingClientRect();
-      const wordStart = word.offsetLeft;
-      const textLength = textNode.textContent?.length ?? 0;
-
-      if (word.offsetWidth <= 0 || textLength <= 0) {
-        setMarkerOffsets([]);
+      if (wordLayer.offsetWidth <= 0 || boundaryCharOffsets.length === 0) {
+        setMarkers([]);
         return;
       }
 
       const getMarkerOffset = (charOffset: number) => {
-        const range = document.createRange();
-        const clampedOffset = Math.max(0, Math.min(charOffset, textLength));
-
-        range.setStart(textNode, clampedOffset);
-        range.setEnd(textNode, clampedOffset);
-        const caretRects = range.getClientRects();
-
-        if (caretRects.length > 0) {
-          return wordStart + caretRects[0].left - wordRect.left;
+        const prefixMeasure = prefixMeasureRefs.current[charOffset];
+        if (!prefixMeasure) {
+          return 0;
         }
 
-        if (clampedOffset < textLength) {
-          range.setEnd(textNode, clampedOffset + 1);
-          const nextRect = range.getBoundingClientRect();
-          if (nextRect.width > 0 || nextRect.height > 0) {
-            return wordStart + nextRect.left - wordRect.left;
-          }
-        }
-
-        if (clampedOffset > 0) {
-          range.setStart(textNode, clampedOffset - 1);
-          range.setEnd(textNode, clampedOffset);
-          const previousRect = range.getBoundingClientRect();
-          if (previousRect.width > 0 || previousRect.height > 0) {
-            return wordStart + previousRect.right - wordRect.left;
-          }
-        }
-
-        return wordStart;
+        return prefixMeasure.getBoundingClientRect().width;
       };
 
-      const offsets = boundaryCharOffsets.map((charOffset) => {
+      const measuredMarkers = boundaryCharOffsets.map((charOffset) => {
         const markerOffset = getMarkerOffset(charOffset);
-        return Number.isFinite(markerOffset) ? markerOffset : wordStart;
+        return {
+          candidateBoundaryCharOffsets: [charOffset],
+          offset: Number.isFinite(markerOffset) ? markerOffset : 0,
+        };
       });
 
-      setMarkerOffsets(offsets);
+      measuredMarkers.sort((left, right) => left.offset - right.offset);
+
+      const mergedMarkers = measuredMarkers.reduce<SplitMarker[]>((groups, marker) => {
+        const previousGroup = groups[groups.length - 1];
+
+        if (previousGroup && Math.abs(previousGroup.offset - marker.offset) <= 1.5) {
+          previousGroup.candidateBoundaryCharOffsets = [
+            ...new Set([
+              ...previousGroup.candidateBoundaryCharOffsets,
+              ...marker.candidateBoundaryCharOffsets,
+            ]),
+          ].sort((left, right) => left - right);
+          previousGroup.offset = Math.max(previousGroup.offset, marker.offset);
+          return groups;
+        }
+
+        groups.push({
+          candidateBoundaryCharOffsets: [...marker.candidateBoundaryCharOffsets],
+          offset: marker.offset,
+        });
+        return groups;
+      }, []);
+
+      setMarkers(mergedMarkers);
     };
 
     measureMarkers();
 
     const resizeObserver =
       typeof ResizeObserver !== "undefined" ? new ResizeObserver(measureMarkers) : null;
-    resizeObserver?.observe(word);
+    resizeObserver?.observe(wordLayer);
     window.addEventListener("resize", measureMarkers);
 
     return () => {
@@ -321,34 +408,48 @@ const SplitTokenWord = ({
         splittable ? "split-token__word-shell--compound" : "split-token__word-shell--final"
       }`}
     >
-      <span
-        aria-label={token.node.devanagari}
-        className="split-token__word"
-        ref={wordRef}
-        role="presentation"
-      >
-        {token.node.devanagari}
-      </span>
+      <div className="split-token__word-layer" ref={wordLayerRef}>
+        <span
+          aria-label={token.node.devanagari}
+          className="split-token__word"
+          role="presentation"
+        >
+          {token.node.devanagari}
+        </span>
+        <div aria-hidden="true" className="split-token__measure">
+          {boundaryCharOffsets.map((charOffset) => (
+            <span
+              className="split-token__measure-prefix"
+              key={`${token.instanceId}-measure-${charOffset}`}
+              ref={(element) => {
+                prefixMeasureRefs.current[charOffset] = element;
+              }}
+            >
+              {token.node.devanagari.slice(0, charOffset)}
+            </span>
+          ))}
+        </div>
 
-      {splittable
-        ? markerOffsets.map((offset, index) => (
-            <button
-              className={`split-marker split-marker--overlay ${
-                studyMode === "guided" ? "split-marker--guided" : ""
-              }`}
-              disabled={interactionLocked}
-                key={`${token.instanceId}-marker-${boundaryCharOffsets[index]}`}
-                onClick={() => onBoundaryClick(boundaryCharOffsets[index])}
-                style={{ left: `${offset}px` }}
+        {splittable
+          ? markers.map((marker, index) => (
+              <button
+                className={`split-marker split-marker--overlay ${
+                  studyMode === "guided" ? "split-marker--guided" : ""
+                }`}
+                disabled={interactionLocked}
+                key={`${token.instanceId}-marker-${marker.candidateBoundaryCharOffsets.join("-")}`}
+                onClick={() => onBoundaryClick(marker.candidateBoundaryCharOffsets)}
+                style={{ left: `${marker.offset}px` }}
                 type="button"
               >
-              <span className="split-marker__line" />
-              <span className="sr-only">
-                {`${t("slicePrompt", language)} ${index + 1}`}
-              </span>
-            </button>
-          ))
-        : null}
+                <span className="split-marker__line" />
+                <span className="sr-only">
+                  {`${t("slicePrompt", language)} ${index + 1}`}
+                </span>
+              </button>
+            ))
+          : null}
+      </div>
     </div>
   );
 };
@@ -397,7 +498,10 @@ export const SandhiSplitBoard = ({
     });
   }, [fontsReady, rootWord, roundKey]);
 
-  const handleBoundaryClick = (tokenId: string, boundaryCharOffset: number) => {
+  const handleBoundaryClick = (
+    tokenId: string,
+    candidateBoundaryCharOffsets: number[],
+  ) => {
     if (interactionLocked) {
       return;
     }
@@ -409,6 +513,7 @@ export const SandhiSplitBoard = ({
 
     const token = visibleTokens[tokenIndex];
     const interactionId = `${roundKey}:split:${++interactionSerialRef.current}`;
+    const feedbackBoundaryIndex = candidateBoundaryCharOffsets[0] ?? -1;
 
     if (!isFurtherSplittable(token.node)) {
       onFeedbackRef.current({
@@ -417,7 +522,7 @@ export const SandhiSplitBoard = ({
         availableRuleIds: collectAvailableRuleIds(visibleTokens),
         activeTokens: visibleTokens,
         roundCompleted: false,
-        boundaryIndex: boundaryCharOffset,
+        boundaryIndex: feedbackBoundaryIndex,
         assessment: "final-word",
         interactionId,
       });
@@ -429,8 +534,8 @@ export const SandhiSplitBoard = ({
         return false;
       }
 
-      return (
-        getCutSurfaceBoundaryOffset(token.node.devanagari, cut) === boundaryCharOffset
+      return getAcceptedCutBoundaryOffsets(token.node.devanagari, cut).some((boundaryOffset) =>
+        candidateBoundaryCharOffsets.includes(boundaryOffset),
       );
     });
 
@@ -453,7 +558,7 @@ export const SandhiSplitBoard = ({
         availableRuleIds: collectAvailableRuleIds(visibleTokens),
         activeTokens: visibleTokens,
         roundCompleted: false,
-        boundaryIndex: boundaryCharOffset,
+        boundaryIndex: feedbackBoundaryIndex,
         assessment,
         interactionId,
       });
@@ -472,7 +577,7 @@ export const SandhiSplitBoard = ({
         availableRuleIds: collectAvailableRuleIds(visibleTokens),
         activeTokens: visibleTokens,
         roundCompleted: false,
-        boundaryIndex: boundaryCharOffset,
+        boundaryIndex: feedbackBoundaryIndex,
         assessment: "place-correct-rule-wrong",
         interactionId,
       });
@@ -501,7 +606,7 @@ export const SandhiSplitBoard = ({
       availableRuleIds: collectAvailableRuleIds(nextTokens),
       activeTokens: nextTokens,
       roundCompleted,
-      boundaryIndex: boundaryCharOffset,
+      boundaryIndex: feedbackBoundaryIndex,
       assessment: "both-correct",
       interactionId,
     });
@@ -530,8 +635,8 @@ export const SandhiSplitBoard = ({
               <SplitTokenWord
                 interactionLocked={interactionLocked}
                 language={language}
-                onBoundaryClick={(boundaryIndex) =>
-                  handleBoundaryClick(token.instanceId, boundaryIndex)
+                onBoundaryClick={(boundaryIndexes) =>
+                  handleBoundaryClick(token.instanceId, boundaryIndexes)
                 }
                 splittable={splittable}
                 studyMode={studyMode}
