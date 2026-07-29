@@ -1394,7 +1394,7 @@ button {
 .split-marker--overlay {
   position: absolute;
   top: 50%;
-  width: 12px;
+  width: 18px;
   height: calc(100% - 22px);
   padding: 0;
   border: 0;
@@ -2388,7 +2388,7 @@ select {
   }
 
   .split-marker--overlay {
-    width: 12px;
+    width: 16px;
     height: calc(100% - 18px);
   }
 

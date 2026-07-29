@@ -729,11 +729,24 @@ function App() {
     return { node: stuck.node, cut, variantCount };
   };
 
+  const getRevealTokens = () =>
+    lastActiveTokensRef.current.length > 0
+      ? lastActiveTokensRef.current
+      : visibleTokens.length > 0
+        ? visibleTokens
+        : [
+            {
+              instanceId: "preview-root",
+              node: cloneWordNode(currentWord),
+              depth: 0,
+            },
+          ];
+
   // Practice-mode on-demand reveal. Does not lock interaction — the player can
   // keep working after peeking at the answer.
   const handleRevealAnswer = () => {
     const revealLesson =
-      lastRevealLessonRef.current ?? buildRevealLesson(lastActiveTokensRef.current);
+      lastRevealLessonRef.current ?? buildRevealLesson(getRevealTokens());
     if (!revealLesson) {
       return;
     }
@@ -1053,14 +1066,21 @@ function App() {
     setPriorityRuleIds([]);
     setVisibleTokens([]);
     setShowAnswerMeta(false);
-    lastActiveTokensRef.current = [];
-    lastRevealLessonRef.current = null;
+    const previewTokens = [
+      {
+        instanceId: "preview-root",
+        node: cloneWordNode(currentWord),
+        depth: 0,
+      },
+    ];
+    lastActiveTokensRef.current = previewTokens;
+    lastRevealLessonRef.current = buildRevealLesson(previewTokens);
     resetTimer(effectiveMode);
     setInteractionLocked(false);
     setLesson(null);
     resetAttempts();
     setStats((current) => ({ ...current, lives: DEFAULT_LIVES }));
-  }, [currentRoundKey, mode]);
+  }, [currentRoundKey, currentWord, effectiveMode, mode]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -1085,8 +1105,15 @@ function App() {
         setAvailableRuleIds([]);
         setPriorityRuleIds([]);
         setAwaitingPracticeAdvance(false);
-        lastActiveTokensRef.current = [];
-        lastRevealLessonRef.current = null;
+        const previewTokens = [
+          {
+            instanceId: "preview-root",
+            node: cloneWordNode(currentWord),
+            depth: 0,
+          },
+        ];
+        lastActiveTokensRef.current = previewTokens;
+        lastRevealLessonRef.current = buildRevealLesson(previewTokens);
         resetAttempts();
         setStats((current) => ({ ...current, lives: DEFAULT_LIVES }));
         setRoundResetNonce((current) => current + 1);
@@ -1099,7 +1126,7 @@ function App() {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [visibleRules]);
+  }, [currentRoundKey, visibleRules]);
 
   const handleSaveEntry = (entry: WordNode) => {
     setCustomEntries((current) => {
@@ -1228,8 +1255,15 @@ function App() {
     setFeedback(null);
     setAvailableRuleIds([]);
     setPriorityRuleIds([]);
-    lastActiveTokensRef.current = [];
-    lastRevealLessonRef.current = null;
+    const previewTokens = [
+      {
+        instanceId: "preview-root",
+        node: cloneWordNode(currentWord),
+        depth: 0,
+      },
+    ];
+    lastActiveTokensRef.current = previewTokens;
+    lastRevealLessonRef.current = buildRevealLesson(previewTokens);
     resetAttempts();
     setStats((current) => ({ ...current, lives: DEFAULT_LIVES }));
     setRoundResetNonce((current) => current + 1);

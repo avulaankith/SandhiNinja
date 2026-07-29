@@ -77,8 +77,11 @@ const getRevealLesson = (tokens: ActiveToken[]) => {
     return undefined;
   }
 
+  const targetBoundaryOffset = getCutSurfaceBoundaryOffset(stuck.node.devanagari, cut);
   const variantCount = stuck.node.cuts.filter(
-    (entry) => !entry.reviewNeeded && entry.cutAfterAksharaIndex === cut.cutAfterAksharaIndex,
+    (entry) =>
+      !entry.reviewNeeded &&
+      getCutSurfaceBoundaryOffset(stuck.node.devanagari, entry) === targetBoundaryOffset,
   ).length;
 
   return buildLesson(stuck.node, cut, variantCount || 1);
@@ -162,7 +165,7 @@ const buildPrefixAlignmentMap = (sourceChars: string[], targetChars: string[]) =
   return prefixMap;
 };
 
-const getSurfaceMeasurementPrefixes = (aksharas: string[], surface: string) => {
+const getSurfaceBoundaryCharOffsets = (aksharas: string[], surface: string) => {
   if (aksharas.length < 2 || !surface) {
     return [];
   }
@@ -177,20 +180,48 @@ const getSurfaceMeasurementPrefixes = (aksharas: string[], surface: string) => {
   const prefixMap = buildPrefixAlignmentMap(sourceChars, targetChars);
   let consumedSourceChars = 0;
 
-  return aksharas.slice(0, -1).map((akshara) => {
+  const offsets = aksharas.slice(0, -1).map((akshara) => {
     consumedSourceChars += Array.from(akshara).length;
 
     const mappedCount = prefixMap[consumedSourceChars] ?? targetChars.length;
-    const clampedCount = Math.min(Math.max(mappedCount, 1), Math.max(targetChars.length - 1, 1));
+    const clampedCount = Math.min(
+      Math.max(mappedCount, 1),
+      Math.max(targetChars.length - 1, 1),
+    );
 
-    return targetChars.slice(0, clampedCount).join("");
+    return targetChars.slice(0, clampedCount).join("").length;
   });
+
+  return [...new Set(offsets)].sort((left, right) => left - right);
+};
+
+const getCutSurfaceBoundaryOffset = (surface: string, cut: SandhiCut) => {
+  if (!surface) {
+    return -1;
+  }
+
+  const sourceChars = Array.from(`${cut.left.devanagari}${cut.right.devanagari}`);
+  const targetChars = Array.from(surface);
+
+  if (sourceChars.length === 0 || targetChars.length === 0) {
+    return -1;
+  }
+
+  const prefixMap = buildPrefixAlignmentMap(sourceChars, targetChars);
+  const leftCharCount = Array.from(cut.left.devanagari).length;
+  const mappedCount = prefixMap[leftCharCount] ?? targetChars.length;
+  const clampedCount = Math.min(
+    Math.max(mappedCount, 1),
+    Math.max(targetChars.length - 1, 1),
+  );
+
+  return targetChars.slice(0, clampedCount).join("").length;
 };
 
 type SplitTokenWordProps = {
   interactionLocked: boolean;
   language: Language;
-  onBoundaryClick: (boundaryIndex: number) => void;
+  onBoundaryClick: (boundaryCharOffset: number) => void;
   splittable: boolean;
   studyMode: StudyMode;
   token: ActiveToken;
@@ -204,46 +235,84 @@ const SplitTokenWord = ({
   studyMode,
   token,
 }: SplitTokenWordProps) => {
-  const measureRefs = useRef<Array<HTMLSpanElement | null>>([]);
-  const measureWordRef = useRef<HTMLSpanElement | null>(null);
-  const shellRef = useRef<HTMLDivElement | null>(null);
-  const wordRef = useRef<HTMLDivElement | null>(null);
+  const wordRef = useRef<HTMLSpanElement | null>(null);
   const [markerOffsets, setMarkerOffsets] = useState<number[]>([]);
-  const measurementPrefixes = getSurfaceMeasurementPrefixes(
+  const boundaryCharOffsets = getSurfaceBoundaryCharOffsets(
     token.node.aksharas,
     token.node.devanagari,
   );
-  const measurementKey = measurementPrefixes.join("\u0001");
+  const measurementKey = boundaryCharOffsets.join("\u0001");
 
   useLayoutEffect(() => {
-    const shell = shellRef.current;
     const word = wordRef.current;
-    const measureWord = measureWordRef.current;
+    const textNode = word?.firstChild;
 
-    if (!shell || !word || !measureWord) {
+    if (!word || textNode?.nodeType !== Node.TEXT_NODE) {
       setMarkerOffsets([]);
       return;
     }
 
-    const wordStart = word.offsetLeft;
-    const visibleWidth = word.offsetWidth;
-    const measureWidth = measureWord.offsetWidth;
+    const measureMarkers = () => {
+      const wordRect = word.getBoundingClientRect();
+      const wordStart = word.offsetLeft;
+      const textLength = textNode.textContent?.length ?? 0;
 
-    if (visibleWidth <= 0 || measureWidth <= 0) {
-      setMarkerOffsets([]);
-      return;
-    }
-
-    const offsets = measurementPrefixes.map((_, index) => {
-      const current = measureRefs.current[index];
-      if (!current) {
-        return wordStart;
+      if (word.offsetWidth <= 0 || textLength <= 0) {
+        setMarkerOffsets([]);
+        return;
       }
 
-      return wordStart + Math.min(current.offsetWidth, visibleWidth);
-    });
+      const getMarkerOffset = (charOffset: number) => {
+        const range = document.createRange();
+        const clampedOffset = Math.max(0, Math.min(charOffset, textLength));
 
-    setMarkerOffsets(offsets);
+        range.setStart(textNode, clampedOffset);
+        range.setEnd(textNode, clampedOffset);
+        const caretRects = range.getClientRects();
+
+        if (caretRects.length > 0) {
+          return wordStart + caretRects[0].left - wordRect.left;
+        }
+
+        if (clampedOffset < textLength) {
+          range.setEnd(textNode, clampedOffset + 1);
+          const nextRect = range.getBoundingClientRect();
+          if (nextRect.width > 0 || nextRect.height > 0) {
+            return wordStart + nextRect.left - wordRect.left;
+          }
+        }
+
+        if (clampedOffset > 0) {
+          range.setStart(textNode, clampedOffset - 1);
+          range.setEnd(textNode, clampedOffset);
+          const previousRect = range.getBoundingClientRect();
+          if (previousRect.width > 0 || previousRect.height > 0) {
+            return wordStart + previousRect.right - wordRect.left;
+          }
+        }
+
+        return wordStart;
+      };
+
+      const offsets = boundaryCharOffsets.map((charOffset) => {
+        const markerOffset = getMarkerOffset(charOffset);
+        return Number.isFinite(markerOffset) ? markerOffset : wordStart;
+      });
+
+      setMarkerOffsets(offsets);
+    };
+
+    measureMarkers();
+
+    const resizeObserver =
+      typeof ResizeObserver !== "undefined" ? new ResizeObserver(measureMarkers) : null;
+    resizeObserver?.observe(word);
+    window.addEventListener("resize", measureMarkers);
+
+    return () => {
+      resizeObserver?.disconnect();
+      window.removeEventListener("resize", measureMarkers);
+    };
   }, [measurementKey, token.node.devanagari]);
 
   return (
@@ -251,33 +320,15 @@ const SplitTokenWord = ({
       className={`split-token__word-shell ${
         splittable ? "split-token__word-shell--compound" : "split-token__word-shell--final"
       }`}
-      ref={shellRef}
     >
-      <div aria-hidden="true" className="split-token__measure">
-        {measurementPrefixes.map((prefix, index) => (
-          <span
-            className="split-token__measure-prefix"
-            key={`${token.instanceId}-prefix-${index}`}
-            ref={(node) => {
-              measureRefs.current[index] = node;
-            }}
-          >
-            {prefix}
-          </span>
-        ))}
-        <span className="split-token__measure-full" ref={measureWordRef}>
-          {token.node.devanagari}
-        </span>
-      </div>
-
-      <div
+      <span
         aria-label={token.node.devanagari}
         className="split-token__word"
         ref={wordRef}
         role="presentation"
       >
         {token.node.devanagari}
-      </div>
+      </span>
 
       {splittable
         ? markerOffsets.map((offset, index) => (
@@ -286,11 +337,11 @@ const SplitTokenWord = ({
                 studyMode === "guided" ? "split-marker--guided" : ""
               }`}
               disabled={interactionLocked}
-              key={`${token.instanceId}-marker-${index}`}
-              onClick={() => onBoundaryClick(index)}
-              style={{ left: `${offset}px` }}
-              type="button"
-            >
+                key={`${token.instanceId}-marker-${boundaryCharOffsets[index]}`}
+                onClick={() => onBoundaryClick(boundaryCharOffsets[index])}
+                style={{ left: `${offset}px` }}
+                type="button"
+              >
               <span className="split-marker__line" />
               <span className="sr-only">
                 {`${t("slicePrompt", language)} ${index + 1}`}
@@ -346,7 +397,7 @@ export const SandhiSplitBoard = ({
     });
   }, [fontsReady, rootWord, roundKey]);
 
-  const handleBoundaryClick = (tokenId: string, boundaryIndex: number) => {
+  const handleBoundaryClick = (tokenId: string, boundaryCharOffset: number) => {
     if (interactionLocked) {
       return;
     }
@@ -366,16 +417,22 @@ export const SandhiSplitBoard = ({
         availableRuleIds: collectAvailableRuleIds(visibleTokens),
         activeTokens: visibleTokens,
         roundCompleted: false,
-        boundaryIndex,
+        boundaryIndex: boundaryCharOffset,
         assessment: "final-word",
         interactionId,
       });
       return;
     }
 
-    const exactBoundaryCuts = token.node.cuts.filter(
-      (cut) => !cut.reviewNeeded && cut.cutAfterAksharaIndex === boundaryIndex,
-    );
+    const exactBoundaryCuts = token.node.cuts.filter((cut) => {
+      if (cut.reviewNeeded) {
+        return false;
+      }
+
+      return (
+        getCutSurfaceBoundaryOffset(token.node.devanagari, cut) === boundaryCharOffset
+      );
+    });
 
     if (exactBoundaryCuts.length === 0) {
       const assessment: SliceAssessment = hasSelectedRuleElsewhere(
@@ -396,7 +453,7 @@ export const SandhiSplitBoard = ({
         availableRuleIds: collectAvailableRuleIds(visibleTokens),
         activeTokens: visibleTokens,
         roundCompleted: false,
-        boundaryIndex,
+        boundaryIndex: boundaryCharOffset,
         assessment,
         interactionId,
       });
@@ -415,7 +472,7 @@ export const SandhiSplitBoard = ({
         availableRuleIds: collectAvailableRuleIds(visibleTokens),
         activeTokens: visibleTokens,
         roundCompleted: false,
-        boundaryIndex,
+        boundaryIndex: boundaryCharOffset,
         assessment: "place-correct-rule-wrong",
         interactionId,
       });
@@ -444,7 +501,7 @@ export const SandhiSplitBoard = ({
       availableRuleIds: collectAvailableRuleIds(nextTokens),
       activeTokens: nextTokens,
       roundCompleted,
-      boundaryIndex,
+      boundaryIndex: boundaryCharOffset,
       assessment: "both-correct",
       interactionId,
     });
