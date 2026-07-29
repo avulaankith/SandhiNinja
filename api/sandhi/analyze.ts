@@ -5,26 +5,46 @@ import {
   parseJsonText,
 } from "../../server/routes/analyze-core.ts";
 
-const toResponse = (statusCode: number, payload: object, headers: Record<string, string>) =>
-  new Response(JSON.stringify(payload), {
-    status: statusCode,
-    headers,
-  });
-
-export default {
-  async fetch(request: Request) {
-    try {
-      const body = parseJsonText(await request.text());
-      const result = createAnalyzeRouteResult(request.method, body);
-      return toResponse(result.statusCode, result.payload, result.headers);
-    } catch (error) {
-      if (error instanceof SyntaxError) {
-        const result = malformedJsonResult();
-        return toResponse(result.statusCode, result.payload, result.headers);
-      }
-
-      const result = internalErrorResult();
-      return toResponse(result.statusCode, result.payload, result.headers);
-    }
-  },
+type VercelLikeRequest = {
+  body?: unknown;
+  method?: string;
 };
+
+type VercelLikeResponse = {
+  setHeader: (name: string, value: string) => void;
+  status: (code: number) => VercelLikeResponse;
+  json: (payload: unknown) => void;
+};
+
+const sendResult = (
+  response: VercelLikeResponse,
+  statusCode: number,
+  payload: object,
+  headers: Record<string, string>,
+) => {
+  Object.entries(headers).forEach(([name, value]) => {
+    response.setHeader(name, value);
+  });
+  response.status(statusCode).json(payload);
+};
+
+export default function handler(
+  request: VercelLikeRequest,
+  response: VercelLikeResponse,
+) {
+  try {
+    const body =
+      typeof request.body === "string" ? parseJsonText(request.body) : request.body ?? null;
+    const result = createAnalyzeRouteResult(request.method, body);
+    sendResult(response, result.statusCode, result.payload, result.headers);
+  } catch (error) {
+    if (error instanceof SyntaxError) {
+      const result = malformedJsonResult();
+      sendResult(response, result.statusCode, result.payload, result.headers);
+      return;
+    }
+
+    const result = internalErrorResult();
+    sendResult(response, result.statusCode, result.payload, result.headers);
+  }
+}
