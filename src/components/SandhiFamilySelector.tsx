@@ -11,6 +11,7 @@ export type SandhiFamilyOption = {
 };
 
 type SandhiFamilySelectorProps = {
+  compact?: boolean;
   language: Language;
   options: SandhiFamilyOption[];
   selectedFamily: SandhiFamily;
@@ -32,6 +33,7 @@ const hintKeyByFamily = {
 } as const;
 
 export const SandhiFamilySelector = ({
+  compact = false,
   language,
   options,
   selectedFamily,
@@ -47,7 +49,7 @@ export const SandhiFamilySelector = ({
     <div className="family-selector">
       <div className="family-selector__header">
         <span className="panel-kicker">{t("familyTitle", language)}</span>
-        {activeOption ? (
+        {activeOption && !compact ? (
           <span className="family-selector__summary">
             {activeTitle} · {activeOption.ruleCount} {t("familyRulesLabel", language)} ·{" "}
             {activeOption.wordCount} {t("familyWordsLabel", language)}
@@ -80,7 +82,7 @@ export const SandhiFamilySelector = ({
         })}
       </div>
 
-      {activeOption ? (
+      {activeOption && !compact ? (
         <div className="family-spotlight">
           <strong className="family-spotlight__title">{activeTitle}</strong>
           <p>{t(hintKeyByFamily[activeOption.id], language)}</p>

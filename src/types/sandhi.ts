@@ -2,7 +2,9 @@ export type Language = "en" | "sa" | "te";
 
 export type SandhiFamily = "mixed" | "svara" | "vyanjana" | "visarga";
 
-export type GameMode = "arcade" | "join" | "devStudio";
+export type GameMode = "arcade" | "join" | "ninja" | "devStudio";
+
+export type SessionPreset = "learn" | "practice" | "challenge";
 
 export type TimerMode = "timed" | "untimed";
 
@@ -112,6 +114,13 @@ export type PlayerStats = {
   successfulCuts: number;
 };
 
+export type CampaignProgress = {
+  splitMasteredWordIds: string[];
+  joinMasteredWordIds: string[];
+  graduationTimestamp?: string | null;
+  endlessUnlocked?: boolean;
+};
+
 export type StoredProgress = {
   highScore: number;
   completedWords: number;
@@ -119,12 +128,18 @@ export type StoredProgress = {
   preferredLanguage: Language;
   preferredMode: GameMode;
   preferredFamily?: SandhiFamily;
+  sessionPreset?: SessionPreset;
+  clockEnabled?: boolean;
+  ninjaHelpOpen?: boolean;
+  ninjaShowNimitta?: boolean;
+  campaign?: CampaignProgress;
   timerMode?: TimerMode;
   studyMode?: StudyMode;
   practiceSlowly?: boolean;
   practiceMode?: boolean;
   answerAdvanceMode?: AnswerAdvanceMode;
   answerRevealDelayMs?: number;
+  timerDurationSeconds?: number;
 };
 
 export type SliceAssessment =
@@ -145,4 +160,5 @@ export type SliceFeedback = {
   boundaryIndex?: number;
   assessment?: SliceAssessment;
   interactionId?: string;
+  bottomOut?: boolean;
 };

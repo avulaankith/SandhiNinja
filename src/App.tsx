@@ -7,6 +7,7 @@ import ModeSelector from "./components/ModeSelector";
 import SandhiFamilySelector from "./components/SandhiFamilySelector";
 import ScorePanel from "./components/ScorePanel";
 import DevStudio from "./components/DevStudio";
+import ArcadeArena from "./components/ArcadeArena";
 import SandhiJoinBoard from "./components/SandhiJoinBoard";
 import SandhiSplitBoard from "./components/SandhiSplitBoard";
 import {
@@ -22,6 +23,7 @@ import { modeLabel, t } from "./data/uiText";
 import type {
   ActiveToken,
   AnswerAdvanceMode,
+  CampaignProgress,
   GameMode,
   Language,
   LessonPayload,
@@ -29,29 +31,27 @@ import type {
   SandhiFamily,
   SandhiRule,
   SandhiRuleId,
+  SessionPreset,
   SliceFeedback,
   StoredProgress,
   StudyMode,
-  TimerMode,
   WordNode,
 } from "./types/sandhi";
 
 type GameplayMode = Exclude<GameMode, "devStudio">;
 
 const getVisibleMode = (mode?: GameMode): GameplayMode =>
-  mode === "join" ? "join" : "arcade";
+  mode === "join" || mode === "ninja" ? mode : "arcade";
 
 const DEFAULT_LANGUAGE: Language = "en";
 const DEFAULT_MODE: GameMode = "arcade";
 const DEFAULT_FAMILY: SandhiFamily = "mixed";
 const DEFAULT_RULE: SandhiRuleId = "savarna-dirgha";
-const TIMER_BY_MODE = {
-  arcade: 45,
-  join: 45,
-} as const;
+const TIMER_DURATION_OPTIONS = [45, 60, 75, 90] as const;
+const DEFAULT_TIMER_DURATION_SECONDS = 60;
 const DEFAULT_LIVES = 4;
 const REVEAL_THRESHOLD = 4;
-const DEFAULT_TIMER_MODE: TimerMode = "timed";
+const DEFAULT_SESSION_PRESET: SessionPreset = "learn";
 const DEFAULT_STUDY_MODE: StudyMode = "guided";
 const DEFAULT_ANSWER_ADVANCE_MODE: AnswerAdvanceMode = "auto";
 const FONT_LOAD_TIMEOUT_MS = 2200;
@@ -66,15 +66,55 @@ const GAME_FONT_SPECS = [
   '500 20px "Anek Telugu"',
   '500 18px "IBM Plex Sans"',
 ];
+const BUILT_IN_CAMPAIGN_WORDS = DEFAULT_SANDHI_BANK.filter(isGameplayEligible);
+const BUILT_IN_CAMPAIGN_WORD_IDS = new Set(
+  BUILT_IN_CAMPAIGN_WORDS.map((entry) => entry.id),
+);
+
+const PRESET_DEFAULTS: Record<
+  SessionPreset,
+  {
+    answerAdvanceMode: AnswerAdvanceMode;
+    answerRevealDelayMs: number;
+    clockEnabled: boolean;
+    studyMode: StudyMode;
+  }
+> = {
+  learn: {
+    answerAdvanceMode: "manual",
+    answerRevealDelayMs: 16000,
+    clockEnabled: false,
+    studyMode: "guided",
+  },
+  practice: {
+    answerAdvanceMode: "manual",
+    answerRevealDelayMs: 16000,
+    clockEnabled: false,
+    studyMode: "guided",
+  },
+  challenge: {
+    answerAdvanceMode: "auto",
+    answerRevealDelayMs: 12000,
+    clockEnabled: true,
+    studyMode: "challenge",
+  },
+};
 
 const makeDefaultStats = (): PlayerStats => ({
   score: 0,
   streak: 0,
   lives: DEFAULT_LIVES,
-  timer: TIMER_BY_MODE.arcade,
+  timer: DEFAULT_TIMER_DURATION_SECONDS,
   completedWords: 0,
   highScore: 0,
   successfulCuts: 0,
+});
+
+const makeDefaultCampaignProgress = (): CampaignProgress => ({
+  splitMasteredWordIds: [],
+  joinMasteredWordIds: [],
+  graduationTimestamp: null,
+  endlessUnlocked: false,
 });
 
 const normalizeAnswerRevealDelay = (value?: number) =>
@@ -83,6 +123,55 @@ const normalizeAnswerRevealDelay = (value?: number) =>
   )
     ? value
     : DEFAULT_ANSWER_REVEAL_DELAY_MS;
+
+const normalizeTimerDuration = (value?: number) =>
+  TIMER_DURATION_OPTIONS.includes(
+    value as (typeof TIMER_DURATION_OPTIONS)[number],
+  )
+    ? value
+    : DEFAULT_TIMER_DURATION_SECONDS;
+
+const dedupeIds = (value: string[] | undefined) =>
+  [...new Set((value ?? []).filter((entryId) => BUILT_IN_CAMPAIGN_WORD_IDS.has(entryId)))];
+
+const deriveSessionPreset = (value: StoredProgress | null): SessionPreset => {
+  if (
+    value?.sessionPreset === "learn" ||
+    value?.sessionPreset === "practice" ||
+    value?.sessionPreset === "challenge"
+  ) {
+    return value.sessionPreset;
+  }
+
+  if (value?.studyMode === "challenge") {
+    return "challenge";
+  }
+
+  if (value?.practiceMode) {
+    return "learn";
+  }
+
+  if (value?.timerMode === "untimed" || value?.practiceSlowly) {
+    return "practice";
+  }
+
+  return DEFAULT_SESSION_PRESET;
+};
+
+const normalizeCampaignProgress = (
+  value: CampaignProgress | undefined,
+): CampaignProgress => {
+  const normalized = value ?? makeDefaultCampaignProgress();
+
+  return {
+    splitMasteredWordIds: dedupeIds(normalized.splitMasteredWordIds),
+    joinMasteredWordIds: dedupeIds(normalized.joinMasteredWordIds),
+    graduationTimestamp: normalized.graduationTimestamp ?? null,
+    endlessUnlocked:
+      normalized.endlessUnlocked === true ||
+      Boolean(normalized.graduationTimestamp),
+  };
+};
 
 const loadStoredProgress = (): StoredProgress | null => {
   try {
@@ -103,22 +192,35 @@ const normalizeStoredProgress = (value: StoredProgress | null): StoredProgress |
       ? value.preferredLanguage
       : DEFAULT_LANGUAGE;
   const preferredMode =
-    value.preferredMode === "join" || value.preferredMode === "devStudio"
+    value.preferredMode === "join" ||
+    value.preferredMode === "ninja" ||
+    value.preferredMode === "devStudio"
       ? value.preferredMode
       : "arcade";
-  const studyMode = value.studyMode === "challenge" ? "challenge" : DEFAULT_STUDY_MODE;
+  const sessionPreset = deriveSessionPreset(value);
+  const presetDefaults = PRESET_DEFAULTS[sessionPreset];
   const answerAdvanceMode =
     value.answerAdvanceMode === "manual"
       ? "manual"
-      : DEFAULT_ANSWER_ADVANCE_MODE;
+      : value.answerAdvanceMode === "auto"
+        ? "auto"
+        : presetDefaults.answerAdvanceMode;
 
   return {
     ...value,
     preferredLanguage,
     preferredMode,
-    studyMode,
+    sessionPreset,
+    clockEnabled:
+      typeof value.clockEnabled === "boolean"
+        ? value.clockEnabled
+        : value.timerMode
+          ? value.timerMode === "timed"
+          : presetDefaults.clockEnabled,
+    campaign: normalizeCampaignProgress(value.campaign),
     answerAdvanceMode,
     answerRevealDelayMs: normalizeAnswerRevealDelay(value.answerRevealDelayMs),
+    timerDurationSeconds: normalizeTimerDuration(value.timerDurationSeconds),
   };
 };
 
@@ -131,10 +233,14 @@ const loadCustomEntries = (): WordNode[] => {
   }
 };
 
-const getTimerSeconds = (mode: GameplayMode) => TIMER_BY_MODE[mode];
+const getTimerSeconds = (_mode: GameplayMode, timerDurationSeconds: number) =>
+  timerDurationSeconds;
 
 const getCorrectScoreGain = (streak: number, studyMode: StudyMode) =>
   studyMode === "challenge" ? 165 + streak * 24 : 120 + streak * 18;
+
+const getWrongScorePenalty = (mode: GameplayMode, preset: SessionPreset) =>
+  mode === "ninja" && preset === "challenge" ? 36 : 0;
 
 const countRemainingSplitsInNode = (node: WordNode): number => {
   const canonicalCut = node.cuts.find((entry) => !entry.reviewNeeded) ?? null;
@@ -288,6 +394,12 @@ function App() {
     [],
   );
   const storedCustomEntries = useMemo(loadCustomEntries, []);
+  const storedCampaign = useMemo(
+    () => normalizeCampaignProgress(storedProgress?.campaign),
+    [storedProgress],
+  );
+  const storedPreset = storedProgress?.sessionPreset ?? DEFAULT_SESSION_PRESET;
+  const storedPresetDefaults = PRESET_DEFAULTS[storedPreset];
 
   const [language, setLanguage] = useState<Language>(
     storedProgress?.preferredLanguage ?? DEFAULT_LANGUAGE,
@@ -298,25 +410,32 @@ function App() {
   const [selectedFamily, setSelectedFamily] = useState<SandhiFamily>(
     storedProgress?.preferredFamily ?? DEFAULT_FAMILY,
   );
-  const [timerMode, setTimerMode] = useState<TimerMode>(
-    storedProgress?.timerMode ??
-      (storedProgress?.practiceSlowly ? "untimed" : DEFAULT_TIMER_MODE),
+  const [sessionPreset, setSessionPreset] = useState<SessionPreset>(
+    storedPreset,
   );
-  const [studyMode, setStudyMode] = useState<StudyMode>(
-    storedProgress?.studyMode ?? DEFAULT_STUDY_MODE,
-  );
-  const [practiceMode, setPracticeMode] = useState<boolean>(
-    storedProgress?.practiceMode ?? false,
+  const [clockEnabled, setClockEnabled] = useState<boolean>(
+    storedProgress?.clockEnabled ?? storedPresetDefaults.clockEnabled,
   );
   const [answerAdvanceMode, setAnswerAdvanceMode] = useState<AnswerAdvanceMode>(
-    storedProgress?.answerAdvanceMode ?? DEFAULT_ANSWER_ADVANCE_MODE,
+    storedProgress?.answerAdvanceMode ?? storedPresetDefaults.answerAdvanceMode,
   );
   const [answerRevealDelayMs, setAnswerRevealDelayMs] = useState<number>(
-    storedProgress?.answerRevealDelayMs ?? DEFAULT_ANSWER_REVEAL_DELAY_MS,
+    storedProgress?.answerRevealDelayMs ?? storedPresetDefaults.answerRevealDelayMs,
+  );
+  const [timerDurationSeconds, setTimerDurationSeconds] = useState<number>(
+    storedProgress?.timerDurationSeconds ?? DEFAULT_TIMER_DURATION_SECONDS,
+  );
+  const [ninjaHelpOpen, setNinjaHelpOpen] = useState<boolean>(
+    storedProgress?.ninjaHelpOpen ?? true,
+  );
+  const [ninjaShowNimitta, setNinjaShowNimitta] = useState<boolean>(
+    storedProgress?.ninjaShowNimitta ?? false,
   );
   const [selectedRuleId, setSelectedRuleId] =
     useState<SandhiRuleId>(DEFAULT_RULE);
   const [customEntries, setCustomEntries] = useState<WordNode[]>(storedCustomEntries);
+  const [campaignProgress, setCampaignProgress] =
+    useState<CampaignProgress>(storedCampaign);
   const [stats, setStats] = useState<PlayerStats>(() => ({
     ...makeDefaultStats(),
     highScore: storedProgress?.highScore ?? 0,
@@ -334,6 +453,7 @@ function App() {
   const [wordProgress, setWordProgress] = useState({
     arcade: { index: 0, cycle: 0 },
     join: { index: 0, cycle: 0 },
+    ninja: { index: 0, cycle: 0 },
   });
   const [interactionLocked, setInteractionLocked] = useState(false);
   const [awaitingPracticeAdvance, setAwaitingPracticeAdvance] = useState(false);
@@ -341,6 +461,12 @@ function App() {
   const [fontsReady, setFontsReady] = useState(
     () => typeof document === "undefined" || !("fonts" in document),
   );
+  const [showGraduation, setShowGraduation] = useState(false);
+  const [mobileDrawer, setMobileDrawer] = useState<
+    "lesson" | "progress" | "mode" | "language" | "family" | null
+  >(null);
+  const [isTouchLayout, setIsTouchLayout] = useState(false);
+  const [isNarrowTouchLayout, setIsNarrowTouchLayout] = useState(false);
 
   const feedbackTimerRef = useRef<number | null>(null);
   const nextWordTimerRef = useRef<number | null>(null);
@@ -351,9 +477,12 @@ function App() {
   const lastGameplayModeRef = useRef<GameplayMode>(
     getVisibleMode(storedProgress?.preferredMode),
   );
+  const roundRevealUsedRef = useRef(false);
+  const roundFailedRef = useRef(false);
   const recentWordIdsRef = useRef({
     arcade: [] as string[],
     join: [] as string[],
+    ninja: [] as string[],
   });
 
   const allEntries = useMemo(
@@ -368,8 +497,11 @@ function App() {
     () => getRulesForFamily(selectedFamily),
     [selectedFamily],
   );
+  const studyMode: StudyMode = PRESET_DEFAULTS[sessionPreset].studyMode;
   const isStudioMode = mode === "devStudio";
   const isJoinMode = mode === "join";
+  const isNinjaMode = mode === "ninja";
+  const isTouchGameLayout = isTouchLayout && !isStudioMode;
   const effectiveMode: GameplayMode = isStudioMode ? lastGameplayModeRef.current : mode;
   const arcadePool = useMemo(
     () => buildRoundPool(getPoolForMode(allEntries, selectedFamily), recentWordIdsRef.current.arcade),
@@ -379,23 +511,42 @@ function App() {
     () => buildRoundPool(getPoolForMode(allEntries, selectedFamily), recentWordIdsRef.current.join),
     [allEntries, selectedFamily, wordProgress.join.cycle],
   );
-  const activePool = effectiveMode === "join" ? joinPool : arcadePool;
+  const ninjaPool = useMemo(
+    () => buildRoundPool(getPoolForMode(allEntries, selectedFamily), recentWordIdsRef.current.ninja),
+    [allEntries, selectedFamily, wordProgress.ninja.cycle],
+  );
+  const activePool =
+    effectiveMode === "join"
+      ? joinPool
+      : effectiveMode === "ninja"
+        ? ninjaPool
+        : arcadePool;
   const poolLengthsRef = useRef({
     arcade: arcadePool.length,
     join: joinPool.length,
+    ninja: ninjaPool.length,
   });
   poolLengthsRef.current = {
     arcade: arcadePool.length,
     join: joinPool.length,
+    ninja: ninjaPool.length,
   };
   const poolIndex =
-    effectiveMode === "join" ? wordProgress.join.index : wordProgress.arcade.index;
+    effectiveMode === "join"
+      ? wordProgress.join.index
+      : effectiveMode === "ninja"
+        ? wordProgress.ninja.index
+        : wordProgress.arcade.index;
   const safePoolIndex =
     activePool.length > 0 ? Math.min(poolIndex, activePool.length - 1) : 0;
   const currentWord = activePool[safePoolIndex] ?? activePool[0] ?? DEFAULT_SANDHI_BANK[0];
   const currentRoundKey = useMemo(() => {
     const progress =
-      effectiveMode === "join" ? wordProgress.join : wordProgress.arcade;
+      effectiveMode === "join"
+        ? wordProgress.join
+        : effectiveMode === "ninja"
+          ? wordProgress.ninja
+          : wordProgress.arcade;
 
     return `${effectiveMode}:${progress.cycle}:${progress.index}:${currentWord.id}:${roundResetNonce}`;
   }, [
@@ -406,6 +557,8 @@ function App() {
     wordProgress.arcade.index,
     wordProgress.join.cycle,
     wordProgress.join.index,
+    wordProgress.ninja.cycle,
+    wordProgress.ninja.index,
   ]);
   const activeTokensForUi =
     visibleTokens.length > 0
@@ -545,30 +698,35 @@ function App() {
   const languageRef = useRef(language);
   const modeRef = useRef(mode);
   const familyRef = useRef(selectedFamily);
-  const timerModeRef = useRef(timerMode);
+  const sessionPresetRef = useRef(sessionPreset);
+  const clockEnabledRef = useRef(clockEnabled);
   const effectiveModeRef = useRef(effectiveMode);
-  const practiceModeRef = useRef(practiceMode);
   const studyModeRef = useRef(studyMode);
   const answerAdvanceModeRef = useRef(answerAdvanceMode);
   const answerRevealDelayMsRef = useRef(answerRevealDelayMs);
+  const timerDurationSecondsRef = useRef(timerDurationSeconds);
 
   languageRef.current = language;
   modeRef.current = mode;
   familyRef.current = selectedFamily;
-  timerModeRef.current = timerMode;
+  sessionPresetRef.current = sessionPreset;
+  clockEnabledRef.current = clockEnabled;
   effectiveModeRef.current = effectiveMode;
-  practiceModeRef.current = practiceMode;
   studyModeRef.current = studyMode;
   answerAdvanceModeRef.current = answerAdvanceMode;
   answerRevealDelayMsRef.current = answerRevealDelayMs;
+  timerDurationSecondsRef.current = timerDurationSeconds;
 
   const persistProgress = (
     nextLanguage: Language,
     nextMode: GameMode,
     nextFamily: SandhiFamily,
-    nextTimerMode: TimerMode,
-    nextStudyMode: StudyMode,
+    nextSessionPreset: SessionPreset,
+    nextClockEnabled: boolean,
+    nextNinjaHelpOpen: boolean,
+    nextNinjaShowNimitta: boolean,
     nextStats: PlayerStats,
+    nextCampaign: CampaignProgress = campaignProgress,
   ) => {
     const payload: StoredProgress = {
       highScore: nextStats.highScore,
@@ -577,12 +735,14 @@ function App() {
       preferredLanguage: nextLanguage,
       preferredMode: nextMode,
       preferredFamily: nextFamily,
-      timerMode: nextTimerMode,
-      studyMode: nextStudyMode,
-      practiceSlowly: nextTimerMode === "untimed",
-      practiceMode: practiceModeRef.current,
+      sessionPreset: nextSessionPreset,
+      clockEnabled: nextClockEnabled,
+      ninjaHelpOpen: nextNinjaHelpOpen,
+      ninjaShowNimitta: nextNinjaShowNimitta,
+      campaign: nextCampaign,
       answerAdvanceMode: answerAdvanceModeRef.current,
       answerRevealDelayMs: answerRevealDelayMsRef.current,
+      timerDurationSeconds: timerDurationSecondsRef.current,
     };
 
     window.localStorage.setItem(STORAGE_KEYS.progress, JSON.stringify(payload));
@@ -595,7 +755,7 @@ function App() {
   const resetTimer = (nextMode: GameplayMode = effectiveModeRef.current) =>
     setStats((current) => ({
       ...current,
-      timer: getTimerSeconds(nextMode),
+      timer: getTimerSeconds(nextMode, timerDurationSecondsRef.current),
     }));
 
   const clearFeedbackTimer = () => {
@@ -612,12 +772,52 @@ function App() {
     }
   };
 
-  const shouldWaitForNextWord = () =>
-    practiceModeRef.current ||
-    timerModeRef.current === "untimed" ||
-    answerAdvanceModeRef.current === "manual";
+  const shouldWaitForNextWord = () => answerAdvanceModeRef.current === "manual";
+
+  const shouldAutoAdvanceToNextWord = () =>
+    answerAdvanceModeRef.current === "auto";
 
   const getAnswerAdvanceDelay = () => answerRevealDelayMsRef.current;
+
+  const persistCampaignProgress = (
+    updater:
+      | CampaignProgress
+      | ((current: CampaignProgress) => CampaignProgress),
+  ) => {
+    setCampaignProgress((current) => {
+      const next =
+        typeof updater === "function"
+          ? (updater as (current: CampaignProgress) => CampaignProgress)(current)
+          : updater;
+
+      persistProgress(
+        languageRef.current,
+        modeRef.current,
+        familyRef.current,
+        sessionPresetRef.current,
+        clockEnabledRef.current,
+        ninjaHelpOpen,
+        ninjaShowNimitta,
+        stats,
+        next,
+      );
+
+      return next;
+    });
+  };
+
+  const markRoundRevealUsed = () => {
+    roundRevealUsedRef.current = true;
+  };
+
+  const markRoundFailed = () => {
+    roundFailedRef.current = true;
+  };
+
+  const resetRoundFlags = () => {
+    roundRevealUsedRef.current = false;
+    roundFailedRef.current = false;
+  };
 
   const advanceToNextWord = () => {
     clearNextWordTimer();
@@ -628,6 +828,7 @@ function App() {
     setShowAnswerMeta(false);
     setPriorityRuleIds([]);
     resetAttempts();
+    resetRoundFlags();
     setStats((current) => ({ ...current, lives: DEFAULT_LIVES }));
 
     setWordProgress((current) => {
@@ -673,7 +874,42 @@ function App() {
 
     nextWordTimerRef.current = window.setTimeout(() => {
       nextWordTimerRef.current = null;
+      if (!shouldAutoAdvanceToNextWord()) {
+        return;
+      }
       advanceToNextWord();
+    }, delay);
+  };
+
+  const scheduleRoundReset = (delay = getAnswerAdvanceDelay()) => {
+    clearNextWordTimer();
+
+    nextWordTimerRef.current = window.setTimeout(() => {
+      nextWordTimerRef.current = null;
+      clearNextWordTimer();
+      clearFeedbackTimer();
+      lastHandledInteractionIdRef.current = null;
+      setAwaitingPracticeAdvance(false);
+      resetTimer();
+      setInteractionLocked(false);
+      setLesson(null);
+      setShowAnswerMeta(false);
+      setFeedback(null);
+      setAvailableRuleIds([]);
+      setPriorityRuleIds([]);
+      const previewTokens = [
+        {
+          instanceId: "preview-root",
+          node: cloneWordNode(currentWord),
+          depth: 0,
+        },
+      ];
+      lastActiveTokensRef.current = previewTokens;
+      lastRevealLessonRef.current = buildRevealLesson(previewTokens);
+      resetAttempts();
+      resetRoundFlags();
+      setStats((current) => ({ ...current, lives: DEFAULT_LIVES }));
+      setRoundResetNonce((currentNonce) => currentNonce + 1);
     }, delay);
   };
 
@@ -688,9 +924,12 @@ function App() {
         languageRef.current,
         modeRef.current,
         familyRef.current,
-        timerModeRef.current,
-        studyModeRef.current,
+        sessionPresetRef.current,
+        clockEnabledRef.current,
+        ninjaHelpOpen,
+        ninjaShowNimitta,
         normalized,
+        campaignProgress,
       );
       return normalized;
     });
@@ -742,6 +981,78 @@ function App() {
             },
           ];
 
+  const formatNinjaFeedback = (
+    baseMessage: string,
+    revealLesson: LessonPayload | null | undefined,
+  ) => {
+    if (!revealLesson) {
+      return baseMessage;
+    }
+
+    const nextRule = RULE_LOOKUP.get(revealLesson.cut.ruleId);
+    if (!nextRule) {
+      return baseMessage;
+    }
+
+    if (languageRef.current === "sa") {
+      return `${baseMessage} · अनन्तरं ${nextRule.label.sa}`;
+    }
+
+    if (languageRef.current === "te") {
+      return `${baseMessage} · తరువాత ${nextRule.label.te}`;
+    }
+
+    return `${baseMessage} · Next: ${nextRule.label.en}`;
+  };
+
+  const registerCampaignMastery = (solvedMode: GameplayMode, wordId: string) => {
+    if (
+      solvedMode === "ninja" ||
+      sessionPresetRef.current === "learn" ||
+      roundRevealUsedRef.current ||
+      roundFailedRef.current ||
+      !BUILT_IN_CAMPAIGN_WORD_IDS.has(wordId)
+    ) {
+      return;
+    }
+
+    persistCampaignProgress((current) => {
+      const splitSet = new Set(current.splitMasteredWordIds);
+      const joinSet = new Set(current.joinMasteredWordIds);
+
+      if (solvedMode === "arcade") {
+        splitSet.add(wordId);
+      }
+
+      if (solvedMode === "join") {
+        joinSet.add(wordId);
+      }
+
+      const alreadyGraduated = Boolean(current.graduationTimestamp);
+      const nextGraduated =
+        splitSet.size >= BUILT_IN_CAMPAIGN_WORDS.length &&
+        joinSet.size >= BUILT_IN_CAMPAIGN_WORDS.length;
+      const graduationTimestamp =
+        alreadyGraduated || !nextGraduated
+          ? current.graduationTimestamp ?? null
+          : new Date().toISOString();
+
+      const next = {
+        splitMasteredWordIds: [...splitSet],
+        joinMasteredWordIds: [...joinSet],
+        graduationTimestamp,
+        endlessUnlocked:
+          current.endlessUnlocked === true || Boolean(graduationTimestamp),
+      };
+
+      if (!alreadyGraduated && nextGraduated) {
+        setShowGraduation(true);
+      }
+
+      return next;
+    });
+  };
+
   // Practice-mode on-demand reveal. Does not lock interaction — the player can
   // keep working after peeking at the answer.
   const handleRevealAnswer = () => {
@@ -755,6 +1066,7 @@ function App() {
       revealLesson.cut.ruleId,
       ...(revealLesson.cut.ruleChain ?? []),
     ];
+    markRoundRevealUsed();
     setLesson(revealLesson);
     setRevealed(true);
     setShowAnswerMeta(true);
@@ -796,6 +1108,7 @@ function App() {
     }
 
     if (payload.outcome === "correct") {
+      const currentMode = effectiveModeRef.current;
       setInteractionLocked(false);
       setAwaitingPracticeAdvance(false);
       setShowAnswerMeta(Boolean(payload.lesson));
@@ -812,7 +1125,15 @@ function App() {
           : current.completedWords,
       }));
 
+      if (currentMode === "ninja" && !payload.roundCompleted) {
+        const nextLesson =
+          payload.revealLesson ?? buildRevealLesson(payload.activeTokens);
+        setFeedback(formatNinjaFeedback(payload.message[languageRef.current], nextLesson));
+        clearFeedbackLater();
+      }
+
       if (payload.roundCompleted) {
+        registerCampaignMastery(effectiveModeRef.current, currentWord.id);
         setInteractionLocked(true);
         const shouldWaitForManualAdvance = shouldWaitForNextWord();
 
@@ -820,10 +1141,7 @@ function App() {
           clearNextWordTimer();
           setAwaitingPracticeAdvance(true);
 
-          if (practiceModeRef.current) {
-            clearFeedbackTimer();
-            setFeedback(t("practiceNextHint", languageRef.current));
-          } else if (answerAdvanceModeRef.current === "manual") {
+          if (answerAdvanceModeRef.current === "manual") {
             clearFeedbackTimer();
             setFeedback(t("answerWaitHint", languageRef.current));
           }
@@ -845,6 +1163,69 @@ function App() {
     }
 
     if (payload.outcome === "wrong") {
+      const currentMode = effectiveModeRef.current;
+      const currentPreset = sessionPresetRef.current;
+
+      if (currentMode === "ninja") {
+        setInteractionLocked(false);
+        setAwaitingPracticeAdvance(false);
+        setShowAnswerMeta(false);
+        setRevealed(false);
+        setLesson(null);
+
+        if (!payload.bottomOut) {
+          resetAttempts();
+          if (currentPreset === "challenge") {
+            updateStats((current) => ({
+              ...current,
+              score: Math.max(0, current.score - getWrongScorePenalty(currentMode, currentPreset)),
+              streak: 0,
+            }));
+          }
+          return;
+        }
+
+        markRoundFailed();
+        markRoundRevealUsed();
+        const revealLesson =
+          payload.revealLesson ?? buildRevealLesson(payload.activeTokens);
+        if (revealLesson) {
+          setLesson(revealLesson);
+          setRevealed(true);
+          setShowAnswerMeta(true);
+          setPriorityRuleIds([
+            revealLesson.cut.ruleId,
+            ...(revealLesson.cut.ruleChain ?? []),
+          ]);
+          setSelectedRuleId(revealLesson.cut.ruleId);
+        }
+
+        if (currentPreset === "learn") {
+          setInteractionLocked(true);
+          scheduleRoundReset(getAnswerAdvanceDelay());
+          return;
+        }
+
+        updateStats((current) => ({
+          ...current,
+          lives:
+            currentPreset === "challenge"
+              ? Math.max(current.lives - 1, 0)
+              : current.lives,
+          streak: 0,
+        }));
+
+        setInteractionLocked(true);
+        if (shouldWaitForNextWord()) {
+          clearNextWordTimer();
+          setAwaitingPracticeAdvance(true);
+          return;
+        }
+
+        scheduleNextWord(getAnswerAdvanceDelay());
+        return;
+      }
+
       setInteractionLocked(false);
       setAwaitingPracticeAdvance(false);
       setShowAnswerMeta(false);
@@ -872,15 +1253,19 @@ function App() {
           languageRef.current,
           modeRef.current,
           familyRef.current,
-          timerModeRef.current,
-          studyModeRef.current,
+          sessionPresetRef.current,
+          clockEnabledRef.current,
+          ninjaHelpOpen,
+          ninjaShowNimitta,
           next,
+          campaignProgress,
         );
 
         return next;
       });
 
       if (guidedMode && revealDue) {
+        markRoundRevealUsed();
         const revealLesson =
           payload.revealLesson ?? buildRevealLesson(payload.activeTokens);
         if (revealLesson) {
@@ -904,6 +1289,8 @@ function App() {
       }
 
       if (challengeMode && revealDue) {
+        markRoundRevealUsed();
+        markRoundFailed();
         const revealLesson =
           payload.revealLesson ?? buildRevealLesson(payload.activeTokens);
         if (revealLesson) {
@@ -967,6 +1354,45 @@ function App() {
   }, []);
 
   useEffect(() => {
+    if (typeof window === "undefined" || !("matchMedia" in window)) {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia("(max-width: 860px)");
+    const narrowMediaQuery = window.matchMedia("(max-width: 760px)");
+    const syncLayout = () => {
+      setIsTouchLayout(mediaQuery.matches);
+      setIsNarrowTouchLayout(narrowMediaQuery.matches);
+    };
+    syncLayout();
+
+    if ("addEventListener" in mediaQuery && "addEventListener" in narrowMediaQuery) {
+      mediaQuery.addEventListener("change", syncLayout);
+      narrowMediaQuery.addEventListener("change", syncLayout);
+      return () => {
+        mediaQuery.removeEventListener("change", syncLayout);
+        narrowMediaQuery.removeEventListener("change", syncLayout);
+      };
+    }
+
+    const legacyMediaQuery = mediaQuery as MediaQueryList & {
+      addListener?: (listener: (event: MediaQueryListEvent) => void) => void;
+      removeListener?: (listener: (event: MediaQueryListEvent) => void) => void;
+    };
+    const legacyNarrowMediaQuery = narrowMediaQuery as MediaQueryList & {
+      addListener?: (listener: (event: MediaQueryListEvent) => void) => void;
+      removeListener?: (listener: (event: MediaQueryListEvent) => void) => void;
+    };
+
+    legacyMediaQuery.addListener?.(syncLayout);
+    legacyNarrowMediaQuery.addListener?.(syncLayout);
+    return () => {
+      legacyMediaQuery.removeListener?.(syncLayout);
+      legacyNarrowMediaQuery.removeListener?.(syncLayout);
+    };
+  }, []);
+
+  useEffect(() => {
     if (isStudioMode) {
       return;
     }
@@ -983,18 +1409,37 @@ function App() {
   }, [customEntries]);
 
   useEffect(() => {
-    persistProgress(language, mode, selectedFamily, timerMode, studyMode, stats);
+    persistProgress(
+      language,
+      mode,
+      selectedFamily,
+      sessionPreset,
+      clockEnabled,
+      ninjaHelpOpen,
+      ninjaShowNimitta,
+      stats,
+      campaignProgress,
+    );
   }, [
     answerAdvanceMode,
     answerRevealDelayMs,
+    campaignProgress,
+    clockEnabled,
     language,
     mode,
+    ninjaHelpOpen,
+    ninjaShowNimitta,
     selectedFamily,
-    timerMode,
-    studyMode,
+    sessionPreset,
     stats,
-    practiceMode,
+    timerDurationSeconds,
   ]);
+
+  useEffect(() => {
+    if (answerAdvanceMode === "manual") {
+      clearNextWordTimer();
+    }
+  }, [answerAdvanceMode]);
 
   useEffect(() => {
     if (selectedFamily !== "mixed" && activeRules.length === 0) {
@@ -1002,15 +1447,20 @@ function App() {
       return;
     }
 
+    if (isNinjaMode) {
+      return;
+    }
+
     if (visibleRules.length > 0 && !visibleRules.some((rule) => rule.id === selectedRuleId)) {
       setSelectedRuleId(visibleRules[0].id);
     }
-  }, [activeRules, selectedFamily, selectedRuleId, visibleRules]);
+  }, [activeRules, isNinjaMode, selectedFamily, selectedRuleId, visibleRules]);
 
   useEffect(() => {
     setWordProgress((current) => ({
       arcade: { index: 0, cycle: current.arcade.cycle + 1 },
       join: { index: 0, cycle: current.join.cycle + 1 },
+      ninja: { index: 0, cycle: current.ninja.cycle + 1 },
     }));
   }, [selectedFamily]);
 
@@ -1027,7 +1477,7 @@ function App() {
   );
 
   useEffect(() => {
-    if (mode === "devStudio" || timerMode === "untimed" || practiceMode || interactionLocked) {
+    if (mode === "devStudio" || !clockEnabled || interactionLocked) {
       return;
     }
 
@@ -1035,10 +1485,16 @@ function App() {
       setStats((current) => {
         const nextTimer = current.timer - 1;
         if (nextTimer <= 0) {
+          markRoundFailed();
+          markRoundRevealUsed();
           setInteractionLocked(true);
           setFeedback(t("timeUp", language));
           clearFeedbackLater();
-          scheduleNextWord(TIME_UP_ADVANCE_DELAY_MS);
+          if (shouldWaitForNextWord()) {
+            setAwaitingPracticeAdvance(true);
+          } else {
+            scheduleNextWord(TIME_UP_ADVANCE_DELAY_MS);
+          }
           return {
             ...current,
             timer: 0,
@@ -1054,7 +1510,7 @@ function App() {
     }, 1000);
 
     return () => window.clearInterval(interval);
-  }, [interactionLocked, language, mode, timerMode, practiceMode]);
+  }, [clockEnabled, interactionLocked, language, mode]);
 
   useEffect(() => {
     clearNextWordTimer();
@@ -1079,6 +1535,7 @@ function App() {
     setInteractionLocked(false);
     setLesson(null);
     resetAttempts();
+    resetRoundFlags();
     setStats((current) => ({ ...current, lives: DEFAULT_LIVES }));
   }, [currentRoundKey, currentWord, effectiveMode, mode]);
 
@@ -1191,54 +1648,263 @@ function App() {
       };
     });
   }, [allEntries, language]);
+  const currentTargetLesson = useMemo(
+    () => buildRevealLesson(activeTokensForUi),
+    [activeTokensForUi],
+  );
+  const currentTargetToken = useMemo(
+    () =>
+      activeTokensForUi.find((token) => isFurtherSplittable(token.node)) ??
+      activeTokensForUi[0] ??
+      null,
+    [activeTokensForUi],
+  );
+  const currentTargetNode = currentTargetToken?.node ?? currentTargetLesson?.node ?? currentWord;
+  const currentTargetCut =
+    currentTargetLesson?.cut ??
+    currentWord.cuts.find((entry) => !entry.reviewNeeded) ??
+    currentWord.cuts[0] ??
+    null;
   const selectedRule =
     visibleRules.find((rule) => rule.id === selectedRuleId) ??
     visibleRules[0] ??
     activeRules[0] ??
     SANDHI_RULES[0];
+  const currentTargetRule =
+    (currentTargetCut ? RULE_LOOKUP.get(currentTargetCut.ruleId) : null) ?? selectedRule;
+  const lessonRule = lesson ? RULE_LOOKUP.get(lesson.cut.ruleId) ?? null : null;
+  const lessonRuleLabel = lessonRule?.label[language] ?? "";
+  const currentTargetExplanation =
+    currentTargetCut?.explanation[language] ?? currentTargetRule.helper[language];
+  const currentTargetNimitta = currentTargetCut?.explanation.nimitta?.[language] ?? null;
   const remainingSplits = countRemainingSplitsInTokens(activeTokensForUi);
   const selectedRuleSummary =
     studyMode === "guided"
       ? selectedRule.helper[language]
       : t("challengeDockHint", language);
-  const showAnswerFlowSettings = !practiceMode && timerMode !== "untimed";
+  const showAnswerButton = sessionPreset !== "challenge";
+  const campaignSummary = {
+    splitMastered: campaignProgress.splitMasteredWordIds.length,
+    joinMastered: campaignProgress.joinMasteredWordIds.length,
+    splitTotal: BUILT_IN_CAMPAIGN_WORDS.length,
+    joinTotal: BUILT_IN_CAMPAIGN_WORDS.length,
+    overallPercent: Math.round(
+      ((campaignProgress.splitMasteredWordIds.length +
+        campaignProgress.joinMasteredWordIds.length) /
+        Math.max(BUILT_IN_CAMPAIGN_WORDS.length * 2, 1)) *
+        100,
+    ),
+    graduationTimestamp: campaignProgress.graduationTimestamp,
+    endlessUnlocked:
+      campaignProgress.endlessUnlocked === true ||
+      Boolean(campaignProgress.graduationTimestamp),
+  };
+  const sessionPresetLabel =
+    sessionPreset === "learn"
+      ? language === "sa"
+        ? "अध्ययनम्"
+        : language === "te"
+          ? "అభ్యాసం"
+          : "Learn"
+      : sessionPreset === "practice"
+        ? language === "sa"
+          ? "अभ्यासः"
+          : language === "te"
+            ? "సాధన"
+            : "Practice"
+        : language === "sa"
+          ? "आह्वानम्"
+        : language === "te"
+          ? "సవాలు"
+          : "Challenge";
+  const mobileSessionButtonLabel = `${sessionPresetLabel} · ${campaignSummary.overallPercent}%`;
+  const currentLanguageLabel =
+    language === "sa" ? "संस्कृतम्" : language === "te" ? "తెలుగు" : "English";
+  const currentFamilyLabel =
+    selectedFamily === "mixed"
+      ? t("familyMixed", language)
+      : selectedFamily === "svara"
+        ? t("familySvara", language)
+        : selectedFamily === "vyanjana"
+          ? t("familyVyanjana", language)
+          : t("familyVisarga", language);
+  const quickModeLabel =
+    language === "sa" ? "प्रकारः" : language === "te" ? "విధానం" : "Mode";
+  const quickLanguageLabel =
+    language === "sa" ? "भाषा" : language === "te" ? "భాష" : "Language";
+  const quickFamilyLabel =
+    language === "sa" ? "समूहः" : language === "te" ? "సమూహం" : "Set";
   const dockNotes = [
     t(isJoinMode ? "joinBoundaryHint" : "splitMarkerHint", language),
     t(isJoinMode ? "joinRuleHint" : "splitRuleHint", language),
   ].filter((value): value is string => Boolean(value));
-  const dockShortcutLegend = `${t(
-    isJoinMode ? "glueShortcutLegend" : "shortcutLegend",
-    language,
-  )} · R · N`;
-  const onboardingSteps = isJoinMode
+  const remainingSplitsLabel =
+    language === "sa"
+      ? `अवशिष्टभेदाः ${remainingSplits}`
+      : language === "te"
+        ? `మిగిలిన విడిపోట్లు ${remainingSplits}`
+        : `${remainingSplits} splits left`;
+  const ninjaTimingLabel =
+    language === "sa"
+      ? clockEnabled
+        ? "कालबद्धम्"
+        : "अकालबद्धम्"
+      : language === "te"
+        ? clockEnabled
+          ? "కాల పరిమితి"
+          : "సమయ పరిమితి లేదు"
+        : clockEnabled
+          ? "Timed"
+          : "Untimed";
+  const ninjaHelpToggleLabel =
+    language === "sa"
+      ? ninjaHelpOpen
+        ? "साहाय्यं गोपय"
+        : "साहाय्यं दर्शय"
+      : language === "te"
+        ? ninjaHelpOpen
+          ? "సహాయం దాచు"
+          : "సహాయం చూపు"
+        : ninjaHelpOpen
+          ? "Hide help"
+          : "Show help";
+  const ninjaNimittaToggleLabel =
+    language === "sa"
+      ? ninjaShowNimitta
+        ? "निमित्तं गोपय"
+        : "निमित्तं दर्शय"
+      : language === "te"
+        ? ninjaShowNimitta
+          ? "నిమిత్తం దాచు"
+          : "నిమిత్తం చూపు"
+        : ninjaShowNimitta
+          ? "Hide nimitta"
+          : "Show nimitta";
+  const dockShortcutLegend = isNinjaMode
+    ? ""
+    : `${t(isJoinMode ? "glueShortcutLegend" : "shortcutLegend", language)} · R · N`;
+  const ninjaTrailTokens = isNinjaMode
+    ? activeTokensForUi.map((token) => ({
+        id: token.instanceId,
+        label: token.node.devanagari,
+        secondary:
+          language === "te" && token.node.telugu ? token.node.telugu : token.node.iast,
+        splittable: isFurtherSplittable(token.node),
+        active: currentTargetToken?.instanceId === token.instanceId,
+      }))
+    : [];
+  const showMobileLessonCard =
+    isTouchLayout &&
+    !isStudioMode &&
+    (Boolean(lesson) || Boolean(feedback));
+  const mobileDrawerTitle =
+    mobileDrawer === "progress"
+      ? language === "sa"
+        ? "अभ्यासः, प्रगति, स्नातकमार्गः"
+        : language === "te"
+          ? "అభ్యాసం, ప్రగతి, పట్టాభిషేక మార్గం"
+          : "Session, progress, and graduation"
+      : mobileDrawer === "mode"
+        ? quickModeLabel
+        : mobileDrawer === "language"
+          ? quickLanguageLabel
+          : mobileDrawer === "family"
+            ? quickFamilyLabel
+            : t("currentLesson", language);
+
+  useEffect(() => {
+    if (isStudioMode) {
+      return;
+    }
+
+    setStats((current) => ({
+      ...current,
+      timer: timerDurationSeconds,
+    }));
+  }, [isStudioMode, timerDurationSeconds]);
+
+  useEffect(() => {
+    if (!isNinjaMode || !currentTargetCut) {
+      return;
+    }
+
+    setSelectedRuleId(currentTargetCut.ruleId);
+  }, [currentTargetCut, isNinjaMode]);
+
+  const onboardingSteps = isNinjaMode
     ? [
         {
-          title: t("onboardingJoinStepOneTitle", language),
-          body: t("onboardingJoinStepOneBody", language),
+          title:
+            language === "sa"
+              ? "लक्ष्यसन्धिं पश्य"
+              : language === "te"
+                ? "లక్ష్య సంధిని చూడండి"
+                : "See the target sandhi",
+          body:
+            language === "sa"
+              ? "निन्जा-छेदे सन्धिचयनं नास्ति। उपरि सूचितं लक्ष्यसन्धिम् एव छिन्धि।"
+              : language === "te"
+                ? "నింజా విభజనంలో సంధిని మీరు ఎంచుకోరు. పైకి చూపిన లక్ష్య సంధినే కోయాలి."
+                : "Ninja Slice shows the target sandhi directly, so you only focus on the split location and timing.",
         },
         {
-          title: t("onboardingJoinStepTwoTitle", language),
-          body: t("onboardingJoinStepTwoBody", language),
+          title:
+            language === "sa"
+              ? "स्वाइपेन् छिन्धि"
+              : language === "te"
+                ? "స్వైప్ చేసి కోయండి"
+                : "Swipe through the guide",
+          body:
+            language === "sa"
+              ? "स्वर्णरेखायां सम्यक् स्वाइप् कुरु। रिक्ते स्थाने स्वाइप् दण्डं न ददाति।"
+              : language === "te"
+                ? "బంగారు మార్గదర్శక రేఖ మీదుగా సరిగ్గా స్వైప్ చేయండి. ఖాళీ గాలిలో స్వైప్ చేస్తే శిక్ష లేదు."
+                : "Swipe through the correct gold guide on the falling word. Empty-air swipes do not hurt you.",
         },
         {
-          title: t("onboardingJoinStepThreeTitle", language),
-          body: t("onboardingJoinStepThreeBody", language),
+          title:
+            language === "sa"
+              ? "पतनात् पूर्वम्"
+              : language === "te"
+                ? "కింద పడక ముందే"
+                : "Solve before it drops",
+          body:
+            language === "sa"
+              ? "अधः पतने दोषफलम् प्रकारानुसारम् भवति। शिक्षणे पुनः तदेव पदं लभ्यते।"
+              : language === "te"
+                ? "పదం కిందకు చేరితే విధానాన్ని బట్టి ఫలితం మారుతుంది. అభ్యాసంలో అదే పదాన్ని మళ్లీ ప్రయత్నిస్తారు."
+                : "If the word reaches the bottom, the result depends on the session preset. Learn retries the same word; Challenge moves on faster.",
         },
       ]
-    : [
-        {
-          title: t("onboardingStepOneTitle", language),
-          body: t("onboardingStepOneBody", language),
-        },
-        {
-          title: t("onboardingStepTwoTitle", language),
-          body: t("onboardingStepTwoBody", language),
-        },
-        {
-          title: t("onboardingStepThreeTitle", language),
-          body: t("onboardingStepThreeBody", language),
-        },
-      ];
+    : isJoinMode
+      ? [
+          {
+            title: t("onboardingJoinStepOneTitle", language),
+            body: t("onboardingJoinStepOneBody", language),
+          },
+          {
+            title: t("onboardingJoinStepTwoTitle", language),
+            body: t("onboardingJoinStepTwoBody", language),
+          },
+          {
+            title: t("onboardingJoinStepThreeTitle", language),
+            body: t("onboardingJoinStepThreeBody", language),
+          },
+        ]
+      : [
+          {
+            title: t("onboardingStepOneTitle", language),
+            body: t("onboardingStepOneBody", language),
+          },
+          {
+            title: t("onboardingStepTwoTitle", language),
+            body: t("onboardingStepTwoBody", language),
+          },
+          {
+            title: t("onboardingStepThreeTitle", language),
+            body: t("onboardingStepThreeBody", language),
+          },
+        ];
   if (!isStudioMode) {
     lastGameplayModeRef.current = mode;
   }
@@ -1264,16 +1930,39 @@ function App() {
     lastActiveTokensRef.current = previewTokens;
     lastRevealLessonRef.current = buildRevealLesson(previewTokens);
     resetAttempts();
+    resetRoundFlags();
     setStats((current) => ({ ...current, lives: DEFAULT_LIVES }));
     setRoundResetNonce((current) => current + 1);
   };
 
+  const handleSessionPresetChange = (nextPreset: SessionPreset) => {
+    setSessionPreset(nextPreset);
+    const defaults = PRESET_DEFAULTS[nextPreset];
+    setClockEnabled(defaults.clockEnabled);
+    setAnswerAdvanceMode(defaults.answerAdvanceMode);
+    setAnswerRevealDelayMs(defaults.answerRevealDelayMs);
+    resetCurrentRound();
+  };
+
+  const handleResetCampaign = () => {
+    setShowGraduation(false);
+    persistCampaignProgress(makeDefaultCampaignProgress());
+  };
+
   return (
-    <div className={`app-shell ${isStudioMode ? "" : "app-shell--game"}`}>
+    <div
+      className={`app-shell ${isStudioMode ? "" : "app-shell--game"} ${
+        isTouchLayout && !isStudioMode
+          ? `app-shell--touch ${
+              isNarrowTouchLayout ? "app-shell--touch-narrow" : "app-shell--touch-tablet"
+            }`
+          : ""
+      }`}
+    >
       <div className="ambient ambient--left" />
       <div className="ambient ambient--right" />
 
-      <header className="hero">
+      <header className={`hero ${isTouchGameLayout ? "hero--touch" : ""}`}>
         <div className="hero-copy">
           <div className="hero-brand">
             <BrandMark />
@@ -1282,30 +1971,75 @@ function App() {
               <h1>{t("title", language)}</h1>
             </div>
           </div>
-          <p>{t("subtitle", language)}</p>
+          {!isTouchGameLayout ? <p>{t("subtitle", language)}</p> : null}
+          {!isStudioMode && !isTouchGameLayout ? (
+            <div className="hero-progress-chip">
+              <span className="panel-kicker">
+                {language === "sa"
+                  ? "अभियानप्रगति:"
+                  : language === "te"
+                    ? "ప్రచార ప్రగతి"
+                    : "Campaign progress"}
+              </span>
+              <strong>{campaignSummary.overallPercent}%</strong>
+            </div>
+          ) : null}
         </div>
 
         <div className="hero-controls">
-          <div className="hero-controls__top">
-            <ModeSelector language={language} mode={mode} onChange={setMode} />
-            <div className="hero-utility-row">
-              <LanguageToggle language={language} onChange={setLanguage} />
-              <div className="hero-word-chip">
-                <strong>{currentWord.devanagari}</strong>
-              </div>
+          {isTouchGameLayout ? (
+            <div className="mobile-quick-controls">
+              <button
+                className={`mobile-quick-button ${mobileDrawer === "mode" ? "active" : ""}`}
+                onClick={() => setMobileDrawer("mode")}
+                type="button"
+              >
+                <span>{quickModeLabel}</span>
+                <strong>{modeLabel(mode, language)}</strong>
+              </button>
+              <button
+                className={`mobile-quick-button ${
+                  mobileDrawer === "language" ? "active" : ""
+                }`}
+                onClick={() => setMobileDrawer("language")}
+                type="button"
+              >
+                <span>{quickLanguageLabel}</span>
+                <strong>{currentLanguageLabel}</strong>
+              </button>
+              <button
+                className={`mobile-quick-button ${mobileDrawer === "family" ? "active" : ""}`}
+                onClick={() => setMobileDrawer("family")}
+                type="button"
+              >
+                <span>{quickFamilyLabel}</span>
+                <strong>{currentFamilyLabel}</strong>
+              </button>
             </div>
-          </div>
+          ) : (
+            <>
+              <div className="hero-controls__top">
+                <ModeSelector language={language} mode={mode} onChange={setMode} />
+                <div className="hero-utility-row">
+                  <LanguageToggle language={language} onChange={setLanguage} />
+                  <div className="hero-word-chip">
+                    <strong>{currentWord.devanagari}</strong>
+                  </div>
+                </div>
+              </div>
 
-          {!isStudioMode ? (
-            <SandhiFamilySelector
-              language={language}
-              onChange={setSelectedFamily}
-              options={familyOptions}
-              selectedFamily={selectedFamily}
-            />
-          ) : null}
+              {!isStudioMode ? (
+                <SandhiFamilySelector
+                  compact={isTouchGameLayout}
+                  language={language}
+                  onChange={setSelectedFamily}
+                  options={familyOptions}
+                  selectedFamily={selectedFamily}
+                />
+              ) : null}
+            </>
+          )}
         </div>
-        
       </header>
 
       <main className={`main-grid ${isStudioMode ? "main-grid--studio" : ""}`}>
@@ -1330,11 +2064,51 @@ function App() {
                 <div className="arena-banner">
                   <div>
                     <span className="panel-kicker">
-                      {t(isJoinMode ? "joinTarget" : "slicePrompt", language)}
+                      {isNinjaMode
+                        ? language === "sa"
+                          ? "लक्ष्यसन्धिं छिन्धि"
+                          : language === "te"
+                            ? "లక్ష్య సంధిని కోయండి"
+                            : "Slice the target sandhi"
+                        : t(isJoinMode ? "joinTarget" : "slicePrompt", language)}
                     </span>
-                    <strong>{currentWord.devanagari}</strong>
+                    {!isTouchGameLayout ? (
+                      <strong>
+                        {isNinjaMode ? currentTargetNode.devanagari : currentWord.devanagari}
+                      </strong>
+                    ) : null}
+                    {isNinjaMode && !isTouchGameLayout ? (
+                      <div
+                        className={`arena-banner__subline ${
+                          isTouchLayout ? "arena-banner__subline--compact" : ""
+                        }`}
+                      >
+                        <span>{currentTargetRule.label[language]}</span>
+                        <span>{currentTargetRule.sutra.number}</span>
+                        {!isTouchLayout && ninjaHelpOpen ? (
+                          <span>{currentTargetRule.pattern[language]}</span>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </div>
+                  <div className="arena-banner__status">
+                    {feedback ? (
+                      <span
+                        className={`feedback-chip ${
+                          revealed || showAnswerMeta ? "feedback-chip--reveal" : ""
+                        }`}
+                      >
+                        {feedback}
+                      </span>
+                    ) : null}
+                    <span className="shortcut-row">
+                      {isNinjaMode
+                        ? remainingSplitsLabel
+                        : `${t("splitsLeft", language)} · ${remainingSplits}`}
+                    </span>
                   </div>
                 </div>
+
                 <div className="game-stage-shell">
                   {isJoinMode ? (
                     <SandhiJoinBoard
@@ -1346,6 +2120,19 @@ function App() {
                       resetNonce={roundResetNonce}
                       rootWord={currentWord}
                       selectedRuleId={selectedRuleId}
+                      studyMode={studyMode}
+                    />
+                  ) : isNinjaMode ? (
+                    <ArcadeArena
+                      clockEnabled={clockEnabled}
+                      fontsReady={fontsReady}
+                      interactionLocked={interactionLocked}
+                      language={language}
+                      mode="ninja"
+                      onFeedback={handleFeedback}
+                      rootWord={currentWord}
+                      roundKey={currentRoundKey}
+                      selectedRuleId={currentTargetRule.id}
                       studyMode={studyMode}
                     />
                   ) : (
@@ -1362,128 +2149,459 @@ function App() {
                     />
                   )}
 
-                  <div className="floating-dock glass-panel">
-                    <div className="floating-dock__topline">
-                      <span className="panel-kicker">
-                        {t(isJoinMode ? "selectGlue" : "selectKnife", language)}
-                      </span>
-                      <span className="shortcut-row">{dockShortcutLegend}</span>
-                    </div>
-
-                    <div className="knife-detail">
-                      <div className="knife-detail__topline">
-                        <strong>{selectedRule.label[language]}</strong>
-                        <span className="knife-detail__shortcut">{selectedRule.shortcut}</span>
+                  {isNinjaMode && ninjaTrailTokens.length > 0 && !isTouchLayout ? (
+                    <div className="ninja-trail glass-panel">
+                      <div className="ninja-trail__header">
+                        <span className="panel-kicker">
+                          {language === "sa"
+                            ? "वर्तमानभेदक्रमः"
+                            : language === "te"
+                              ? "ప్రస్తుత విభజన క్రమం"
+                              : "Current split trail"}
+                        </span>
+                        <span className="shortcut-row">{remainingSplitsLabel}</span>
                       </div>
-                      <div className="knife-detail__sutra">
-                        {selectedRule.sutra.text} · {selectedRule.sutra.number}
-                      </div>
-                      {studyMode === "guided" ? (
-                        <div className="knife-detail__pattern">
-                          <span className="panel-kicker">{t("rulePattern", language)}</span>
-                          <strong>{selectedRule.pattern[language]}</strong>
-                        </div>
-                      ) : null}
-                      <p>{selectedRuleSummary}</p>
-                      {dockNotes.length > 0 ? (
-                        <div className="knife-detail__notes">
-                          {dockNotes.map((note) => (
-                            <span className="knife-detail__note" key={note}>
-                              {note}
-                            </span>
-                          ))}
-                        </div>
-                      ) : null}
-                    </div>
-
-                    <div className="knife-grid knife-grid--floating">
-                      {visibleRules.map((rule) => {
-                        const active = selectedRuleId === rule.id;
-
-                        return (
-                          <button
-                            className={`knife-card knife-card--floating ${
-                              active ? "active" : ""
+                      <div className="ninja-trail__tokens">
+                        {ninjaTrailTokens.map((token) => (
+                          <div
+                            className={`ninja-trail__token ${
+                              token.active
+                                ? "ninja-trail__token--active"
+                                : token.splittable
+                                  ? "ninja-trail__token--pending"
+                                  : "ninja-trail__token--final"
                             }`}
-                            key={rule.id}
-                            onClick={() => setSelectedRuleId(rule.id)}
+                            key={token.id}
+                          >
+                            <strong>{token.label}</strong>
+                            <span>{token.secondary}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {showMobileLessonCard ? (
+                    <div className="mobile-lesson-card glass-panel">
+                      <div className="mobile-lesson-card__header">
+                        <span className="panel-kicker">{t("currentLesson", language)}</span>
+                        {feedback ? (
+                          <span
+                            className={`feedback-chip ${
+                              revealed || showAnswerMeta ? "feedback-chip--reveal" : ""
+                            }`}
+                          >
+                            {feedback}
+                          </span>
+                        ) : null}
+                      </div>
+
+                      {lesson ? (
+                        <div className="mobile-lesson-card__body">
+                          <div className="mobile-lesson-card__topline">
+                            <strong>{lessonRuleLabel}</strong>
+                            <span>{lesson.cut.sutra.number}</span>
+                          </div>
+                          <div className="mobile-lesson-card__split">
+                            {lesson.cut.left.devanagari} + {lesson.cut.right.devanagari}
+                          </div>
+                          {studyMode === "guided" ? (
+                            <p>{lesson.cut.explanation[language]}</p>
+                          ) : null}
+                        </div>
+                      ) : feedback ? (
+                        <div className="mobile-lesson-card__body">
+                          <p>{feedback}</p>
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
+
+                  {!isTouchLayout ? (
+                    <div
+                      className={`floating-dock glass-panel ${
+                        isNinjaMode ? "floating-dock--ninja" : ""
+                      }`}
+                    >
+                      <div className="floating-dock__topline">
+                        <span className="panel-kicker">
+                          {isNinjaMode
+                            ? language === "sa"
+                              ? "लक्ष्यसन्धिः"
+                              : language === "te"
+                                ? "లక్ష్య సంధి"
+                                : "Target sandhi"
+                            : t(isJoinMode ? "selectGlue" : "selectKnife", language)}
+                        </span>
+                        {dockShortcutLegend ? (
+                          <span className="shortcut-row">{dockShortcutLegend}</span>
+                        ) : null}
+                      </div>
+
+                      <div className="knife-detail">
+                        <div className="knife-detail__topline">
+                          <strong>
+                            {isNinjaMode
+                              ? currentTargetRule.label[language]
+                              : selectedRule.label[language]}
+                          </strong>
+                          {!isNinjaMode ? (
+                            <span className="knife-detail__shortcut">
+                              {selectedRule.shortcut}
+                            </span>
+                          ) : null}
+                        </div>
+                        <div className="knife-detail__sutra">
+                          {(isNinjaMode ? currentTargetRule : selectedRule).sutra.text} ·{" "}
+                          {(isNinjaMode ? currentTargetRule : selectedRule).sutra.number}
+                        </div>
+                        {isNinjaMode ? (
+                          <div className="knife-detail__toggle-row">
+                            <button
+                              className={`pill-button ${clockEnabled ? "active" : ""}`}
+                              onClick={() => setClockEnabled((current) => !current)}
+                              type="button"
+                            >
+                              {ninjaTimingLabel}
+                            </button>
+                            <button
+                              className={`pill-button ${ninjaHelpOpen ? "active" : ""}`}
+                              onClick={() => setNinjaHelpOpen((current) => !current)}
+                              type="button"
+                            >
+                              {ninjaHelpToggleLabel}
+                            </button>
+                            {currentTargetNimitta ? (
+                              <button
+                                className={`pill-button ${ninjaShowNimitta ? "active" : ""}`}
+                                onClick={() => setNinjaShowNimitta((current) => !current)}
+                                type="button"
+                              >
+                                {ninjaNimittaToggleLabel}
+                              </button>
+                            ) : null}
+                          </div>
+                        ) : null}
+                        {studyMode === "guided" && (!isNinjaMode || ninjaHelpOpen) ? (
+                          <div className="knife-detail__pattern">
+                            <span className="panel-kicker">{t("rulePattern", language)}</span>
+                            <strong>
+                              {(isNinjaMode ? currentTargetRule : selectedRule).pattern[language]}
+                            </strong>
+                          </div>
+                        ) : null}
+                        <p>
+                          {isNinjaMode
+                            ? ninjaHelpOpen
+                              ? currentTargetExplanation
+                              : currentTargetRule.helper[language]
+                            : selectedRuleSummary}
+                        </p>
+                        {isNinjaMode && ninjaHelpOpen && currentTargetNimitta && ninjaShowNimitta ? (
+                          <div className="knife-detail__notes">
+                            <span className="knife-detail__note">{currentTargetNimitta}</span>
+                          </div>
+                        ) : null}
+                        {!isNinjaMode && dockNotes.length > 0 ? (
+                          <div className="knife-detail__notes">
+                            {dockNotes.map((note) => (
+                              <span className="knife-detail__note" key={note}>
+                                {note}
+                              </span>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
+
+                      {!isNinjaMode ? (
+                        <div className="knife-grid knife-grid--floating">
+                          {visibleRules.map((rule) => {
+                            const active = selectedRuleId === rule.id;
+
+                            return (
+                              <button
+                                className={`knife-card knife-card--floating ${
+                                  active ? "active" : ""
+                                }`}
+                                key={rule.id}
+                                onClick={() => setSelectedRuleId(rule.id)}
+                                type="button"
+                              >
+                                <strong>{rule.label[language]}</strong>
+                                <span className="knife-card__footer">{rule.shortcut}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ) : null}
+
+                      <div className="action-row floating-dock__actions">
+                        {showAnswerButton ? (
+                          <button
+                            className="ghost-button ghost-button--reveal"
+                            onClick={handleRevealAnswer}
                             type="button"
                           >
-                            <strong>{rule.label[language]}</strong>
-                            <span className="knife-card__footer">{rule.shortcut}</span>
+                            {t("showAnswer", language)}
                           </button>
-                        );
-                      })}
-                    </div>
-
-                    <div className="action-row floating-dock__actions">
-                      {practiceMode && studyMode === "guided" ? (
+                        ) : null}
                         <button
-                          className="ghost-button ghost-button--reveal"
-                          onClick={handleRevealAnswer}
+                          className="ghost-button"
+                          onClick={resetCurrentRound}
                           type="button"
                         >
-                          {t("showAnswer", language)}
+                          {t("resetWord", language)} · R
+                        </button>
+                        <button
+                          className={`ghost-button ${
+                            awaitingPracticeAdvance ? "ghost-button--next-hint" : ""
+                          }`}
+                          onClick={advanceToNextWord}
+                          type="button"
+                        >
+                          {awaitingPracticeAdvance
+                            ? `${t("nextWord", language)} →`
+                            : t("nextWord", language)}{" "}
+                          · N
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mobile-action-rail glass-panel">
+                      <div
+                        className={`mobile-action-rail__topline ${
+                          isNinjaMode ? "" : "mobile-action-rail__topline--compact"
+                        }`}
+                      >
+                        <div className="mobile-action-rail__label">
+                          <span className="panel-kicker">
+                            {isNinjaMode
+                              ? language === "sa"
+                                ? "लक्ष्यसन्धिः"
+                                : language === "te"
+                                  ? "లక్ష్య సంధి"
+                                  : "Target sandhi"
+                              : isJoinMode
+                                ? t("selectGlue", language)
+                                : t("selectKnife", language)}
+                          </span>
+                          <strong>
+                            {isNinjaMode
+                              ? currentTargetRule.label[language]
+                              : selectedRule.label[language]}
+                          </strong>
+                        </div>
+                        <div className="mobile-action-rail__chips">
+                          <button
+                            className="pill-button mobile-action-rail__session-button"
+                            onClick={() => setMobileDrawer("progress")}
+                            type="button"
+                          >
+                            {mobileSessionButtonLabel}
+                          </button>
+                          {isNinjaMode ? (
+                            <button
+                              className={`pill-button ${ninjaHelpOpen ? "active" : ""}`}
+                              onClick={() => setNinjaHelpOpen((current) => !current)}
+                              type="button"
+                            >
+                              {ninjaHelpToggleLabel}
+                            </button>
+                          ) : null}
+                        </div>
+                      </div>
+                      {!isNinjaMode ? (
+                        <div className="mobile-rule-strip" role="list">
+                          {visibleRules.map((rule) => {
+                            const active = selectedRuleId === rule.id;
+
+                            return (
+                              <button
+                                aria-pressed={active}
+                                className={`mobile-rule-chip ${active ? "active" : ""}`}
+                                key={rule.id}
+                                onClick={() => setSelectedRuleId(rule.id)}
+                                type="button"
+                              >
+                                <strong>{rule.label[language]}</strong>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ) : null}
+                      {!showMobileLessonCard && (lesson || feedback) ? (
+                        <button
+                          className="pill-button mobile-action-rail__lesson-button"
+                          onClick={() => setMobileDrawer("lesson")}
+                          type="button"
+                        >
+                          {t("currentLesson", language)}
                         </button>
                       ) : null}
-                      <button
-                        className="ghost-button"
-                        onClick={resetCurrentRound}
-                        type="button"
-                      >
-                        {t("resetWord", language)} · R
-                      </button>
-                      <button
-                        className={`ghost-button ${
-                          awaitingPracticeAdvance ? "ghost-button--next-hint" : ""
-                        }`}
-                        onClick={advanceToNextWord}
-                        type="button"
-                      >
-                        {awaitingPracticeAdvance
-                          ? `${t("nextWord", language)} →`
-                          : t("nextWord", language)}{" "}
-                        · N
-                      </button>
+                      <div className="action-row mobile-action-rail__actions">
+                        {showAnswerButton ? (
+                          <button
+                            className="ghost-button ghost-button--reveal"
+                            onClick={handleRevealAnswer}
+                            type="button"
+                          >
+                            {t("showAnswer", language)}
+                          </button>
+                        ) : null}
+                        <button
+                          className="ghost-button"
+                          onClick={resetCurrentRound}
+                          type="button"
+                        >
+                          {t("resetWord", language)}
+                        </button>
+                        <button
+                          className={`ghost-button ${
+                            awaitingPracticeAdvance ? "ghost-button--next-hint" : ""
+                          }`}
+                          onClick={advanceToNextWord}
+                          type="button"
+                        >
+                          {t("nextWord", language)}
+                        </button>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
             </section>
 
-            <aside className="sidebar sidebar--game">
-              <ScorePanel
-                currentWordLabel={currentWord.devanagari}
-                language={language}
-                mode={mode}
-                onTimerModeChange={setTimerMode}
-                timerMode={timerMode}
-                studyMode={studyMode}
-                onStudyModeChange={setStudyMode}
-                practiceMode={practiceMode}
-                onPracticeModeChange={setPracticeMode}
-                answerAdvanceMode={answerAdvanceMode}
-                onAnswerAdvanceModeChange={setAnswerAdvanceMode}
-                answerRevealDelayMs={answerRevealDelayMs}
-                onAnswerRevealDelayChange={setAnswerRevealDelayMs}
-                showAnswerFlowSettings={showAnswerFlowSettings}
-                remainingSplits={remainingSplits}
-                stats={stats}
-              />
-              <LessonPanel
-                feedback={feedback}
-                language={language}
-                lesson={lesson}
-                studyMode={studyMode}
-                revealed={revealed}
-                showAnswerMeta={showAnswerMeta}
-              />
-            </aside>
+            {!isTouchLayout ? (
+              <aside className="sidebar sidebar--game">
+                <ScorePanel
+                  answerAdvanceMode={answerAdvanceMode}
+                  answerRevealDelayMs={answerRevealDelayMs}
+                  campaign={campaignSummary}
+                  clockEnabled={clockEnabled}
+                  currentWordLabel={
+                    isNinjaMode ? currentTargetNode.devanagari : currentWord.devanagari
+                  }
+                  language={language}
+                  mode={mode}
+                  onAnswerAdvanceModeChange={setAnswerAdvanceMode}
+                  onAnswerRevealDelayChange={setAnswerRevealDelayMs}
+                  onClockEnabledChange={setClockEnabled}
+                  onResetCampaign={handleResetCampaign}
+                  onSessionPresetChange={handleSessionPresetChange}
+                  onTimerDurationChange={setTimerDurationSeconds}
+                  remainingSplits={remainingSplits}
+                  sessionPreset={sessionPreset}
+                  stats={stats}
+                  timerDurationSeconds={timerDurationSeconds}
+                />
+                <LessonPanel
+                  feedback={feedback}
+                  language={language}
+                  lesson={lesson}
+                  studyMode={studyMode}
+                  revealed={revealed}
+                  showAnswerMeta={showAnswerMeta}
+                />
+              </aside>
+            ) : null}
           </>
         )}
       </main>
 
       <AnimatePresence>
+        {mobileDrawer && !isStudioMode ? (
+          <motion.div
+            animate={{ opacity: 1 }}
+            className="overlay"
+            exit={{ opacity: 0 }}
+            initial={{ opacity: 0 }}
+          >
+            <motion.div
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              className="overlay-card overlay-card--sheet"
+              initial={{ opacity: 0, scale: 0.96, y: 24 }}
+            >
+              <div className="panel-heading">
+                <span className="panel-kicker">{mobileDrawerTitle}</span>
+                <button
+                  className="ghost-button"
+                  onClick={() => setMobileDrawer(null)}
+                  type="button"
+                >
+                  {t("close", language)}
+                </button>
+              </div>
+
+              {mobileDrawer === "progress" ? (
+                <ScorePanel
+                  answerAdvanceMode={answerAdvanceMode}
+                  answerRevealDelayMs={answerRevealDelayMs}
+                  campaign={campaignSummary}
+                  clockEnabled={clockEnabled}
+                  currentWordLabel={
+                    isNinjaMode ? currentTargetNode.devanagari : currentWord.devanagari
+                  }
+                  language={language}
+                  mode={mode}
+                  onAnswerAdvanceModeChange={setAnswerAdvanceMode}
+                  onAnswerRevealDelayChange={setAnswerRevealDelayMs}
+                  onClockEnabledChange={setClockEnabled}
+                  onResetCampaign={handleResetCampaign}
+                  onSessionPresetChange={handleSessionPresetChange}
+                  onTimerDurationChange={setTimerDurationSeconds}
+                  remainingSplits={remainingSplits}
+                  sessionPreset={sessionPreset}
+                  stats={stats}
+                  timerDurationSeconds={timerDurationSeconds}
+                />
+              ) : mobileDrawer === "mode" ? (
+                <div className="sheet-selector">
+                  <ModeSelector
+                    language={language}
+                    mode={mode}
+                    onChange={(nextMode) => {
+                      setMode(nextMode);
+                      setMobileDrawer(null);
+                    }}
+                  />
+                </div>
+              ) : mobileDrawer === "language" ? (
+                <div className="sheet-selector">
+                  <LanguageToggle
+                    language={language}
+                    onChange={(nextLanguage) => {
+                      setLanguage(nextLanguage);
+                      setMobileDrawer(null);
+                    }}
+                  />
+                </div>
+              ) : mobileDrawer === "family" ? (
+                <div className="sheet-selector">
+                  <SandhiFamilySelector
+                    compact
+                    language={language}
+                    onChange={(nextFamily) => {
+                      setSelectedFamily(nextFamily);
+                      setMobileDrawer(null);
+                    }}
+                    options={familyOptions}
+                    selectedFamily={selectedFamily}
+                  />
+                </div>
+              ) : (
+                <LessonPanel
+                  feedback={feedback}
+                  language={language}
+                  lesson={lesson}
+                  studyMode={studyMode}
+                  revealed={revealed}
+                  showAnswerMeta={showAnswerMeta}
+                />
+              )}
+            </motion.div>
+          </motion.div>
+        ) : null}
+
         {showOnboarding && mode !== "devStudio" ? (
           <motion.div
             animate={{ opacity: 1 }}
@@ -1497,7 +2615,15 @@ function App() {
               initial={{ opacity: 0, scale: 0.95, y: 24 }}
             >
               <span className="panel-kicker">{t("onboardingTitle", language)}</span>
-              <h2>{t(isJoinMode ? "onboardingJoinBody" : "onboardingBody", language)}</h2>
+              <h2>
+                {isNinjaMode
+                  ? language === "sa"
+                    ? "पतमानपदे लक्ष्यसन्धिम् अनुसृत्य स्वाइप् कुरु।"
+                    : language === "te"
+                      ? "పడుతూ ఉన్న పదంలో లక్ష్య సంధిని చూసి స్వైప్ చేయండి."
+                      : "Swipe through the shown target sandhi on the falling word."
+                  : t(isJoinMode ? "onboardingJoinBody" : "onboardingBody", language)}
+              </h2>
               <div className="onboarding-steps">
                 {onboardingSteps.map((step) => (
                   <div className="onboarding-step" key={step.title}>
@@ -1509,6 +2635,85 @@ function App() {
               <button
                 className="primary-button"
                 onClick={() => setShowOnboarding(false)}
+                type="button"
+              >
+                {t("close", language)}
+              </button>
+            </motion.div>
+          </motion.div>
+        ) : null}
+
+        {showGraduation ? (
+          <motion.div
+            animate={{ opacity: 1 }}
+            className="overlay"
+            exit={{ opacity: 0 }}
+            initial={{ opacity: 0 }}
+          >
+            <motion.div
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              className="overlay-card"
+              initial={{ opacity: 0, scale: 0.95, y: 24 }}
+            >
+              <span className="panel-kicker">
+                {language === "sa"
+                  ? "स्नातकत्वम्"
+                  : language === "te"
+                    ? "పట్టాభిషేకం"
+                    : "Graduation"}
+              </span>
+              <h2>
+                {language === "sa"
+                  ? "उभयेषु प्रकारेषु अभियानप्रावीण्यं सिद्धम्।"
+                  : language === "te"
+                    ? "విడిపోటిలోను, కలయికలోను ప్రచార ప్రావీణ్యం పూర్తైంది."
+                    : "Campaign mastery is complete in both splitting and joining."}
+              </h2>
+              <div className="onboarding-steps">
+                <div className="onboarding-step">
+                  <strong>
+                    {language === "sa"
+                      ? "भेदप्रावीण्यम्"
+                      : language === "te"
+                        ? "విడిపోటి ప్రావీణ్యం"
+                        : "Split mastery"}
+                  </strong>
+                  <p>
+                    {campaignSummary.splitMastered}/{campaignSummary.splitTotal}
+                  </p>
+                </div>
+                <div className="onboarding-step">
+                  <strong>
+                    {language === "sa"
+                      ? "संयोजनप्रावीण्यम्"
+                      : language === "te"
+                        ? "కలయిక ప్రావీణ్యం"
+                        : "Join mastery"}
+                  </strong>
+                  <p>
+                    {campaignSummary.joinMastered}/{campaignSummary.joinTotal}
+                  </p>
+                </div>
+                <div className="onboarding-step">
+                  <strong>
+                    {language === "sa"
+                      ? "अनन्तपुनरवलोकनम्"
+                      : language === "te"
+                        ? "అంతులేని పునర్విమర్శ"
+                        : "Endless Review"}
+                  </strong>
+                  <p>
+                    {language === "sa"
+                      ? "इदानीं मुक्तम्। इच्छया पुनः अभ्यासं कुरु।"
+                      : language === "te"
+                        ? "ఇప్పుడు తెరుచుకుంది. కావాలంటే నిరంతర సాధన కొనసాగించండి."
+                        : "is now unlocked. Keep reviewing as long as you want."}
+                  </p>
+                </div>
+              </div>
+              <button
+                className="primary-button"
+                onClick={() => setShowGraduation(false)}
                 type="button"
               >
                 {t("close", language)}

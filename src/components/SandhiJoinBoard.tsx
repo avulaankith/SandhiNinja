@@ -303,11 +303,12 @@ export const SandhiJoinBoard = ({
 
   return (
     <div className="join-stage">
-      <div className="join-stage__target">
-        <span className="panel-kicker">{t("joinTarget", language)}</span>
-        <strong>{rootWord.devanagari}</strong>
+      <div className="join-stage__intro">
+        <div className="join-stage__target">
+          <strong>{rootWord.devanagari}</strong>
+        </div>
+        <p className="join-stage__copy">{t("joinPrompt", language)}</p>
       </div>
-      <p className="join-stage__copy">{t("joinPrompt", language)}</p>
 
       <div className="join-stage__rail">
         {visibleBranches.map((branch, index) => (
@@ -318,7 +319,9 @@ export const SandhiJoinBoard = ({
             >
               <strong>{branch.node.devanagari}</strong>
               <div className="join-token__meta">
-                <span>{secondaryLabel(branch.node, language)}</span>
+                <span className="join-token__secondary">
+                  {secondaryLabel(branch.node, language)}
+                </span>
                 <div
                   className={`join-token__badge ${
                     branch.cut ? "join-token__badge--compound" : "join-token__badge--final"
@@ -339,9 +342,7 @@ export const SandhiJoinBoard = ({
                 whileTap={{ scale: 0.97 }}
               >
                 <span className="join-boundary__plus">+</span>
-                {studyMode === "guided" ? (
-                  <span className="join-boundary__label">{t("joinTap", language)}</span>
-                ) : null}
+                <span className="join-boundary__label">{t("joinTap", language)}</span>
               </motion.button>
             ) : null}
           </div>

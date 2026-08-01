@@ -1,6 +1,12 @@
 import Phaser from "phaser";
 import { t } from "../../data/uiText";
-import { cloneWordNode, isFurtherSplittable } from "../../data/sandhiBank";
+import { cloneWordNode, isFurtherSplittable, SANDHI_RULES } from "../../data/sandhiBank";
+import {
+  getAcceptedCutBoundaryOffsets,
+  getDisplayBoundaryCharOffsets,
+  mergeBoundaryMarkers,
+  type BoundaryMarker,
+} from "../../utils/splitGuides";
 import type {
   ActiveToken,
   GameMode,
@@ -20,6 +26,7 @@ export type SliceSceneBridgeState = {
   language: Language;
   selectedRuleId: SandhiRuleId;
   rootWord: WordNode;
+  clockEnabled: boolean;
   interactionLocked: boolean;
   roundKey: string;
   studyMode: StudyMode;
@@ -35,9 +42,20 @@ type TokenView = {
   orb: Phaser.GameObjects.Ellipse;
   outerGlow: Phaser.GameObjects.Ellipse;
   sliceGuides: Phaser.GameObjects.Container | null;
+  sliceMarkers: SceneSliceMarker[];
   label: Phaser.GameObjects.Text;
   sublabel: Phaser.GameObjects.Text;
   badge: Phaser.GameObjects.Text;
+};
+
+type SceneSliceMarker = BoundaryMarker & {
+  localOffset: number;
+  ratio: number;
+};
+
+type SliceZone = {
+  candidateBoundaryCharOffsets: number[];
+  rect: Phaser.Geom.Rectangle;
 };
 
 type LayoutPosition = {
@@ -53,8 +71,16 @@ const lineIntersectsRectangle = (
   rect: Phaser.Geom.Rectangle,
 ) => Phaser.Geom.Intersects.LineToRectangle(line, rect);
 
+const pointInsideRectangle = (
+  point: Phaser.Math.Vector2,
+  rect: Phaser.Geom.Rectangle,
+) => Phaser.Geom.Rectangle.Contains(rect, point.x, point.y);
+
 const TEXT_RESOLUTION =
   typeof window !== "undefined" ? Math.min(window.devicePixelRatio || 1, 2) : 2;
+const DEVANAGARI_FONT_FAMILY = '"Noto Serif Devanagari", "Palatino Linotype", serif';
+const NINJA_RESIZE_WIDTH_TOLERANCE_PX = 96;
+const NINJA_RESIZE_HEIGHT_TOLERANCE_PX = 180;
 
 const cutMatchesRule = (cut: SandhiCut, ruleId: SandhiRuleId) =>
   cut.ruleId === ruleId || cut.ruleChain?.includes(ruleId) === true;
@@ -78,6 +104,25 @@ const collectAvailableRuleIds = (tokens: ActiveToken[]) => {
   });
 
   return [...ids];
+};
+
+const RULE_LOOKUP = new Map(SANDHI_RULES.map((rule) => [rule.id, rule]));
+
+const findFirstSplittableToken = (tokens: ActiveToken[]) =>
+  tokens.find((token) => isFurtherSplittable(token.node)) ?? null;
+
+let textMeasureContext: CanvasRenderingContext2D | null = null;
+
+const getTextMeasureContext = () => {
+  if (typeof document === "undefined") {
+    return null;
+  }
+
+  if (!textMeasureContext) {
+    textMeasureContext = document.createElement("canvas").getContext("2d");
+  }
+
+  return textMeasureContext;
 };
 
 export class SliceScene extends Phaser.Scene {
@@ -107,6 +152,14 @@ export class SliceScene extends Phaser.Scene {
 
   private arenaRecoveryEvent: Phaser.Time.TimerEvent | null = null;
 
+  private ninjaFallTween: Phaser.Tweens.Tween | null = null;
+
+  private ninjaHoverTween: Phaser.Tweens.Tween | null = null;
+
+  private lastScaleWidth = 0;
+
+  private lastScaleHeight = 0;
+
   constructor(callbacks: SliceSceneCallbacks) {
     super("slice-scene");
     this.callbacks = callbacks;
@@ -129,6 +182,7 @@ export class SliceScene extends Phaser.Scene {
     const previousMode = this.bridgeState.mode;
     const previousRoundKey = this.bridgeState.roundKey;
     const previousStudyMode = this.bridgeState.studyMode;
+    const previousClockEnabled = this.bridgeState.clockEnabled;
     this.bridgeState = {
       ...this.bridgeState,
       ...state,
@@ -138,6 +192,7 @@ export class SliceScene extends Phaser.Scene {
     const nextMode = this.bridgeState.mode;
     const nextRoundKey = this.bridgeState.roundKey;
     const nextStudyMode = this.bridgeState.studyMode;
+    const nextClockEnabled = this.bridgeState.clockEnabled;
 
     if (
       previousWordId !== nextWordId ||
@@ -154,6 +209,13 @@ export class SliceScene extends Phaser.Scene {
     }
 
     this.refreshTokenDecorations();
+
+    if (
+      nextMode === "ninja" &&
+      (previousClockEnabled !== nextClockEnabled || previousMode !== nextMode)
+    ) {
+      this.startNinjaFall();
+    }
   }
 
   create() {
@@ -163,6 +225,8 @@ export class SliceScene extends Phaser.Scene {
     this.add.existing(this.trailGlow);
     this.add.existing(this.trail);
     this.bridgeState = this.initialState!;
+    this.lastScaleWidth = this.scale.width;
+    this.lastScaleHeight = this.scale.height;
 
     this.input.on("pointerdown", this.handlePointerDown, this);
     this.input.on("pointermove", this.handlePointerMove, this);
@@ -185,6 +249,9 @@ export class SliceScene extends Phaser.Scene {
     ];
 
     this.syncTokenViews();
+    if (this.bridgeState.mode === "ninja") {
+      this.startNinjaFall();
+    }
     this.emitFeedback({
       outcome: "blocked",
       message: {
@@ -200,6 +267,24 @@ export class SliceScene extends Phaser.Scene {
   }
 
   private handleResize() {
+    const nextWidth = this.scale.width;
+    const nextHeight = this.scale.height;
+    const widthDelta = Math.abs(nextWidth - this.lastScaleWidth);
+    const heightDelta = Math.abs(nextHeight - this.lastScaleHeight);
+    const ignoreTransientNinjaResize =
+      this.bridgeState.mode === "ninja" &&
+      (widthDelta > 0 || heightDelta > 0) &&
+      widthDelta <= NINJA_RESIZE_WIDTH_TOLERANCE_PX &&
+      heightDelta <= NINJA_RESIZE_HEIGHT_TOLERANCE_PX;
+
+    this.lastScaleWidth = nextWidth;
+    this.lastScaleHeight = nextHeight;
+
+    if (ignoreTransientNinjaResize) {
+      this.clearTrail();
+      return;
+    }
+
     this.cancelPendingSceneEvents();
     this.clearTrail();
     this.rebuildTokenViews();
@@ -210,7 +295,10 @@ export class SliceScene extends Phaser.Scene {
       return;
     }
 
-    this.cancelPendingSceneEvents();
+    this.trailClearEvent?.remove(false);
+    this.trailClearEvent = null;
+    this.arenaRecoveryEvent?.remove(false);
+    this.arenaRecoveryEvent = null;
     this.clearTrail();
     this.pointerDown = true;
     this.swipeStart = new Phaser.Math.Vector2(pointer.worldX, pointer.worldY);
@@ -278,6 +366,10 @@ export class SliceScene extends Phaser.Scene {
     this.trailClearEvent = null;
     this.arenaRecoveryEvent?.remove(false);
     this.arenaRecoveryEvent = null;
+    this.ninjaFallTween?.stop();
+    this.ninjaFallTween = null;
+    this.ninjaHoverTween?.stop();
+    this.ninjaHoverTween = null;
   }
 
   private scheduleArenaRecovery(delay = 220) {
@@ -289,13 +381,45 @@ export class SliceScene extends Phaser.Scene {
       }
 
       this.clearTrail();
-      this.rebuildTokenViews();
       this.refreshTokenDecorations();
+    });
+  }
+
+  private getCurrentNinjaFocusToken() {
+    return findFirstSplittableToken(this.activeTokens) ?? this.activeTokens[0] ?? null;
+  }
+
+  private getVisibleSceneTokens() {
+    return this.activeTokens;
+  }
+
+  private isTapGesture() {
+    if (!this.swipeStart || !this.swipeEnd) {
+      return false;
+    }
+
+    return Phaser.Math.Distance.BetweenPoints(this.swipeStart, this.swipeEnd) <= 18;
+  }
+
+  private findHitZone(zones: SliceZone[], swipeLine: Phaser.Geom.Line) {
+    const tapPoint = this.isTapGesture() ? this.swipeEnd : null;
+
+    return zones.find((zone) => {
+      if (lineIntersectsRectangle(swipeLine, zone.rect)) {
+        return true;
+      }
+
+      return tapPoint ? pointInsideRectangle(tapPoint, zone.rect) : false;
     });
   }
 
   private resolveSwipe() {
     if (!this.swipeStart || !this.swipeEnd) {
+      return;
+    }
+
+    if (this.bridgeState.mode === "ninja") {
+      this.resolveNinjaSwipe();
       return;
     }
 
@@ -346,9 +470,7 @@ export class SliceScene extends Phaser.Scene {
       }
 
       const zones = this.getSliceZones(view);
-      const hitZone = zones.find((zone) =>
-        lineIntersectsRectangle(swipeLine, zone.rect),
-      );
+      const hitZone = this.findHitZone(zones, swipeLine);
 
       if (!hitZone) {
         this.handleWrongSlice(
@@ -362,17 +484,173 @@ export class SliceScene extends Phaser.Scene {
         return;
       }
 
-      this.handleSliceAtBoundary(token, hitZone.index, view, interactionId);
+      this.handleSliceAtBoundary(
+        token,
+        hitZone.candidateBoundaryCharOffsets,
+        view,
+        interactionId,
+      );
       return;
     }
   }
 
+  private resolveNinjaSwipe() {
+    if (!this.swipeStart || !this.swipeEnd) {
+      return;
+    }
+
+    const interactionId = `${this.bridgeState.roundKey}:ninja:${++this.gestureSerial}`;
+    const swipeLine = new Phaser.Geom.Line(
+      this.swipeStart.x,
+      this.swipeStart.y,
+      this.swipeEnd.x,
+      this.swipeEnd.y,
+    );
+    const token = this.getCurrentNinjaFocusToken();
+    const view = token ? this.tokenViews.get(token.instanceId) : null;
+
+    if (!token || !view) {
+      return;
+    }
+
+    const bounds = view.container.getBounds();
+    const expandedBounds = new Phaser.Geom.Rectangle(
+      bounds.x - 20,
+      bounds.y - 20,
+      bounds.width + 40,
+      bounds.height + 40,
+    );
+
+    if (!lineIntersectsRectangle(swipeLine, expandedBounds)) {
+      return;
+    }
+
+    if (!isFurtherSplittable(token.node)) {
+      return;
+    }
+
+    const zones = this.getSliceZones(view);
+    const hitZone = this.findHitZone(zones, swipeLine);
+
+    const matchingCuts = token.node.cuts.filter(
+      (cut) =>
+        !cut.reviewNeeded &&
+        getAcceptedCutBoundaryOffsets(token.node.devanagari, cut).some((boundaryOffset) =>
+          hitZone?.candidateBoundaryCharOffsets.includes(boundaryOffset),
+        ) &&
+        cutMatchesRule(cut, this.bridgeState.selectedRuleId),
+    );
+
+    if (!hitZone || matchingCuts.length === 0) {
+      this.shakeToken(view, 0xff6673);
+      this.spawnSparks(view.container.x, view.container.y, 0xff6673);
+      this.emitFeedback({
+        outcome: "wrong",
+        message: this.localized(
+          t("feedbackWrongPlaceRightRule", "en"),
+          t("feedbackWrongPlaceRightRule", "sa"),
+          t("feedbackWrongPlaceRightRule", "te"),
+        ),
+        revealLesson: this.buildRevealLesson(this.activeTokens),
+        availableRuleIds: [this.bridgeState.selectedRuleId],
+        activeTokens: [...this.activeTokens],
+        roundCompleted: false,
+        boundaryIndex: hitZone?.candidateBoundaryCharOffsets[0],
+        assessment: "place-wrong-rule-correct",
+        interactionId,
+      });
+      return;
+    }
+
+    const selectedCut = matchingCuts[0];
+    const tokenIndex = this.activeTokens.findIndex(
+      (entry) => entry.instanceId === token.instanceId,
+    );
+    const children: ActiveToken[] = [
+      {
+        instanceId: createInstanceId(),
+        node: cloneWordNode(selectedCut.left),
+        depth: token.depth + 1,
+      },
+      {
+        instanceId: createInstanceId(),
+        node: cloneWordNode(selectedCut.right),
+        depth: token.depth + 1,
+      },
+    ];
+
+    if (tokenIndex >= 0) {
+      this.activeTokens.splice(tokenIndex, 1, ...children);
+    }
+
+    const roundCompleted = this.activeTokens.every(
+      (entry) => !isFurtherSplittable(entry.node),
+    );
+    const nextRevealLesson = this.buildRevealLesson(this.activeTokens);
+
+    this.ninjaFallTween?.stop();
+    this.ninjaFallTween = null;
+    this.spawnSlashBurst(swipeLine, 0x7df5c7, 0.96);
+    this.spawnSparks(view.container.x, view.container.y, 0x7df5c7);
+    this.cameras.main.shake(90, 0.003);
+    this.tweens.add({
+      targets: view.container,
+      alpha: 0,
+      scaleX: 1.18,
+      scaleY: 0.74,
+      angle: Phaser.Math.Between(-10, 10),
+      y: view.container.y - 28,
+      duration: 210,
+      ease: "Quad.easeOut",
+    });
+    this.syncTokenViews({
+      removedId: token.instanceId,
+      spawnOrigin: { x: view.container.x, y: view.container.y },
+      newIds: children.map((child) => child.instanceId),
+    });
+
+    if (!roundCompleted) {
+      this.arenaRecoveryEvent?.remove(false);
+      this.arenaRecoveryEvent = this.time.delayedCall(190, () => {
+        this.arenaRecoveryEvent = null;
+        if (!this.sys.isActive()) {
+          return;
+        }
+
+        this.startNinjaFall();
+      });
+    }
+
+    this.emitFeedback({
+      outcome: "correct",
+      message: this.localized(
+        t("correctSplit", "en"),
+        t("correctSplit", "sa"),
+        t("correctSplit", "te"),
+      ),
+      lesson: {
+        node: token.node,
+        cut: selectedCut,
+        variantCount: matchingCuts.length,
+      },
+      revealLesson: nextRevealLesson,
+      availableRuleIds: collectAvailableRuleIds(this.activeTokens),
+      activeTokens: [...this.activeTokens],
+      roundCompleted,
+      boundaryIndex: hitZone.candidateBoundaryCharOffsets[0],
+      assessment: "both-correct",
+      interactionId,
+    });
+  }
+
   private handleSliceAtBoundary(
     token: ActiveToken,
-    boundaryIndex: number,
+    candidateBoundaryCharOffsets: number[],
     view: TokenView,
     interactionId: string,
   ) {
+    const feedbackBoundaryIndex = candidateBoundaryCharOffsets[0];
+
     if (!isFurtherSplittable(token.node)) {
       this.shakeToken(view, 0xff6673);
       this.emitFeedback({
@@ -385,7 +663,7 @@ export class SliceScene extends Phaser.Scene {
         availableRuleIds: collectAvailableRuleIds(this.activeTokens),
         activeTokens: [...this.activeTokens],
         roundCompleted: false,
-        boundaryIndex,
+        boundaryIndex: feedbackBoundaryIndex,
         assessment: "final-word",
         interactionId,
       });
@@ -394,7 +672,11 @@ export class SliceScene extends Phaser.Scene {
     }
 
     const exactBoundaryCuts = token.node.cuts.filter(
-      (cut) => !cut.reviewNeeded && cut.cutAfterAksharaIndex === boundaryIndex,
+      (cut) =>
+        !cut.reviewNeeded &&
+        getAcceptedCutBoundaryOffsets(token.node.devanagari, cut).some((boundaryOffset) =>
+          candidateBoundaryCharOffsets.includes(boundaryOffset),
+        ),
     );
 
     if (exactBoundaryCuts.length === 0) {
@@ -403,7 +685,7 @@ export class SliceScene extends Phaser.Scene {
         this.hasSelectedRuleElsewhere(token)
           ? "place-wrong-rule-correct"
           : "both-wrong",
-        boundaryIndex,
+        feedbackBoundaryIndex,
         interactionId,
       );
       return;
@@ -417,7 +699,7 @@ export class SliceScene extends Phaser.Scene {
       this.handleWrongSlice(
         token,
         "place-correct-rule-wrong",
-        boundaryIndex,
+        feedbackBoundaryIndex,
         interactionId,
       );
       return;
@@ -472,7 +754,7 @@ export class SliceScene extends Phaser.Scene {
       availableRuleIds: collectAvailableRuleIds(this.activeTokens),
       activeTokens: [...this.activeTokens],
       roundCompleted,
-      boundaryIndex,
+      boundaryIndex: feedbackBoundaryIndex,
       assessment: "both-correct",
       interactionId,
     });
@@ -537,8 +819,15 @@ export class SliceScene extends Phaser.Scene {
       return undefined;
     }
 
+    const targetBoundarySignature = getAcceptedCutBoundaryOffsets(
+      stuck.node.devanagari,
+      cut,
+    ).join("\u0001");
     const variantCount = stuck.node.cuts.filter(
-      (entry) => !entry.reviewNeeded && entry.cutAfterAksharaIndex === cut.cutAfterAksharaIndex,
+      (entry) =>
+        !entry.reviewNeeded &&
+        getAcceptedCutBoundaryOffsets(stuck.node.devanagari, entry).join("\u0001") ===
+          targetBoundarySignature,
     ).length;
 
     return {
@@ -573,6 +862,80 @@ export class SliceScene extends Phaser.Scene {
       onComplete: () => {
         this.applyTokenTheme(view, view.token.node);
         view.orb.setStrokeStyle(1, 0xffffff, 0.12);
+      },
+    });
+  }
+
+  private spawnSlashBurst(
+    line: Phaser.Geom.Line,
+    color: number,
+    alpha = 0.88,
+  ) {
+    const dx = line.x2 - line.x1;
+    const dy = line.y2 - line.y1;
+    const length = Math.max(Math.sqrt(dx * dx + dy * dy), 1);
+    const normalX = -dy / length;
+    const normalY = dx / length;
+
+    const slashGlow = this.add.graphics();
+    slashGlow.lineStyle(24, color, alpha * 0.2);
+    slashGlow.beginPath();
+    slashGlow.moveTo(line.x1, line.y1);
+    slashGlow.lineTo(line.x2, line.y2);
+    slashGlow.strokePath();
+
+    const slashEdge = this.add.graphics();
+    slashEdge.lineStyle(9, color, alpha * 0.44);
+    slashEdge.beginPath();
+    slashEdge.moveTo(line.x1 + normalX * 5, line.y1 + normalY * 5);
+    slashEdge.lineTo(line.x2 + normalX * 5, line.y2 + normalY * 5);
+    slashEdge.strokePath();
+
+    const slashCore = this.add.graphics();
+    slashCore.lineStyle(4, 0xf8ffff, alpha);
+    slashCore.beginPath();
+    slashCore.moveTo(line.x1 - normalX * 2, line.y1 - normalY * 2);
+    slashCore.lineTo(line.x2 - normalX * 2, line.y2 - normalY * 2);
+    slashCore.strokePath();
+
+    const midpointX = (line.x1 + line.x2) / 2;
+    const midpointY = (line.y1 + line.y2) / 2;
+
+    for (let index = 0; index < 8; index += 1) {
+      const shard = this.add.rectangle(
+        midpointX + Phaser.Math.Between(-18, 18),
+        midpointY + Phaser.Math.Between(-18, 18),
+        Phaser.Math.Between(10, 26),
+        Phaser.Math.Between(2, 4),
+        index % 2 === 0 ? 0xf8ffff : color,
+        0.9,
+      );
+      shard.setRotation(Math.atan2(dy, dx) + Phaser.Math.FloatBetween(-0.35, 0.35));
+
+      this.tweens.add({
+        targets: shard,
+        x: shard.x + normalX * Phaser.Math.Between(-36, 36) + dx * 0.05,
+        y: shard.y + normalY * Phaser.Math.Between(-36, 36) + dy * 0.05,
+        alpha: 0,
+        scaleX: 0.25,
+        scaleY: 0.25,
+        duration: 210 + index * 18,
+        ease: "Quad.easeOut",
+        onComplete: () => shard.destroy(),
+      });
+    }
+
+    this.tweens.add({
+      targets: [slashGlow, slashEdge, slashCore],
+      alpha: 0,
+      scaleX: 1.06,
+      scaleY: 1.04,
+      duration: 200,
+      ease: "Quad.easeOut",
+      onComplete: () => {
+        slashGlow.destroy();
+        slashEdge.destroy();
+        slashCore.destroy();
       },
     });
   }
@@ -619,48 +982,202 @@ export class SliceScene extends Phaser.Scene {
     return { en, sa, te };
   }
 
-  private getSliceZones(view: TokenView) {
-    const labelBounds = view.label.getBounds();
-    const slotWidth =
-      labelBounds.width / Math.max(view.token.node.aksharas.length, 1);
+  private getDevanagariFontSpec(fontSize: number) {
+    return `600 ${fontSize}px ${DEVANAGARI_FONT_FAMILY}`;
+  }
 
-    return view.token.node.aksharas.slice(0, -1).map((_, index) => ({
-      index,
-      rect: new Phaser.Geom.Rectangle(
-        labelBounds.x + slotWidth * (index + 1) - 17,
-        labelBounds.y - 24,
-        34,
-        labelBounds.height + 48,
-      ),
+  private getSceneSliceMarkers(
+    label: Phaser.GameObjects.Text,
+    token: ActiveToken,
+    labelFontSize: number,
+  ) {
+    const boundaryCharOffsets = getDisplayBoundaryCharOffsets(token.node);
+
+    if (boundaryCharOffsets.length === 0 || label.width <= 0) {
+      return [];
+    }
+
+    const measureContext = getTextMeasureContext();
+    if (!measureContext) {
+      const fallbackStep = label.width / Math.max(boundaryCharOffsets.length + 1, 2);
+
+      return boundaryCharOffsets.map((charOffset, index) => {
+        const offsetFromLeft = fallbackStep * (index + 1);
+        return {
+          candidateBoundaryCharOffsets: [charOffset],
+          offset: offsetFromLeft,
+          localOffset: offsetFromLeft - label.width / 2,
+          ratio: offsetFromLeft / label.width,
+        };
+      });
+    }
+
+    measureContext.font = this.getDevanagariFontSpec(labelFontSize);
+    const rawTotalWidth = Math.max(
+      measureContext.measureText(token.node.devanagari).width,
+      1,
+    );
+    const scale = label.width / rawTotalWidth;
+
+    return mergeBoundaryMarkers(boundaryCharOffsets, (charOffset) => {
+      const rawPrefixWidth = measureContext.measureText(
+        token.node.devanagari.slice(0, charOffset),
+      ).width;
+
+      return rawPrefixWidth * scale;
+    }).map((marker) => ({
+      ...marker,
+      localOffset: marker.offset - label.width / 2,
+      ratio: Phaser.Math.Clamp(marker.offset / label.width, 0, 1),
     }));
   }
 
+  private getSliceZones(view: TokenView) {
+    const labelBounds = view.label.getBounds();
+    const orbBounds = view.orb.getBounds();
+    const touchStage = this.scale.width < 520;
+    const zoneWidth =
+      this.bridgeState.mode === "ninja"
+        ? touchStage
+          ? 74
+          : 62
+        : touchStage
+          ? 58
+          : 48;
+    const zonePaddingY = this.bridgeState.mode === "ninja" ? 16 : 12;
+
+    return view.sliceMarkers.map((marker) => {
+      const worldX =
+        labelBounds.width > 0
+          ? labelBounds.x + labelBounds.width * marker.ratio
+          : view.container.x + marker.localOffset;
+
+      return {
+        candidateBoundaryCharOffsets: marker.candidateBoundaryCharOffsets,
+        rect: new Phaser.Geom.Rectangle(
+          worldX - zoneWidth / 2,
+          orbBounds.y - zonePaddingY,
+          zoneWidth,
+          orbBounds.height + zonePaddingY * 2,
+        ),
+      };
+    });
+  }
+
   private buildSliceGuides(
-    label: Phaser.GameObjects.Text,
     token: ActiveToken,
+    sliceMarkers: SceneSliceMarker[],
+    orbHeight: number,
   ) {
     if (
-      this.bridgeState.studyMode !== "guided" ||
+      (this.bridgeState.studyMode !== "guided" && this.bridgeState.mode !== "ninja") ||
       !isFurtherSplittable(token.node) ||
-      token.node.aksharas.length <= 1
+      sliceMarkers.length === 0
     ) {
       return null;
     }
 
-    const slotWidth = label.width / Math.max(token.node.aksharas.length, 1);
-    const leftEdge = -label.width / 2;
     const guides = this.add.container(0, 0);
+    const ninjaMode = this.bridgeState.mode === "ninja";
+    const touchStage = this.scale.width < 520;
+    const guideHeight = ninjaMode
+      ? Math.max(orbHeight - 8, 96)
+      : Math.max(orbHeight - 30, 72);
 
-    token.node.aksharas.slice(0, -1).forEach((_, index) => {
-      const x = leftEdge + slotWidth * (index + 1);
-      const glow = this.add.circle(x, 20, 7, 0xffbe70, 0.05);
-      const tick = this.add.rectangle(x, 16, 2, 10, 0xffdca8, 0.18);
-      const dot = this.add.circle(x, 22, 2, 0xfff0cf, 0.38);
+    sliceMarkers.forEach((marker, index) => {
+      const x = marker.localOffset;
+      if (ninjaMode) {
+        const totalGuideHeight = guideHeight + (touchStage ? 24 : 18);
+        const guideGapHeight = touchStage ? 54 : 62;
+        const segmentHeight = Math.max((totalGuideHeight - guideGapHeight) / 2, 24);
+        const topY = -(guideGapHeight / 2 + segmentHeight / 2) + 2;
+        const bottomY = guideGapHeight / 2 + segmentHeight / 2 - 4;
+        const glowWidth = touchStage ? 10 : 8;
+        const beamWidth = touchStage ? 2.1 : 1.8;
 
-      guides.add([glow, tick, dot]);
+        const topGlow = this.add.rectangle(
+          x,
+          topY,
+          glowWidth,
+          segmentHeight + 6,
+          0xffc97d,
+          touchStage ? 0.032 : 0.026,
+        );
+        const topBeam = this.add.rectangle(
+          x,
+          topY,
+          beamWidth,
+          segmentHeight,
+          0xffe2a5,
+          touchStage ? 0.42 : 0.36,
+        );
+        const topSpine = this.add.rectangle(
+          x,
+          topY,
+          1,
+          segmentHeight + 8,
+          0xfff4dc,
+          0.06,
+        );
+        const bottomGlow = this.add.rectangle(
+          x,
+          bottomY,
+          glowWidth,
+          segmentHeight + 10,
+          0xffc97d,
+          touchStage ? 0.036 : 0.03,
+        );
+        const bottomBeam = this.add.rectangle(
+          x,
+          bottomY,
+          beamWidth,
+          segmentHeight + 4,
+          0xffe2a5,
+          touchStage ? 0.46 : 0.38,
+        );
+        const bottomSpine = this.add.rectangle(
+          x,
+          bottomY,
+          1,
+          segmentHeight + 12,
+          0xfff4dc,
+          0.07,
+        );
+
+        guides.add([topGlow, topBeam, topSpine, bottomGlow, bottomBeam, bottomSpine]);
+        return;
+      }
+
+      const glow = this.add.rectangle(
+        x,
+        0,
+        touchStage ? 8 : 7,
+        guideHeight + 10,
+        0xffc97d,
+        0.025,
+      );
+      const beam = this.add.rectangle(
+        x,
+        0,
+        touchStage ? 1.8 : 1.4,
+        guideHeight,
+        0xffe2a5,
+        touchStage ? 0.34 : 0.24,
+      );
+      const shimmer = this.add.rectangle(
+        x,
+        -guideHeight * 0.18,
+        touchStage ? 2 : 1.6,
+        guideHeight * 0.28,
+        0xffffff,
+        0.05,
+      );
+      const spine = this.add.rectangle(x, 0, 1, guideHeight + 12, 0xfff4dc, 0.03);
+
+      guides.add([glow, beam, shimmer, spine]);
     });
 
-    guides.setAlpha(0.52);
+    guides.setAlpha(ninjaMode ? 0.68 : 0.56);
     return guides;
   }
 
@@ -670,6 +1187,9 @@ export class SliceScene extends Phaser.Scene {
     }
     this.tokenViews.clear();
     this.syncTokenViews();
+    if (this.bridgeState.mode === "ninja") {
+      this.startNinjaFall();
+    }
   }
 
   private getTokenMetrics(node: WordNode) {
@@ -683,15 +1203,30 @@ export class SliceScene extends Phaser.Scene {
     const longWord = node.devanagari.length > 12;
 
     return {
-      badgeY: compactStage ? 56 : 64,
-      glowHeight: compactStage ? 132 : 148,
-      labelFontSize: compactStage ? (longWord ? 28 : 32) : longWord ? 38 : 44,
-      orbHeight: compactStage ? 104 : 118,
+      badgeY: this.bridgeState.mode === "ninja" ? (compactStage ? 68 : 78) : compactStage ? 62 : 70,
+      glowHeight: this.bridgeState.mode === "ninja" ? (compactStage ? 152 : 176) : compactStage ? 132 : 148,
+      labelFontSize:
+        this.bridgeState.mode === "ninja"
+          ? compactStage
+            ? longWord
+              ? 32
+              : 36
+            : longWord
+              ? 44
+              : 50
+          : compactStage
+            ? longWord
+              ? 28
+              : 32
+            : longWord
+              ? 38
+              : 44,
+      orbHeight: this.bridgeState.mode === "ninja" ? (compactStage ? 120 : 134) : compactStage ? 104 : 118,
       sheenHeight: compactStage ? 22 : 26,
       sheenWidth: tokenWidth * 0.58,
       sheenY: compactStage ? -24 : -28,
-      sublabelFontSize: compactStage ? 15 : 16,
-      sublabelY: compactStage ? 22 : 26,
+      sublabelFontSize: this.bridgeState.mode === "ninja" ? (compactStage ? 16 : 18) : compactStage ? 15 : 16,
+      sublabelY: this.bridgeState.mode === "ninja" ? (compactStage ? 30 : 34) : compactStage ? 22 : 26,
       tokenWidth,
     };
   }
@@ -701,11 +1236,18 @@ export class SliceScene extends Phaser.Scene {
     spawnOrigin?: LayoutPosition;
     newIds?: string[];
   }) {
-    const layout = this.getLayoutPositions();
-    const nextIds = new Set(this.activeTokens.map((token) => token.instanceId));
+    const sceneTokens = this.getVisibleSceneTokens();
+    const layout = this.getLayoutPositions(sceneTokens.length);
+    const nextIds = new Set(sceneTokens.map((token) => token.instanceId));
 
     for (const [instanceId, view] of this.tokenViews) {
       if (!nextIds.has(instanceId)) {
+        this.tweens.killTweensOf([
+          view.container,
+          view.orb,
+          view.outerGlow,
+          ...(view.sliceGuides ? [view.sliceGuides] : []),
+        ]);
         this.tweens.add({
           targets: view.container,
           alpha: 0,
@@ -719,7 +1261,7 @@ export class SliceScene extends Phaser.Scene {
       }
     }
 
-    this.activeTokens.forEach((token, index) => {
+    sceneTokens.forEach((token, index) => {
       const position = layout[index];
       const existing = this.tokenViews.get(token.instanceId);
 
@@ -792,7 +1334,7 @@ export class SliceScene extends Phaser.Scene {
     orb.setStrokeStyle(1, 0xffffff, 0.12);
 
     const label = this.add.text(0, -12, token.node.devanagari, {
-      fontFamily: '"Noto Serif Devanagari", "Palatino Linotype", serif',
+      fontFamily: DEVANAGARI_FONT_FAMILY,
       fontSize: `${metrics.labelFontSize}px`,
       color: "#f8f1ff",
       stroke: "#140c1e",
@@ -809,23 +1351,47 @@ export class SliceScene extends Phaser.Scene {
     });
     label.setOrigin(0.5);
     label.setResolution(TEXT_RESOLUTION);
-    const sliceGuides = this.buildSliceGuides(label, token);
+    const sliceMarkers = this.getSceneSliceMarkers(label, token, metrics.labelFontSize);
+    const sliceGuides = this.buildSliceGuides(token, sliceMarkers, metrics.orbHeight);
+    const labelBackplate = this.add.rectangle(
+      0,
+      -10,
+      Math.min(tokenWidth * 0.76, label.width + (this.bridgeState.mode === "ninja" ? 34 : 24)),
+      Math.max(
+        metrics.labelFontSize + (this.bridgeState.mode === "ninja" ? 18 : 14),
+        this.bridgeState.mode === "ninja" ? 52 : 44,
+      ),
+      0x120917,
+      this.bridgeState.mode === "ninja" ? 0.18 : 0.1,
+    );
+    labelBackplate.setStrokeStyle(1, 0xffffff, this.bridgeState.mode === "ninja" ? 0.05 : 0.03);
 
     const sublabel = this.add.text(0, metrics.sublabelY, this.getSubLabel(token.node), {
       fontFamily: this.getSubLabelFont(token.node),
       fontSize: `${metrics.sublabelFontSize}px`,
-      color: "#d9d7e6",
+      color: this.bridgeState.mode === "ninja" ? "#eef1f9" : "#d9d7e6",
       align: "center",
+      shadow:
+        this.bridgeState.mode === "ninja"
+          ? {
+              offsetX: 0,
+              offsetY: 2,
+              color: "#000000",
+              blur: 6,
+              fill: true,
+              stroke: false,
+            }
+          : undefined,
     });
     sublabel.setOrigin(0.5);
     sublabel.setResolution(TEXT_RESOLUTION);
 
     const badge = this.add.text(0, metrics.badgeY, this.getBadgeLabel(token.node), {
       fontFamily: this.getUiFontFamily(),
-      fontSize: "13px",
+      fontSize: this.bridgeState.mode === "ninja" ? "12px" : "13px",
       color: isSplittable ? "#ffdca8" : "#baf7d1",
       backgroundColor: isSplittable ? "#4d3210" : "#13301d",
-      padding: { x: 10, y: 6 },
+      padding: this.bridgeState.mode === "ninja" ? { x: 9, y: 5 } : { x: 10, y: 6 },
     });
     badge.setOrigin(0.5);
     badge.setResolution(TEXT_RESOLUTION);
@@ -834,29 +1400,40 @@ export class SliceScene extends Phaser.Scene {
     if (sliceGuides) {
       containerChildren.push(sliceGuides);
     }
-    containerChildren.push(label, sublabel, badge);
+    containerChildren.push(labelBackplate, label, sublabel, badge);
     const container = this.add.container(0, 0, containerChildren);
 
-    this.tweens.add({
-      targets: outerGlow,
-      alpha: { from: 0.14, to: 0.28 },
-      scaleX: { from: 0.96, to: 1.08 },
-      scaleY: { from: 0.92, to: 1.06 },
-      duration: 1500 + token.depth * 140,
-      yoyo: true,
-      repeat: -1,
-      ease: "Sine.easeInOut",
-    });
+    if (this.bridgeState.mode === "ninja") {
+      this.tweens.add({
+        targets: outerGlow,
+        alpha: { from: 0.14, to: 0.22 },
+        duration: 1800 + token.depth * 120,
+        yoyo: true,
+        repeat: -1,
+        ease: "Sine.easeInOut",
+      });
+    } else {
+      this.tweens.add({
+        targets: outerGlow,
+        alpha: { from: 0.14, to: 0.28 },
+        scaleX: { from: 0.96, to: 1.08 },
+        scaleY: { from: 0.92, to: 1.06 },
+        duration: 1500 + token.depth * 140,
+        yoyo: true,
+        repeat: -1,
+        ease: "Sine.easeInOut",
+      });
 
-    this.tweens.add({
-      targets: orb,
-      scaleX: { from: 1, to: 1.018 },
-      scaleY: { from: 1, to: 0.986 },
-      duration: 2200 + token.depth * 180,
-      yoyo: true,
-      repeat: -1,
-      ease: "Sine.easeInOut",
-    });
+      this.tweens.add({
+        targets: orb,
+        scaleX: { from: 1, to: 1.018 },
+        scaleY: { from: 1, to: 0.986 },
+        duration: 2200 + token.depth * 180,
+        yoyo: true,
+        repeat: -1,
+        ease: "Sine.easeInOut",
+      });
+    }
 
     return {
       token,
@@ -864,10 +1441,91 @@ export class SliceScene extends Phaser.Scene {
       orb,
       outerGlow,
       sliceGuides,
+      sliceMarkers,
       label,
       sublabel,
       badge,
     };
+  }
+
+  private startNinjaFall() {
+    const token = this.getCurrentNinjaFocusToken();
+    const view = token ? this.tokenViews.get(token.instanceId) : null;
+
+    if (!token || !view) {
+      return;
+    }
+
+    this.ninjaFallTween?.stop();
+    this.ninjaFallTween = null;
+    this.ninjaHoverTween?.stop();
+    this.ninjaHoverTween = null;
+    const topY = Math.max(this.scale.height * 0.18, 120);
+    const bottomY = Math.max(this.scale.height - 124, this.scale.height * 0.72);
+    view.container.setY(topY);
+    view.container.setAlpha(0.96);
+    view.container.setScale(0.94);
+    view.container.setAngle(0);
+    this.tweens.add({
+      targets: view.container,
+      scale: 1,
+      duration: 260,
+      ease: "Quad.easeOut",
+    });
+
+    if (!this.bridgeState.clockEnabled) {
+      view.container.setY(Math.max(this.scale.height * 0.42, topY + 48));
+      return;
+    }
+
+    this.ninjaFallTween = this.tweens.add({
+      targets: view.container,
+      y: bottomY,
+      duration: this.bridgeState.studyMode === "challenge" ? 6800 : 8800,
+      ease: "Quad.easeIn",
+      onComplete: () => {
+        this.ninjaFallTween = null;
+        this.handleNinjaBottomOut(token);
+      },
+    });
+  }
+
+  private handleNinjaBottomOut(token: ActiveToken) {
+    const view = this.tokenViews.get(token.instanceId);
+    const cut = token.node.cuts.find(
+      (entry) =>
+        !entry.reviewNeeded && cutMatchesRule(entry, this.bridgeState.selectedRuleId),
+    );
+
+    if (!view || !cut) {
+      return;
+    }
+
+    this.shakeToken(view, 0xff6673);
+    this.emitFeedback({
+      outcome: "wrong",
+      message: this.localized(
+        t("timeUp", "en"),
+        t("timeUp", "sa"),
+        t("timeUp", "te"),
+      ),
+      lesson: {
+        node: token.node,
+        cut,
+        variantCount: 1,
+      },
+      revealLesson: {
+        node: token.node,
+        cut,
+        variantCount: 1,
+      },
+      availableRuleIds: [this.bridgeState.selectedRuleId],
+      activeTokens: [...this.activeTokens],
+      roundCompleted: false,
+      boundaryIndex: cut.cutAfterAksharaIndex,
+      assessment: "place-wrong-rule-correct",
+      bottomOut: true,
+    });
   }
 
   private applyTokenTheme(view: TokenView, node: WordNode) {
@@ -920,6 +1578,14 @@ export class SliceScene extends Phaser.Scene {
   }
 
   private getBadgeLabel(node: WordNode) {
+    if (this.bridgeState.mode === "ninja") {
+      return (
+        RULE_LOOKUP.get(this.bridgeState.selectedRuleId)?.label[
+          this.bridgeState.language
+        ] ?? t("canSplitAgain", this.bridgeState.language)
+      );
+    }
+
     return isFurtherSplittable(node)
       ? t("canSplitAgain", this.bridgeState.language)
       : t("finalWord", this.bridgeState.language);
@@ -933,13 +1599,17 @@ export class SliceScene extends Phaser.Scene {
     return node.iast;
   }
 
-  private getLayoutPositions() {
+  private getLayoutPositions(count = this.activeTokens.length) {
     const width = this.scale.width;
     const height = this.scale.height;
-    const count = this.activeTokens.length;
 
     if (count === 1) {
-      return [{ x: width / 2, y: height / 2 }];
+      return [
+        {
+          x: width / 2,
+          y: this.bridgeState.mode === "ninja" ? height * 0.18 : height / 2,
+        },
+      ];
     }
 
     if (count === 2) {

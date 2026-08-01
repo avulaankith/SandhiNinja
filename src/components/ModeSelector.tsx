@@ -8,7 +8,7 @@ type ModeSelectorProps = {
   onChange: (mode: GameMode) => void;
 };
 
-const MODES: Array<Exclude<GameMode, "devStudio">> = ["arcade", "join"];
+const MODES: Array<Exclude<GameMode, "devStudio">> = ["arcade", "join", "ninja"];
 
 export const ModeSelector = ({ language, mode, onChange }: ModeSelectorProps) => (
   <div className="mode-grid">

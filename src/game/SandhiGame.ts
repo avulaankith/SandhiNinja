@@ -22,10 +22,11 @@ export class SandhiGame {
     this.game = new Phaser.Game({
       type: Phaser.AUTO,
       parent: container,
+      banner: false,
       transparent: true,
       backgroundColor: "#000000",
       scale: {
-        mode: Phaser.Scale.RESIZE,
+        mode: Phaser.Scale.NONE,
         width: container.clientWidth || 960,
         height: container.clientHeight || 640,
         autoCenter: Phaser.Scale.CENTER_BOTH,
@@ -41,6 +42,14 @@ export class SandhiGame {
 
   update(state: Partial<SliceSceneBridgeState>) {
     this.scene.applyBridgeState(state);
+  }
+
+  resize(width: number, height: number) {
+    if (width <= 0 || height <= 0) {
+      return;
+    }
+
+    this.game.scale.resize(width, height);
   }
 
   loadWord(rootWord: WordNode, mode: RuntimeMode) {

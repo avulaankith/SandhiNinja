@@ -945,5 +945,13 @@ export const modeLabel = (mode: GameMode, language: Language) => {
     return t("joinMode", language);
   }
 
+  if (mode === "ninja") {
+    return {
+      en: "Ninja Slice",
+      sa: "निन्जा-छेदः",
+      te: "నింజా విభజనం",
+    }[language];
+  }
+
   return t("devStudioMode", language);
 };
