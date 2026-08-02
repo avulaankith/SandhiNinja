@@ -2060,7 +2060,11 @@ function App() {
         ) : (
           <>
             <section className="arena-column">
-              <div className="arena-frame glass-panel">
+              <div
+                className={`arena-frame glass-panel ${
+                  isNinjaMode ? "arena-frame--ninja" : ""
+                }`}
+              >
                 <div className="arena-banner">
                   <div>
                     <span className="panel-kicker">
@@ -2109,7 +2113,11 @@ function App() {
                   </div>
                 </div>
 
-                <div className="game-stage-shell">
+                <div
+                  className={`game-stage-shell ${
+                    isNinjaMode ? "game-stage-shell--ninja-focus" : ""
+                  }`}
+                >
                   {isJoinMode ? (
                     <SandhiJoinBoard
                       key={currentRoundKey}

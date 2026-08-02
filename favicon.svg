@@ -1,0 +1,48 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 160 160"
+  fill="none"
+>
+  <defs>
+    <linearGradient id="faviconShell" x1="20" x2="140" y1="20" y2="140">
+      <stop offset="0%" stop-color="#f4b162" />
+      <stop offset="100%" stop-color="#70e1dc" />
+    </linearGradient>
+    <linearGradient id="faviconCore" x1="32" x2="128" y1="28" y2="136">
+      <stop offset="0%" stop-color="#132434" />
+      <stop offset="100%" stop-color="#09131f" />
+    </linearGradient>
+  </defs>
+  <circle
+    cx="80"
+    cy="80"
+    r="58"
+    stroke="url(#faviconShell)"
+    stroke-width="10"
+    stroke-opacity="0.9"
+  />
+  <circle cx="80" cy="80" r="50" fill="url(#faviconCore)" />
+  <path
+    d="M42 108L80 38L118 108"
+    stroke="#f7fbff"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    stroke-opacity="0.94"
+    stroke-width="10"
+  />
+  <path
+    d="M58 84H102"
+    stroke="#70e1dc"
+    stroke-linecap="round"
+    stroke-opacity="0.86"
+    stroke-width="7"
+  />
+  <circle cx="80" cy="80" r="7" fill="#f4b162" />
+  <path
+    d="M44 38L58 52M116 38L102 52M44 122L58 108M116 122L102 108"
+    stroke="#f4b162"
+    stroke-linecap="round"
+    stroke-opacity="0.8"
+    stroke-width="6"
+  />
+</svg>

@@ -40,6 +40,8 @@ export const ArcadeArena = ({
   const gameRef = useRef<SandhiGame | null>(null);
   const onFeedbackRef = useRef(onFeedback);
   const lastResizeRef = useRef<{ width: number; height: number } | null>(null);
+  const resizeFrameRef = useRef<number | null>(null);
+  const NINJA_WIDTH_RESIZE_THRESHOLD_PX = 12;
 
   useEffect(() => {
     onFeedbackRef.current = onFeedback;
@@ -74,6 +76,10 @@ export const ArcadeArena = ({
     };
 
     return () => {
+      if (resizeFrameRef.current !== null) {
+        window.cancelAnimationFrame(resizeFrameRef.current);
+        resizeFrameRef.current = null;
+      }
       game.destroy();
       gameRef.current = null;
       lastResizeRef.current = null;
@@ -85,7 +91,7 @@ export const ArcadeArena = ({
     const element = containerRef.current;
     const game = gameRef.current;
 
-    if (!fontsReady || !element || !game || typeof ResizeObserver === "undefined") {
+    if (!fontsReady || !element || !game) {
       return;
     }
 
@@ -98,18 +104,52 @@ export const ArcadeArena = ({
       }
 
       const previous = lastResizeRef.current;
+      const widthDelta = previous ? Math.abs(previous.width - width) : 0;
+      const heightDelta = previous ? Math.abs(previous.height - height) : 0;
 
-      if (
-        previous &&
-        Math.abs(previous.width - width) <= 1 &&
-        Math.abs(previous.height - height) <= 1
-      ) {
+      if (previous && widthDelta <= 1 && heightDelta <= 1) {
+        return;
+      }
+
+      if (mode === "ninja" && previous && widthDelta < NINJA_WIDTH_RESIZE_THRESHOLD_PX) {
         return;
       }
 
       lastResizeRef.current = { width, height };
       game.resize(width, height);
     };
+
+    if (mode === "ninja") {
+      const handleViewportResize = () => {
+        if (resizeFrameRef.current !== null) {
+          window.cancelAnimationFrame(resizeFrameRef.current);
+        }
+
+        resizeFrameRef.current = window.requestAnimationFrame(() => {
+          resizeFrameRef.current = null;
+          syncSize();
+        });
+      };
+
+      window.addEventListener("resize", handleViewportResize, { passive: true });
+      window.addEventListener("orientationchange", handleViewportResize, {
+        passive: true,
+      });
+      syncSize();
+
+      return () => {
+        if (resizeFrameRef.current !== null) {
+          window.cancelAnimationFrame(resizeFrameRef.current);
+          resizeFrameRef.current = null;
+        }
+        window.removeEventListener("resize", handleViewportResize);
+        window.removeEventListener("orientationchange", handleViewportResize);
+      };
+    }
+
+    if (typeof ResizeObserver === "undefined") {
+      return;
+    }
 
     const observer = new ResizeObserver(() => {
       syncSize();
@@ -121,7 +161,7 @@ export const ArcadeArena = ({
     return () => {
       observer.disconnect();
     };
-  }, [fontsReady]);
+  }, [fontsReady, mode]);
 
   useEffect(() => {
     if (!fontsReady || !gameRef.current) {

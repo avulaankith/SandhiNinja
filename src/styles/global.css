@@ -50,6 +50,7 @@ body,
 body {
   min-height: 100vh;
   overflow-x: hidden;
+  scrollbar-gutter: stable both-edges;
 }
 
 button,
@@ -76,7 +77,8 @@ button {
 .app-shell--game {
   min-height: 100vh;
   overflow-x: hidden;
-  overflow-y: auto;
+  overflow-y: visible;
+  overflow-anchor: none;
   display: grid;
   grid-template-rows: auto auto;
   gap: clamp(14px, 1.6vw, 22px);
@@ -463,8 +465,7 @@ button {
 }
 
 .app-shell--touch .hero {
-  position: sticky;
-  top: 0;
+  position: static;
   z-index: 18;
   padding: 10px;
   border-radius: 22px;
@@ -1429,6 +1430,13 @@ button {
     linear-gradient(180deg, rgba(18, 26, 39, 0.94), rgba(11, 17, 28, 0.96));
 }
 
+.arena-frame--ninja {
+  backdrop-filter: none;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(112, 225, 220, 0.08), transparent 28%),
+    linear-gradient(180deg, rgba(15, 23, 36, 0.98), rgba(8, 13, 22, 0.98));
+}
+
 .arena-banner {
   display: flex;
   justify-content: space-between;
@@ -1458,12 +1466,21 @@ button {
   display: grid;
   grid-template-rows: auto auto;
   gap: 12px;
+  overflow-anchor: none;
+}
+
+.game-stage-shell--ninja-focus {
+  overflow: visible;
+  isolation: isolate;
 }
 
 .game-stage {
   position: relative;
   height: clamp(300px, 32vw, 440px);
   min-height: 280px;
+  contain: layout paint;
+  overflow-anchor: none;
+  isolation: isolate;
   border-radius: 22px;
   border: 1px solid rgba(169, 211, 245, 0.12);
   background:
@@ -1498,6 +1515,8 @@ button {
   user-select: none;
   -webkit-user-select: none;
   touch-action: none;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 .game-stage__loading {
@@ -1515,6 +1534,8 @@ button {
   justify-items: center;
   gap: 14px;
   min-height: clamp(300px, 32vw, 440px);
+  contain: layout paint;
+  overflow-anchor: none;
   padding: clamp(18px, 3vw, 30px);
   border-radius: 22px;
   border: 1px solid rgba(255, 255, 255, 0.045);
@@ -1778,7 +1799,9 @@ button {
   align-content: center;
   justify-items: center;
   gap: 16px;
-  min-height: clamp(300px, 35vh, 440px);
+  min-height: clamp(300px, 32vw, 440px);
+  contain: layout paint;
+  overflow-anchor: none;
   padding: clamp(18px, 3vw, 32px);
   border-radius: 22px;
   border: 1px solid rgba(255, 255, 255, 0.045);
@@ -2128,8 +2151,7 @@ button {
   grid-template-rows: auto auto;
   align-content: start;
   overflow: visible;
-  position: sticky;
-  top: 18px;
+  position: static;
   min-width: 0;
 }
 
@@ -3271,8 +3293,7 @@ select {
   .mobile-action-rail {
     display: grid;
     gap: 6px;
-    position: sticky;
-    bottom: 0;
+    position: static;
     margin-top: 8px;
     z-index: 6;
     padding: 7px 7px 9px;

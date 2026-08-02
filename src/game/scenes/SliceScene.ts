@@ -219,7 +219,7 @@ export class SliceScene extends Phaser.Scene {
   }
 
   create() {
-    this.cameras.main.roundPixels = false;
+    this.cameras.main.roundPixels = true;
     this.trailGlow = this.add.graphics();
     this.trail = this.add.graphics();
     this.add.existing(this.trailGlow);
@@ -1273,8 +1273,8 @@ export class SliceScene extends Phaser.Scene {
 
         this.tweens.add({
           targets: existing.container,
-          x: position.x,
-          y: position.y,
+          x: Math.round(position.x),
+          y: Math.round(position.y),
           duration: 340,
           ease: "Cubic.easeOut",
         });
@@ -1287,7 +1287,7 @@ export class SliceScene extends Phaser.Scene {
           ? options.spawnOrigin
           : position;
 
-      newView.container.setPosition(spawn.x, spawn.y);
+      newView.container.setPosition(Math.round(spawn.x), Math.round(spawn.y));
       newView.container.setAlpha(spawn === position ? 0.88 : 0);
       newView.container.setScale(spawn === position ? 1 : 0.78);
       newView.container.setAngle(spawn === position ? 0 : Phaser.Math.Between(-7, 7));
@@ -1295,8 +1295,8 @@ export class SliceScene extends Phaser.Scene {
 
       this.tweens.add({
         targets: newView.container,
-        x: position.x,
-        y: position.y,
+        x: Math.round(position.x),
+        y: Math.round(position.y),
         alpha: 1,
         scale: 1,
         angle: 0,
@@ -1460,8 +1460,8 @@ export class SliceScene extends Phaser.Scene {
     this.ninjaFallTween = null;
     this.ninjaHoverTween?.stop();
     this.ninjaHoverTween = null;
-    const topY = Math.max(this.scale.height * 0.18, 120);
-    const bottomY = Math.max(this.scale.height - 124, this.scale.height * 0.72);
+    const topY = Math.round(Math.max(this.scale.height * 0.18, 120));
+    const bottomY = Math.round(Math.max(this.scale.height - 124, this.scale.height * 0.72));
     view.container.setY(topY);
     view.container.setAlpha(0.96);
     view.container.setScale(0.94);
@@ -1474,7 +1474,7 @@ export class SliceScene extends Phaser.Scene {
     });
 
     if (!this.bridgeState.clockEnabled) {
-      view.container.setY(Math.max(this.scale.height * 0.42, topY + 48));
+      view.container.setY(Math.round(Math.max(this.scale.height * 0.42, topY + 48)));
       return;
     }
 
@@ -1606,16 +1606,18 @@ export class SliceScene extends Phaser.Scene {
     if (count === 1) {
       return [
         {
-          x: width / 2,
-          y: this.bridgeState.mode === "ninja" ? height * 0.18 : height / 2,
+          x: Math.round(width / 2),
+          y: Math.round(
+            this.bridgeState.mode === "ninja" ? height * 0.18 : height / 2,
+          ),
         },
       ];
     }
 
     if (count === 2) {
       return [
-        { x: width * 0.34, y: height / 2 },
-        { x: width * 0.66, y: height / 2 },
+        { x: Math.round(width * 0.34), y: Math.round(height / 2) },
+        { x: Math.round(width * 0.66), y: Math.round(height / 2) },
       ];
     }
 
@@ -1634,8 +1636,8 @@ export class SliceScene extends Phaser.Scene {
         }
 
         positions.push({
-          x: horizontalGap * (column + 1),
-          y: height * 0.32 + row * verticalGap,
+          x: Math.round(horizontalGap * (column + 1)),
+          y: Math.round(height * 0.32 + row * verticalGap),
         });
       }
     }

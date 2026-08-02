@@ -23,19 +23,19 @@ export class SandhiGame {
       type: Phaser.AUTO,
       parent: container,
       banner: false,
-      transparent: true,
-      backgroundColor: "#000000",
+      transparent: false,
+      backgroundColor: "#07111c",
       scale: {
         mode: Phaser.Scale.NONE,
         width: container.clientWidth || 960,
         height: container.clientHeight || 640,
-        autoCenter: Phaser.Scale.CENTER_BOTH,
+        autoCenter: Phaser.Scale.NO_CENTER,
       },
       scene: [this.scene],
       render: {
         antialias: true,
         antialiasGL: true,
-        roundPixels: false,
+        roundPixels: true,
       },
     });
   }
