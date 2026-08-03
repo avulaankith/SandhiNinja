@@ -203,8 +203,12 @@ export const SandhiJoinBoard = ({
   );
   const onFeedbackRef = useRef(onFeedback);
   const interactionCounterRef = useRef(0);
+  const errorTimerRef = useRef<number | null>(null);
   const [visibleBranches, setVisibleBranches] = useState<JoinBranch[]>(() =>
     collectLeaves(tree),
+  );
+  const [errorBoundaryIndex, setErrorBoundaryIndex] = useState<number | null>(
+    null,
   );
 
   useEffect(() => {
@@ -212,8 +216,35 @@ export const SandhiJoinBoard = ({
   }, [onFeedback]);
 
   useEffect(() => {
+    return () => {
+      if (errorTimerRef.current !== null) {
+        window.clearTimeout(errorTimerRef.current);
+      }
+    };
+  }, []);
+
+  const triggerBoundaryError = (boundaryIndex: number) => {
+    setErrorBoundaryIndex(boundaryIndex);
+
+    if (errorTimerRef.current !== null) {
+      window.clearTimeout(errorTimerRef.current);
+    }
+
+    errorTimerRef.current = window.setTimeout(() => {
+      setErrorBoundaryIndex(null);
+      errorTimerRef.current = null;
+    }, 560);
+  };
+
+  useEffect(() => {
     const initialBranches = collectLeaves(tree);
+    if (errorTimerRef.current !== null) {
+      window.clearTimeout(errorTimerRef.current);
+      errorTimerRef.current = null;
+    }
+
     interactionCounterRef.current = 0;
+    setErrorBoundaryIndex(null);
     setVisibleBranches(initialBranches);
     onFeedbackRef.current({
       outcome: "blocked",
@@ -260,8 +291,9 @@ export const SandhiJoinBoard = ({
       const selectedCut =
         matchingCuts[Math.floor(Math.random() * matchingCuts.length)];
 
+      setErrorBoundaryIndex(null);
       setVisibleBranches(nextBranches);
-      onFeedback({
+      onFeedbackRef.current({
         outcome: "correct",
         message: localizedMessage(roundCompleted ? "joinComplete" : "correctJoin"),
         lesson: buildLesson(
@@ -280,6 +312,7 @@ export const SandhiJoinBoard = ({
       return;
     }
 
+    triggerBoundaryError(boundaryIndex);
     const wrongKey = opportunity
       ? "feedbackWrongJoinRule"
       : assessment === "place-wrong-rule-correct"
@@ -288,7 +321,7 @@ export const SandhiJoinBoard = ({
           ? "feedbackWrongJoinBoth"
           : "feedbackWrongJoinBoundary";
 
-    onFeedback({
+    onFeedbackRef.current({
       outcome: "wrong",
       message: localizedMessage(wrongKey),
       revealLesson: getRevealLesson(visibleBranches),
@@ -311,42 +344,48 @@ export const SandhiJoinBoard = ({
       </div>
 
       <div className="join-stage__rail">
-        {visibleBranches.map((branch, index) => (
-          <div className="join-stage__segment" key={`${branch.key}-${index}`}>
-            <motion.article
-              layout
-              className={`join-token ${branch.cut ? "join-token--compound" : "join-token--final"}`}
-            >
-              <strong>{branch.node.devanagari}</strong>
-              <div className="join-token__meta">
-                <span className="join-token__secondary">
-                  {secondaryLabel(branch.node, language)}
-                </span>
-                <div
-                  className={`join-token__badge ${
-                    branch.cut ? "join-token__badge--compound" : "join-token__badge--final"
-                  }`}
-                >
-                  {branch.cut ? t("joinCanJoin", language) : t("joinBuilt", language)}
-                </div>
-              </div>
-            </motion.article>
+        {visibleBranches.map((branch, index) => {
+          const tokenHasError =
+            errorBoundaryIndex === index || errorBoundaryIndex === index - 1;
+          const boundaryHasError = errorBoundaryIndex === index;
 
-            {index < visibleBranches.length - 1 ? (
-              <motion.button
-                layout
-                className="join-boundary"
-                disabled={interactionLocked}
-                onClick={() => handleBoundaryClick(index)}
-                type="button"
-                whileTap={{ scale: 0.97 }}
+          return (
+            <div className="join-stage__segment" key={`${branch.key}-${index}`}>
+              <article
+                className={`join-token ${branch.cut ? "join-token--compound" : "join-token--final"} ${
+                  tokenHasError ? "join-token--error" : ""
+                }`}
               >
-                <span className="join-boundary__plus">+</span>
-                <span className="join-boundary__label">{t("joinTap", language)}</span>
-              </motion.button>
-            ) : null}
-          </div>
-        ))}
+                <strong>{branch.node.devanagari}</strong>
+                <div className="join-token__meta">
+                  <span className="join-token__secondary">
+                    {secondaryLabel(branch.node, language)}
+                  </span>
+                  <div
+                    className={`join-token__badge ${
+                      branch.cut ? "join-token__badge--compound" : "join-token__badge--final"
+                    }`}
+                  >
+                    {branch.cut ? t("joinCanJoin", language) : t("joinBuilt", language)}
+                  </div>
+                </div>
+              </article>
+
+              {index < visibleBranches.length - 1 ? (
+                <motion.button
+                  className={`join-boundary ${boundaryHasError ? "join-boundary--error" : ""}`}
+                  disabled={interactionLocked}
+                  onClick={() => handleBoundaryClick(index)}
+                  type="button"
+                  whileTap={{ scale: 0.97 }}
+                >
+                  <span className="join-boundary__plus">+</span>
+                  <span className="join-boundary__label">{t("joinTap", language)}</span>
+                </motion.button>
+              ) : null}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

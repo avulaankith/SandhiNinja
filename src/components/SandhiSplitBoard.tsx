@@ -1,5 +1,4 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { motion } from "framer-motion";
 import { cloneWordNode, isFurtherSplittable } from "../data/sandhiBank";
 import { UI_TEXT, t } from "../data/uiText";
 import {
@@ -240,11 +239,21 @@ export const SandhiSplitBoard = ({
   const onFeedbackRef = useRef(onFeedback);
   const tokenSerialRef = useRef(0);
   const interactionSerialRef = useRef(0);
+  const errorTimerRef = useRef<number | null>(null);
   const [visibleTokens, setVisibleTokens] = useState<ActiveToken[]>([]);
+  const [errorTokenId, setErrorTokenId] = useState<string | null>(null);
 
   useEffect(() => {
     onFeedbackRef.current = onFeedback;
   }, [onFeedback]);
+
+  useEffect(() => {
+    return () => {
+      if (errorTimerRef.current !== null) {
+        window.clearTimeout(errorTimerRef.current);
+      }
+    };
+  }, []);
 
   const createToken = (node: WordNode, depth: number): ActiveToken => ({
     instanceId: `${roundKey}:split-token:${++tokenSerialRef.current}`,
@@ -252,13 +261,32 @@ export const SandhiSplitBoard = ({
     depth,
   });
 
+  const triggerTokenError = (tokenId: string) => {
+    setErrorTokenId(tokenId);
+
+    if (errorTimerRef.current !== null) {
+      window.clearTimeout(errorTimerRef.current);
+    }
+
+    errorTimerRef.current = window.setTimeout(() => {
+      setErrorTokenId(null);
+      errorTimerRef.current = null;
+    }, 560);
+  };
+
   useEffect(() => {
     if (!fontsReady) {
       return;
     }
 
+    if (errorTimerRef.current !== null) {
+      window.clearTimeout(errorTimerRef.current);
+      errorTimerRef.current = null;
+    }
+
     tokenSerialRef.current = 0;
     interactionSerialRef.current = 0;
+    setErrorTokenId(null);
     const initialTokens = [createToken(rootWord, 0)];
     setVisibleTokens(initialTokens);
     onFeedbackRef.current({
@@ -289,6 +317,7 @@ export const SandhiSplitBoard = ({
     const feedbackBoundaryIndex = candidateBoundaryCharOffsets[0] ?? -1;
 
     if (!isFurtherSplittable(token.node)) {
+      triggerTokenError(token.instanceId);
       onFeedbackRef.current({
         outcome: "blocked",
         message: localizedMessage("feedbackFinal"),
@@ -320,6 +349,7 @@ export const SandhiSplitBoard = ({
         ? "place-wrong-rule-correct"
         : "both-wrong";
 
+      triggerTokenError(token.instanceId);
       onFeedbackRef.current({
         outcome: "wrong",
         message: localizedMessage(
@@ -343,6 +373,7 @@ export const SandhiSplitBoard = ({
     );
 
     if (matchingCuts.length === 0) {
+      triggerTokenError(token.instanceId);
       onFeedbackRef.current({
         outcome: "wrong",
         message: localizedMessage("feedbackWrongRule"),
@@ -370,6 +401,7 @@ export const SandhiSplitBoard = ({
       (entry) => !isFurtherSplittable(entry.node),
     );
 
+    setErrorTokenId(null);
     setVisibleTokens(nextTokens);
     onFeedbackRef.current({
       outcome: "correct",
@@ -398,11 +430,13 @@ export const SandhiSplitBoard = ({
       <div className="split-stage__rail">
         {visibleTokens.map((token) => {
           const splittable = isFurtherSplittable(token.node);
+          const showError = errorTokenId === token.instanceId;
 
           return (
-            <motion.article
-              layout
-              className={`split-token ${splittable ? "split-token--compound" : "split-token--final"}`}
+            <article
+              className={`split-token ${splittable ? "split-token--compound" : "split-token--final"} ${
+                showError ? "split-token--error" : ""
+              }`}
               key={token.instanceId}
             >
               <SplitTokenWord
@@ -426,7 +460,7 @@ export const SandhiSplitBoard = ({
                   {splittable ? t("canSplitAgain", language) : t("finalWord", language)}
                 </div>
               </div>
-            </motion.article>
+            </article>
           );
         })}
       </div>
