@@ -2,25 +2,25 @@
 
 Live site: [https://sandhi-ninja.vercel.app](https://sandhi-ninja.vercel.app)
 
-Sandhi Ninja is a Sanskrit sandhi practice app built with React, Phaser, Vite, and a same-repo TypeScript backend. It combines game-style sandhi splitting and joining with guided explanations, sutra references, and a separate explorer for analyzing new samasta padams.
+Sandhi Ninja is a Sanskrit sandhi practice app built with React, Phaser, Vite, and a same-repo TypeScript backend. The current live app centers on three game modes, family-based word filters, campaign graduation, and multilingual sandhi explanations.
 
 ## What It Does
 
 - `Sandhi Splitting`: choose the correct sandhi, then split at the correct akshara boundary
 - `Sandhi Joining`: choose the correct sandhi and join adjacent padani back into a compound
-- `Practice mode`: the current word stays on screen until the learner presses `Next word`
-- `Timed` and `Untimed` play
-- `Guided` and `Challenge` study modes
+- `Ninja Slice`: a speed-focused split mode that shows the target sandhi directly and tests placement/timing
+- `Learn`, `Practice`, and `Challenge` session presets
+- advanced controls for `With clock` / `No clock`, answer reveal duration, and `Auto next` / `Stay here`
 - `Mixed`, `Svara`, `Vyanjana`, and `Visarga` family filters
+- campaign mastery and graduation across built-in `Sandhi Splitting` and `Sandhi Joining`
 - feedback that distinguishes:
   - correct place + correct sandhi
   - correct place + wrong sandhi
   - wrong place + sandhi valid elsewhere in the word
   - both wrong
+- red/shake wrong-attempt feedback on board interactions
 - answer reveal after repeated misses, including sandhi name, split place, sutra number, nimittam, and explanation
 - randomized word flow with stable per-word rule ordering in the dock
-- separate `Sandhi Explorer` for entering a word in `IAST`, `Devanagari`, or `Telugu`
-- local custom entry workflow with save, edit, delete, import, and export
 - responsive desktop and mobile layout
 - UI in `English`, `Sanskrit`, and `Telugu`
 
@@ -28,13 +28,26 @@ Sandhi Ninja is a Sanskrit sandhi practice app built with React, Phaser, Vite, a
 
 ### Gameplay Bank
 
-The gameplay bank covers three sandhi families:
+The built-in gameplay bank currently covers three sandhi families:
 
 - `Svara`
 - `Vyanjana`
 - `Visarga`
 
-Gameplay includes 23 taught rule types:
+Current built-in playable pool:
+
+- `Mixed`: `392` unique gameplay-eligible root words
+- `Svara`: `160` words containing at least one svara-sandhi step
+- `Vyanjana`: `168` words containing at least one vyanjana-sandhi step
+- `Visarga`: `69` words containing at least one visarga-sandhi step
+
+Important counting note:
+
+- `Mixed` is the unique playable pool
+- family counts are membership counts, not disjoint buckets
+- a multi-step word may belong to more than one family, so `160 + 168 + 69` is expected to be greater than `392`
+
+Gameplay currently teaches 23 rule types:
 
 - `Svara`: Savarṇa Dīrgha, Guṇa, Vṛddhi, Yaṇ, Ayavāyāva, Pūrvarūpa, Pararūpa
 - `Vyanjana`: Jaśtva, Charva, Anunāsika, Anusvāra, Pūrvasavarṇa, Parasavarṇa, Chhatva, Tugāgama, Ścutva, Ṣṭutva, N-Final Satva, Yavalopa
@@ -42,7 +55,7 @@ Gameplay includes 23 taught rule types:
 
 ### Explorer / Analyzer
 
-The explorer backend currently supports deterministic `svara-sandhi reversal` for:
+The same-repo analyzer backend currently supports deterministic `svara-sandhi reversal` for:
 
 - `Savarna Dirgha`
 - `Guna`
@@ -58,30 +71,38 @@ The explorer returns normalized forms, ranked candidate analyses, split steps, s
 
 ### 1. Game Modes
 
-- `Sandhi Splitting`: Phaser-based slicing interaction
+- `Sandhi Splitting`: choose the sandhi, then split at the shown gold boundary guide
 - `Sandhi Joining`: choose sandhi and join valid neighboring pieces
-- `Practice mode`: no forced advance after success
+- `Ninja Slice`: falling-word style split mode with direct target-sandhi display
 
-### 2. Coaching
+### 2. Session Presets
+
+- `Learn`: full help, no clock, answer reveal allowed, manual next, no campaign mastery
+- `Practice`: teaching help visible, no clock by default, manual next, clean solves count toward mastery
+- `Challenge`: lighter help, 4 lives, clock on by default, auto-next by default, clean solves count toward mastery
+
+### 3. Coaching and Feedback
 
 - guided hints after repeated misses
 - reveal after repeated failures
 - clear distinction between boundary mistakes and rule mistakes
-- “splits left” indicator during play
+- red/shake wrong-attempt feedback on the active word or join boundary
+- `splits left` indicator during play
 
-### 3. Sandhi Explorer
+### 4. Campaign and Graduation
 
-- separate section from gameplay
-- input in `IAST`, `Devanagari`, or `Telugu`
+- graduation depends on mastering the built-in word bank in both `Sandhi Splitting` and `Sandhi Joining`
+- `Learn` mode never grants mastery
+- `Practice` and `Challenge` grant mastery only for clean solves without `Show answer`
+- `Ninja Slice` is optional in v1 and does not affect graduation
+- endless review stays available after graduation
+
+### 5. Analyzer Backend
+
 - same-repo API via `POST /api/sandhi/analyze`
-- client fallback for supported analyzer rules if the API is unavailable
-
-### 4. Custom Content
-
-- locally save analyzer results into the practice bank
-- create manual entries in Dev Studio
-- import/export JSON
-- edit or delete custom entries stored in browser storage
+- normalization across `IAST`, `Devanagari`, and `Telugu`
+- ranked candidate analyses with step-by-step metadata
+- current analyzer scope is `svara-first`, narrower than the gameplay bank
 
 ## Tech Stack
 
@@ -258,6 +279,7 @@ npm test
 ## Notes
 
 - gameplay support is broader than analyzer support; the analyzer is still `svara-first`
+- family counts overlap by design because one built-in word may carry more than one sandhi family in its full split chain
 - the analyzer is rule-based and does not yet validate against a lexical or morphology database
 - custom entries live in browser storage
 - the explorer and the game share the same rule definitions, but only the explorer depends on the analyzer API path
