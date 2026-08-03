@@ -146,7 +146,6 @@ export const LessonPanel = ({
 
   return (
     <motion.section
-      layout
       className={`glass-panel lesson-panel ${revealed ? "lesson-panel--reveal" : ""}`}
       initial={{ opacity: 0, y: 18 }}
       animate={{ opacity: 1, y: 0 }}

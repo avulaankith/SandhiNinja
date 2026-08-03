@@ -284,7 +284,6 @@ export const ScorePanel = ({
 
   return (
     <motion.section
-      layout
       className="glass-panel score-panel"
       initial={{ opacity: 0, y: 18 }}
       animate={{ opacity: 1, y: 0 }}
