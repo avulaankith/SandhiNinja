@@ -1393,6 +1393,38 @@ function App() {
   }, []);
 
   useEffect(() => {
+    if (typeof window === "undefined" || typeof document === "undefined") {
+      return;
+    }
+
+    const root = document.documentElement;
+    const visualViewport = window.visualViewport;
+
+    const syncVisibleViewport = () => {
+      const visibleHeight = Math.max(
+        visualViewport?.height ?? window.innerHeight,
+        320,
+      );
+      root.style.setProperty("--app-visible-vh", `${visibleHeight}px`);
+    };
+
+    syncVisibleViewport();
+
+    window.addEventListener("resize", syncVisibleViewport);
+    window.addEventListener("orientationchange", syncVisibleViewport);
+    visualViewport?.addEventListener("resize", syncVisibleViewport);
+    visualViewport?.addEventListener("scroll", syncVisibleViewport);
+
+    return () => {
+      window.removeEventListener("resize", syncVisibleViewport);
+      window.removeEventListener("orientationchange", syncVisibleViewport);
+      visualViewport?.removeEventListener("resize", syncVisibleViewport);
+      visualViewport?.removeEventListener("scroll", syncVisibleViewport);
+      root.style.removeProperty("--app-visible-vh");
+    };
+  }, []);
+
+  useEffect(() => {
     if (isStudioMode) {
       return;
     }
@@ -2536,7 +2568,7 @@ function App() {
                   onClick={() => setMobileDrawer(null)}
                   type="button"
                 >
-                  {t("close", language)}
+                  {t("backToGame", language)}
                 </button>
               </div>
 
@@ -2622,31 +2654,37 @@ function App() {
               className="overlay-card"
               initial={{ opacity: 0, scale: 0.95, y: 24 }}
             >
-              <span className="panel-kicker">{t("onboardingTitle", language)}</span>
-              <h2>
-                {isNinjaMode
-                  ? language === "sa"
-                    ? "पतमानपदे लक्ष्यसन्धिम् अनुसृत्य स्वाइप् कुरु।"
-                    : language === "te"
-                      ? "పడుతూ ఉన్న పదంలో లక్ష్య సంధిని చూసి స్వైప్ చేయండి."
-                      : "Swipe through the shown target sandhi on the falling word."
-                  : t(isJoinMode ? "onboardingJoinBody" : "onboardingBody", language)}
-              </h2>
-              <div className="onboarding-steps">
-                {onboardingSteps.map((step) => (
-                  <div className="onboarding-step" key={step.title}>
-                    <strong>{step.title}</strong>
-                    <p>{step.body}</p>
-                  </div>
-                ))}
+              <div className="overlay-card__header">
+                <span className="panel-kicker">{t("onboardingTitle", language)}</span>
+                <h2>
+                  {isNinjaMode
+                    ? language === "sa"
+                      ? "पतमानपदे लक्ष्यसन्धिम् अनुसृत्य स्वाइप् कुरु।"
+                      : language === "te"
+                        ? "పడుతూ ఉన్న పదంలో లక్ష్య సంధిని చూసి స్వైప్ చేయండి."
+                        : "Swipe through the shown target sandhi on the falling word."
+                    : t(isJoinMode ? "onboardingJoinBody" : "onboardingBody", language)}
+                </h2>
               </div>
-              <button
-                className="primary-button"
-                onClick={() => setShowOnboarding(false)}
-                type="button"
-              >
-                {t("close", language)}
-              </button>
+              <div className="overlay-card__body">
+                <div className="onboarding-steps">
+                  {onboardingSteps.map((step) => (
+                    <div className="onboarding-step" key={step.title}>
+                      <strong>{step.title}</strong>
+                      <p>{step.body}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="overlay-card__footer">
+                <button
+                  className="primary-button"
+                  onClick={() => setShowOnboarding(false)}
+                  type="button"
+                >
+                  {t("enterArena", language)}
+                </button>
+              </div>
             </motion.div>
           </motion.div>
         ) : null}
@@ -2663,69 +2701,75 @@ function App() {
               className="overlay-card"
               initial={{ opacity: 0, scale: 0.95, y: 24 }}
             >
-              <span className="panel-kicker">
-                {language === "sa"
-                  ? "प्रावीण्यसिद्धिः"
-                  : language === "te"
-                    ? "ప్రావీణ్యసిద్ధి"
-                    : "Mastery complete"}
-              </span>
-              <h2>
-                {language === "sa"
-                  ? "उभयेषु प्रकारेषु अभियानप्रावीण्यं सिद्धम्।"
-                  : language === "te"
-                    ? "విడిపోటిలోను, కలయికలోను ప్రచార ప్రావీణ్యం పూర్తైంది."
-                    : "Campaign mastery is complete in both splitting and joining."}
-              </h2>
-              <div className="onboarding-steps">
-                <div className="onboarding-step">
-                  <strong>
-                    {language === "sa"
-                      ? "भेदप्रावीण्यम्"
-                      : language === "te"
-                        ? "విడిపోటి ప్రావీణ్యం"
-                        : "Split mastery"}
-                  </strong>
-                  <p>
-                    {campaignSummary.splitMastered}/{campaignSummary.splitTotal}
-                  </p>
-                </div>
-                <div className="onboarding-step">
-                  <strong>
-                    {language === "sa"
-                      ? "संयोजनप्रावीण्यम्"
-                      : language === "te"
-                        ? "కలయిక ప్రావీణ్యం"
-                        : "Join mastery"}
-                  </strong>
-                  <p>
-                    {campaignSummary.joinMastered}/{campaignSummary.joinTotal}
-                  </p>
-                </div>
-                <div className="onboarding-step">
-                  <strong>
-                    {language === "sa"
-                      ? "अनन्तपुनरवलोकनम्"
-                      : language === "te"
-                        ? "అంతులేని పునర్విమర్శ"
-                        : "Endless Review"}
-                  </strong>
-                  <p>
-                    {language === "sa"
-                      ? "इदानीं मुक्तम्। इच्छया पुनः अभ्यासं कुरु।"
-                      : language === "te"
-                        ? "ఇప్పుడు తెరుచుకుంది. కావాలంటే నిరంతర సాధన కొనసాగించండి."
-                        : "is now unlocked. Keep reviewing as long as you want."}
-                  </p>
+              <div className="overlay-card__header">
+                <span className="panel-kicker">
+                  {language === "sa"
+                    ? "प्रावीण्यसिद्धिः"
+                    : language === "te"
+                      ? "ప్రావీణ్యసిద్ధి"
+                      : "Mastery complete"}
+                </span>
+                <h2>
+                  {language === "sa"
+                    ? "उभयेषु प्रकारेषु अभियानप्रावीण्यं सिद्धम्।"
+                    : language === "te"
+                      ? "విడిపోటిలోను, కలయికలోను ప్రచార ప్రావీణ్యం పూర్తైంది."
+                      : "Campaign mastery is complete in both splitting and joining."}
+                </h2>
+              </div>
+              <div className="overlay-card__body">
+                <div className="onboarding-steps">
+                  <div className="onboarding-step">
+                    <strong>
+                      {language === "sa"
+                        ? "भेदप्रावीण्यम्"
+                        : language === "te"
+                          ? "విభజన ప్రావీణ్యం"
+                          : "Split mastery"}
+                    </strong>
+                    <p>
+                      {campaignSummary.splitMastered}/{campaignSummary.splitTotal}
+                    </p>
+                  </div>
+                  <div className="onboarding-step">
+                    <strong>
+                      {language === "sa"
+                        ? "संयोजनप्रावीण्यम्"
+                        : language === "te"
+                          ? "కలయిక ప్రావీణ్యం"
+                          : "Join mastery"}
+                    </strong>
+                    <p>
+                      {campaignSummary.joinMastered}/{campaignSummary.joinTotal}
+                    </p>
+                  </div>
+                  <div className="onboarding-step">
+                    <strong>
+                      {language === "sa"
+                        ? "अनन्तपुनरवलोकनम्"
+                        : language === "te"
+                          ? "అంతులేని పునర్విమర్శ"
+                          : "Endless Review"}
+                    </strong>
+                    <p>
+                      {language === "sa"
+                        ? "इदानीं मुक्तम्। इच्छया पुनः अभ्यासं कुरु।"
+                        : language === "te"
+                          ? "ఇప్పుడు తెరుచుకుంది. కావాలంటే నిరంతర సాధన కొనసాగించండి."
+                          : "is now unlocked. Keep reviewing as long as you want."}
+                    </p>
+                  </div>
                 </div>
               </div>
-              <button
-                className="primary-button"
-                onClick={() => setShowGraduation(false)}
-                type="button"
-              >
-                {t("close", language)}
-              </button>
+              <div className="overlay-card__footer">
+                <button
+                  className="primary-button"
+                  onClick={() => setShowGraduation(false)}
+                  type="button"
+                >
+                  {t("backToGame", language)}
+                </button>
+              </div>
             </motion.div>
           </motion.div>
         ) : null}

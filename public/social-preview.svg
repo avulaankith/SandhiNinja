@@ -1,0 +1,50 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="80" y1="60" x2="1120" y2="570" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#071019"/>
+      <stop offset="0.48" stop-color="#0A1622"/>
+      <stop offset="1" stop-color="#10242D"/>
+    </linearGradient>
+    <radialGradient id="glowWarm" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(220 110) rotate(38.2) scale(360 220)">
+      <stop stop-color="#F4B162" stop-opacity="0.36"/>
+      <stop offset="1" stop-color="#F4B162" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowCool" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(960 120) rotate(152.4) scale(280 180)">
+      <stop stop-color="#70E1DC" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#70E1DC" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="frame" x1="108" y1="86" x2="1088" y2="548" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F4B162" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#70E1DC" stop-opacity="0.36"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="630" rx="0" fill="url(#bg)"/>
+  <rect width="1200" height="630" fill="url(#glowWarm)"/>
+  <rect width="1200" height="630" fill="url(#glowCool)"/>
+
+  <rect x="72" y="60" width="1056" height="510" rx="32" fill="rgba(10,18,29,0.72)" stroke="url(#frame)" stroke-width="2"/>
+
+  <circle cx="168" cy="146" r="52" fill="#152A3B" stroke="#F4B162" stroke-width="6"/>
+  <circle cx="168" cy="146" r="38" fill="#0E1D2E"/>
+  <path d="M142 178L166 112L191 178" stroke="#EFF6FB" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M150 156H184" stroke="#70E1DC" stroke-width="7" stroke-linecap="round"/>
+  <circle cx="168" cy="146" r="7" fill="#F4B162"/>
+
+  <text x="242" y="132" fill="#F4B162" font-family="'IBM Plex Sans', Arial, sans-serif" font-size="26" font-weight="700" letter-spacing="7">SANSKRIT SANDHI PRACTICE</text>
+  <text x="242" y="212" fill="#F7F8FB" font-family="'Noto Serif', Georgia, serif" font-size="78" font-weight="700">Sandhi Ninja</text>
+  <text x="242" y="276" fill="#B9C6D4" font-family="'IBM Plex Sans', Arial, sans-serif" font-size="32" font-weight="500">Split compounds, join padani, and learn sutras through play.</text>
+  <text x="242" y="326" fill="#9EB1C3" font-family="'IBM Plex Sans', Arial, sans-serif" font-size="28" font-weight="500">Svara • Vyanjana • Visarga • English • Sanskrit • Telugu</text>
+
+  <rect x="242" y="382" width="244" height="58" rx="18" fill="#132435" stroke="#F4B162" stroke-width="2"/>
+  <text x="278" y="420" fill="#F4B162" font-family="'IBM Plex Sans', Arial, sans-serif" font-size="26" font-weight="700">Campaign Practice</text>
+
+  <rect x="508" y="382" width="222" height="58" rx="18" fill="#132435" stroke="#70E1DC" stroke-width="2"/>
+  <text x="548" y="420" fill="#70E1DC" font-family="'IBM Plex Sans', Arial, sans-serif" font-size="26" font-weight="700">Ninja Slice</text>
+
+  <rect x="760" y="382" width="256" height="58" rx="18" fill="#132435" stroke="#F4B162" stroke-width="2"/>
+  <text x="797" y="420" fill="#F7F8FB" font-family="'IBM Plex Sans', Arial, sans-serif" font-size="26" font-weight="700">Paninian Explanations</text>
+
+  <text x="242" y="500" fill="#EFF6FB" font-family="'Noto Serif Devanagari', serif" font-size="44" font-weight="600">सन्धिं भित्वा पुनः संयोजय</text>
+  <text x="242" y="542" fill="#9EB1C3" font-family="'IBM Plex Sans', Arial, sans-serif" font-size="22" font-weight="500">https://sandhi-ninja.vercel.app</text>
+</svg>

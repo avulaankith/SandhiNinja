@@ -336,10 +336,15 @@ export const UI_TEXT = {
     sa: "प्रत्येकः साधुसंयोगः बृहत्तरं दृश्यखण्डं जनयति। यावत् एकमेव समस्तपदं शिष्यते तावत् संयोजय। अभ्यासविधौ तु सिद्धं पदम् अग्रिमपदं नुदेपर्यन्तं अत्रैव तिष्ठति।",
     te: "ప్రతి సరైన కలయికతో పెద్ద భాగం తయారవుతుంది. ఒక్క సమస్తపదం మిగిలే వరకు కొనసాగండి. అభ్యాస విధానంలో అయితే పూర్తైన పదం మీరు తదుపరి పదం నొక్కే వరకు ఇక్కడే ఉంటుంది.",
   },
-  close: {
+  enterArena: {
     en: "Enter arena",
     sa: "रङ्गं प्रविश",
     te: "ఆటలోకి రండి",
+  },
+  backToGame: {
+    en: "Back to game",
+    sa: "क्रीडां प्रति प्रत्यागच्छ",
+    te: "ఆటకు తిరుగు",
   },
   currentLesson: {
     en: "Lesson panel",
@@ -515,11 +520,6 @@ export const UI_TEXT = {
     en: "Open Sandhi Explorer",
     sa: "सन्धि-अन्वेषणं उद्घाटय",
     te: "సంధి అన్వేషిణిని తెరువు",
-  },
-  backToGame: {
-    en: "Back to game",
-    sa: "क्रीडां प्रति गच्छ",
-    te: "ఆటకు తిరుగు",
   },
   studioAutoFill: {
     en: "You only enter the compound word, the split pieces, and the rule for each step. IDs, IAST, sutras, explanations, and akṣaras are auto-filled.",

@@ -2,20 +2,124 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sandhi Ninja | Sanskrit Sandhi Practice Game</title>
     <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0"
+      name="description"
+      content="Practice Sanskrit sandhi through interactive splitting, joining, and Ninja Slice modes. Learn svara, vyanjana, and visarga sandhi with Paninian sutras and explanations in English, Sanskrit, and Telugu."
     />
+    <meta
+      name="keywords"
+      content="Sanskrit sandhi, sandhi practice, Sanskrit grammar game, Panini sutras, sandhi splitting, sandhi joining, svara sandhi, vyanjana sandhi, visarga sandhi"
+    />
+    <meta
+      name="robots"
+      content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1"
+    />
+    <meta
+      name="googlebot"
+      content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1"
+    />
+    <meta name="application-name" content="Sandhi Ninja" />
+    <meta name="apple-mobile-web-app-title" content="Sandhi Ninja" />
+    <meta name="theme-color" content="#081522" />
+    <link rel="canonical" href="https://sandhi-ninja.vercel.app/" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/site.webmanifest" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Sandhi Ninja" />
+    <meta property="og:url" content="https://sandhi-ninja.vercel.app/" />
+    <meta
+      property="og:title"
+      content="Sandhi Ninja | Sanskrit Sandhi Practice Game"
+    />
+    <meta
+      property="og:description"
+      content="Practice Sanskrit sandhi splitting and joining with guided gameplay, Paninian sutras, and explanations in English, Sanskrit, and Telugu."
+    />
+    <meta
+      property="og:image"
+      content="https://sandhi-ninja.vercel.app/social-preview.svg"
+    />
+    <meta property="og:image:type" content="image/svg+xml" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="Sandhi Ninja Sanskrit sandhi practice game preview"
+    />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="Sandhi Ninja | Sanskrit Sandhi Practice Game"
+    />
+    <meta
+      name="twitter:description"
+      content="Learn Sanskrit sandhi with interactive splitting, joining, and Ninja Slice modes."
+    />
+    <meta
+      name="twitter:image"
+      content="https://sandhi-ninja.vercel.app/social-preview.svg"
+    />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "name": "Sandhi Ninja",
+            "url": "https://sandhi-ninja.vercel.app/",
+            "description": "Interactive Sanskrit sandhi practice app for splitting, joining, and guided study."
+          },
+          {
+            "@type": "EducationalApplication",
+            "name": "Sandhi Ninja",
+            "url": "https://sandhi-ninja.vercel.app/",
+            "applicationCategory": "EducationalApplication",
+            "operatingSystem": "Any",
+            "browserRequirements": "Requires JavaScript and a modern browser.",
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD"
+            },
+            "description": "Practice Sanskrit sandhi through interactive splitting, joining, and Ninja Slice modes with Paninian sutras and multilingual explanations.",
+            "inLanguage": ["en", "sa", "te"],
+            "about": {
+              "@type": "Thing",
+              "name": "Sanskrit sandhi"
+            }
+          }
+        ]
+      }
+    </script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Anek+Telugu:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=Noto+Serif+Devanagari:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <title>Sandhi Ninja</title>
   </head>
   <body>
+    <noscript>
+      <section
+        style="max-width: 72rem; margin: 0 auto; padding: 2rem; font-family: Arial, sans-serif; line-height: 1.6;"
+      >
+        <h1>Sandhi Ninja</h1>
+        <p>
+          Sandhi Ninja is a Sanskrit sandhi practice game for splitting and
+          joining compounds. It covers svara, vyanjana, and visarga sandhi with
+          explanations in English, Sanskrit, and Telugu.
+        </p>
+        <p>
+          Enable JavaScript to use the interactive game and the sandhi analyzer.
+        </p>
+      </section>
+    </noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

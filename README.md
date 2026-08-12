@@ -4,6 +4,16 @@ Live site: [https://sandhi-ninja.vercel.app](https://sandhi-ninja.vercel.app)
 
 Sandhi Ninja is a Sanskrit sandhi practice app built with React, Phaser, Vite, and a same-repo TypeScript backend. The current live app centers on three game modes, family-based word filters, campaign graduation, and multilingual sandhi explanations.
 
+It also includes baseline SEO setup so the site is easier to discover and preview in search engines and social links:
+
+- canonical URL metadata
+- search title and description metadata
+- Open Graph and Twitter preview tags
+- schema.org structured data
+- `robots.txt`
+- `sitemap.xml`
+- `site.webmanifest`
+
 ## What It Does
 
 - `Sandhi Splitting`: choose the correct sandhi, then split at the correct akshara boundary
@@ -137,6 +147,12 @@ api/
   health.ts          Vercel health route
   sandhi/analyze.ts  Vercel analyzer route
 
+public/
+  robots.txt         crawler rules
+  sitemap.xml        search sitemap
+  site.webmanifest   install/share metadata
+  social-preview.svg social preview image
+
 tests/
   engine.test.mjs    analyzer and API tests
 ```
@@ -213,6 +229,8 @@ This repo already includes:
 
 - `vercel.json` for frontend + API rewrites
 - `api/` serverless entrypoints for Vercel
+- SEO metadata and structured data in `index.html`
+- search/share assets in `public/`
 
 ### Render
 

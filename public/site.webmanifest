@@ -1,0 +1,18 @@
+{
+  "name": "Sandhi Ninja",
+  "short_name": "Sandhi Ninja",
+  "description": "Interactive Sanskrit sandhi practice for splitting, joining, and guided study.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#081522",
+  "theme_color": "#081522",
+  "lang": "en",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
