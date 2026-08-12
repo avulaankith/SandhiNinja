@@ -119,9 +119,9 @@ const PANEL_LABELS = {
     te: "ప్రచారం",
   },
   campaignBody: {
-    en: "Graduate by mastering built-in words in both splitting and joining without using Show answer.",
-    sa: "भेदे च संयोजने च अन्तर्निहितानि पदानि उत्तरप्रदर्शनं विना साधयित्वा स्नातकत्वं प्राप्नुहि।",
-    te: "సమాధానం చూపకుండా అంతర్నిర్మిత పదాలను విడగొట్టడంలోను, కలపడంలోను సాధిస్తే పట్టాభిషేకం పొందుతారు.",
+    en: "Complete campaign mastery by solving built-in words in both splitting and joining without using Show answer.",
+    sa: "भेदे च संयोजने च अन्तर्निहितानि पदानि उत्तरप्रदर्शनं विना साधयित्वा अभियानप्रावीण्यं सम्पादय।",
+    te: "సమాధానం చూపకుండా అంతర్నిర్మిత పదాలను విడగొట్టడంలోను, కలపడంలోను స్వయంగా సాధిస్తే ప్రచార ప్రావీణ్యం సిద్ధమవుతుంది.",
   },
   campaignReset: {
     en: "Reset campaign",
@@ -154,14 +154,14 @@ const PANEL_LABELS = {
     te: "మొత్తం",
   },
   graduationAt: {
-    en: "Graduated",
-    sa: "स्नातकत्वम्",
-    te: "పట్టాభిషేకం",
+    en: "Mastery complete",
+    sa: "प्रावीण्यसिद्धिः",
+    te: "ప్రావీణ్యసిద్ధి",
   },
   learnGoal: {
-    en: "Graduation does not use Ninja Slice in v1.",
-    sa: "प्रथमसंस्करणे निन्जा-छेदः स्नातकगणनायां न गण्यते।",
-    te: "మొదటి సంచికలో నింజా విభజనం పట్టాభిషేక లెక్కలోకి రాదు.",
+    en: "Ninja Slice does not count toward campaign mastery in v1.",
+    sa: "प्रथमसंस्करणे निन्जा-छेदः अभियानप्रावीण्यगणनायां न गण्यते।",
+    te: "మొదటి సంచికలో నింజా విభజనం ప్రచార ప్రావీణ్య లెక్కలోకి రాదు.",
   },
   masterJoin: {
     en: "Join mastery",
@@ -171,7 +171,7 @@ const PANEL_LABELS = {
   masterSplit: {
     en: "Split mastery",
     sa: "भेदप्रावीण्यम्",
-    te: "విడిపోటి ప్రావీణ్యం",
+    te: "విభజన ప్రావీణ్యం",
   },
   modeHint: {
     en: "Session style",
@@ -197,14 +197,14 @@ const PANEL_LABELS = {
 
 const GUIDE_LABELS = {
   graduationTitle: {
-    en: "How graduation works",
-    sa: "स्नातकत्वं कथं लभ्यते",
-    te: "పట్టాభిషేకం ఎలా పొందాలి",
+    en: "How campaign mastery works",
+    sa: "प्रावीण्यसिद्धिः कथं लभ्यते",
+    te: "ప్రావీణ్యం ఎలా సిద్ధిస్తుంది",
   },
   graduationBody: {
     en: "Master the built-in word bank in both Sandhi Splitting and Sandhi Joining. Learn mode is for study only, so it never grants mastery.",
-    sa: "अन्तर्निहितपदसङ्ग्रहः सन्धिभेदे च सन्धिसंयोगे च साधनीयः। अध्ययनप्रकारः केवलम् अभ्यासाय, तेन प्रावीण्यं न लभ्यते।",
-    te: "అంతర్నిర్మిత పదసంపుటిని సంధి విభజనలోను సంధి కలయికలోను సాధించాలి. అభ్యాసం రీతి చదువుకోడానికి మాత్రమే; దానితో ప్రావీణ్యం రావదు.",
+    sa: "अन्तर्निहितपदसङ्ग्रहः सन्धिभेदे च सन्धिसंयोगे च साधनीयः। अध्ययनप्रकारः केवलम् अभ्यासाय, तेन प्रावीण्यगणना न भवति।",
+    te: "అంతర్నిర్మిత పదసంపుటిని సంధి విభజనలోను సంధి కలయికలోను స్వయంగా సాధించాలి. అభ్యాస విధానం చదువుకోడానికి మాత్రమే; అది ప్రావీణ్య లెక్కలోకి రాదు.",
   },
   graduationClean: {
     en: "A word counts only when you solve it cleanly in Practice or Challenge without Show answer and without a forced reveal after failure.",
@@ -212,9 +212,9 @@ const GUIDE_LABELS = {
     te: "ఒక పదం లెక్కలోకి రావాలంటే సాధన లేదా సవాలు రీతిలో మీరు స్వయంగా పూర్తి చేయాలి; జవాబు చూపించకూడదు, బలవంతంగా జవాబు బయటికొచ్చినా లెక్కలోకి రాదు.",
   },
   graduationNinja: {
-    en: "Ninja Slice is optional in v1. It sharpens speed and placement, but graduation still depends on the splitting and joining campaigns.",
-    sa: "प्रथमसंस्करणे निन्जा-छेदः वैकल्पिकः। सः वेगस्थानयोः अभ्यासं ददाति, किन्तु स्नातकत्वं भेदसंयोगाभियानयोरेव आश्रितम्।",
-    te: "మొదటి సంచికలో నింజా స్లైస్ ఐచ్ఛికం. అది వేగం, సరైన స్థానం సాధనకు ఉపయోగపడుతుంది; కానీ పట్టాభిషేకం మాత్రం విభజన, కలయిక ప్రచారాలపైనే ఆధారపడి ఉంటుంది.",
+    en: "Ninja Slice is optional in v1. It sharpens speed and placement, but campaign mastery still depends on the splitting and joining campaigns.",
+    sa: "प्रथमसंस्करणे निन्जा-छेदः वैकल्पिकः। सः वेगस्थानयोः अभ्यासं ददाति, किन्तु अभियानप्रावीण्यसिद्धिः भेदसंयोगाभियानयोरेव आश्रिता।",
+    te: "మొదటి సంచికలో నింజా స్లైస్ ఐచ్ఛికం. అది వేగం, సరైన స్థానం సాధనకు ఉపయోగపడుతుంది; కానీ ప్రచార ప్రావీణ్యం మాత్రం విభజన, కలయిక సాధనలపైనే ఆధారపడి ఉంటుంది.",
   },
   sessionTitle: {
     en: "How the session styles work",

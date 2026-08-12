@@ -1800,10 +1800,10 @@ function App() {
   const mobileDrawerTitle =
     mobileDrawer === "progress"
       ? language === "sa"
-        ? "अभ्यासः, प्रगति, स्नातकमार्गः"
+        ? "अभ्यासः, प्रगति, प्रावीण्यसिद्धिमार्गः"
         : language === "te"
-          ? "అభ్యాసం, ప్రగతి, పట్టాభిషేక మార్గం"
-          : "Session, progress, and graduation"
+          ? "అభ్యాసం, ప్రగతి, ప్రావీణ్యసిద్ధి మార్గం"
+          : "Session, progress, and mastery"
       : mobileDrawer === "mode"
         ? quickModeLabel
         : mobileDrawer === "language"
@@ -2665,10 +2665,10 @@ function App() {
             >
               <span className="panel-kicker">
                 {language === "sa"
-                  ? "स्नातकत्वम्"
+                  ? "प्रावीण्यसिद्धिः"
                   : language === "te"
-                    ? "పట్టాభిషేకం"
-                    : "Graduation"}
+                    ? "ప్రావీణ్యసిద్ధి"
+                    : "Mastery complete"}
               </span>
               <h2>
                 {language === "sa"
