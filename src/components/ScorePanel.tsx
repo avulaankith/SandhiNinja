@@ -24,6 +24,7 @@ type ScorePanelProps = {
   answerRevealDelayMs: number;
   campaign: CampaignSummary;
   clockEnabled: boolean;
+  compact?: boolean;
   currentWordLabel: string;
   language: Language;
   mode: GameMode;
@@ -261,6 +262,7 @@ export const ScorePanel = ({
   answerRevealDelayMs,
   campaign,
   clockEnabled,
+  compact = false,
   currentWordLabel,
   language,
   mode,
@@ -281,10 +283,11 @@ export const ScorePanel = ({
     () => formatGraduation(language, campaign.graduationTimestamp),
     [campaign.graduationTimestamp, language],
   );
+  const panelClassName = `glass-panel score-panel ${compact ? "score-panel--compact" : ""}`;
 
   return (
     <motion.section
-      className="glass-panel score-panel"
+      className={panelClassName}
       initial={{ opacity: 0, y: 18 }}
       animate={{ opacity: 1, y: 0 }}
     >
@@ -418,32 +421,36 @@ export const ScorePanel = ({
         </div>
       ) : null}
 
-      <div className="score-panel__guide">
-        <details className="instruction-card">
-          <summary>{text(language, GUIDE_LABELS.graduationTitle)}</summary>
-          <div className="instruction-card__body">
-            <p>{text(language, GUIDE_LABELS.graduationBody)}</p>
-            <p>{text(language, GUIDE_LABELS.graduationClean)}</p>
-            <p>{text(language, GUIDE_LABELS.graduationNinja)}</p>
-          </div>
-        </details>
+      {!compact ? (
+        <div className="score-panel__guide">
+          <details className="instruction-card">
+            <summary>{text(language, GUIDE_LABELS.graduationTitle)}</summary>
+            <div className="instruction-card__body">
+              <p>{text(language, GUIDE_LABELS.graduationBody)}</p>
+              <p>{text(language, GUIDE_LABELS.graduationClean)}</p>
+              <p>{text(language, GUIDE_LABELS.graduationNinja)}</p>
+            </div>
+          </details>
 
-        <details className="instruction-card">
-          <summary>{text(language, GUIDE_LABELS.sessionTitle)}</summary>
-          <div className="instruction-card__body">
-            <p>{text(language, GUIDE_LABELS.sessionLearn)}</p>
-            <p>{text(language, GUIDE_LABELS.sessionPractice)}</p>
-            <p>{text(language, GUIDE_LABELS.sessionChallenge)}</p>
-          </div>
-        </details>
-      </div>
+          <details className="instruction-card">
+            <summary>{text(language, GUIDE_LABELS.sessionTitle)}</summary>
+            <div className="instruction-card__body">
+              <p>{text(language, GUIDE_LABELS.sessionLearn)}</p>
+              <p>{text(language, GUIDE_LABELS.sessionPractice)}</p>
+              <p>{text(language, GUIDE_LABELS.sessionChallenge)}</p>
+            </div>
+          </details>
+        </div>
+      ) : null}
 
       <div className="score-panel__campaign">
         <div className="panel-heading panel-heading--compact">
           <span className="panel-kicker">{text(language, PANEL_LABELS.campaign)}</span>
           <span className="shortcut-row">{campaign.overallPercent}%</span>
         </div>
-        <p className="score-panel__campaign-copy">{text(language, PANEL_LABELS.campaignBody)}</p>
+        {!compact ? (
+          <p className="score-panel__campaign-copy">{text(language, PANEL_LABELS.campaignBody)}</p>
+        ) : null}
         <div className="stat-grid stat-grid--campaign">
           <div className="stat-card">
             <span>{text(language, PANEL_LABELS.masterSplit)}</span>
@@ -466,14 +473,18 @@ export const ScorePanel = ({
             <strong>{graduationLabel ?? "—"}</strong>
           </div>
         </div>
-        <p className="score-panel__mode-copy score-panel__mode-copy--campaign">
-          {campaign.endlessUnlocked
-            ? text(language, PANEL_LABELS.campaignUnlocked)
-            : text(language, PANEL_LABELS.learnGoal)}
-        </p>
-        <button className="ghost-button" onClick={onResetCampaign} type="button">
-          {text(language, PANEL_LABELS.campaignReset)}
-        </button>
+        {!compact ? (
+          <>
+            <p className="score-panel__mode-copy score-panel__mode-copy--campaign">
+              {campaign.endlessUnlocked
+                ? text(language, PANEL_LABELS.campaignUnlocked)
+                : text(language, PANEL_LABELS.learnGoal)}
+            </p>
+            <button className="ghost-button" onClick={onResetCampaign} type="button">
+              {text(language, PANEL_LABELS.campaignReset)}
+            </button>
+          </>
+        ) : null}
       </div>
 
       <div className="stat-grid">

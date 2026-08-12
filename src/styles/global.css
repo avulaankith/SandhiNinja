@@ -450,6 +450,7 @@ button {
   color: inherit;
   text-align: left;
   cursor: pointer;
+  justify-self: start;
 }
 
 .mobile-toolbar {
@@ -1061,6 +1062,42 @@ button {
 .score-panel__campaign {
   display: grid;
   gap: 8px;
+}
+
+.score-panel--compact {
+  gap: 10px;
+}
+
+.score-panel--compact .panel-heading {
+  margin-bottom: 0;
+}
+
+.score-panel--compact .score-panel__mode-copy {
+  font-size: 0.74rem;
+  line-height: 1.4;
+}
+
+.score-panel--compact .score-panel__controls,
+.score-panel--compact .score-panel__advanced,
+.score-panel--compact .score-panel__campaign {
+  gap: 6px;
+}
+
+.score-panel--compact .timer-mode-row {
+  gap: 6px;
+  padding: 7px;
+}
+
+.score-panel--compact .stat-card {
+  padding: 8px 9px;
+}
+
+.score-panel--compact .stat-card span {
+  font-size: 0.68rem;
+}
+
+.score-panel--compact .stat-card strong {
+  font-size: 0.94rem;
 }
 
 .score-panel__guide {
@@ -3309,9 +3346,16 @@ select {
   }
 
   .app-shell--touch .hero {
-    gap: 6px;
-    padding: 6px 8px;
+    gap: 4px;
+    padding: 4px 6px;
     border-radius: 20px;
+  }
+
+  .app-shell--touch .hero-copy--touch-shell {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 8px;
   }
 
   .app-shell--touch .hero-copy {
@@ -3328,7 +3372,7 @@ select {
   }
 
   .app-shell--touch .hero-brand {
-    gap: 8px;
+    gap: 6px;
   }
 
   .app-shell--touch .hero-controls {
@@ -3338,7 +3382,7 @@ select {
   .mobile-quick-controls {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 6px;
+    gap: 5px;
   }
 
   .app-shell--touch .hero-controls__top {
@@ -3406,11 +3450,11 @@ select {
 
   .mobile-action-rail {
     display: grid;
-    gap: 6px;
+    gap: 5px;
     position: static;
-    margin-top: 8px;
+    margin-top: 6px;
     z-index: 6;
-    padding: 7px 7px 9px;
+    padding: 6px 6px 8px;
     border-radius: 16px;
     background:
       linear-gradient(180deg, rgba(10, 18, 29, 0.94), rgba(7, 13, 23, 0.98)),
@@ -3421,7 +3465,7 @@ select {
   .mobile-action-rail__topline {
     align-items: flex-start;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 6px;
   }
 
   .mobile-action-rail__chips {
@@ -3436,13 +3480,13 @@ select {
   }
 
   .mobile-action-rail__topline strong {
-    font-size: 0.94rem;
+    font-size: 0.88rem;
   }
 
   .mobile-lesson-card {
     display: grid;
-    gap: 8px;
-    padding: 9px 10px;
+    gap: 6px;
+    padding: 8px 9px;
     border-radius: 16px;
   }
 
@@ -3456,7 +3500,7 @@ select {
   .mobile-rule-strip {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 6px;
+    gap: 5px;
     overflow: visible;
     padding-bottom: 0;
   }
@@ -3464,9 +3508,9 @@ select {
   .mobile-rule-chip {
     width: 100%;
     flex: none;
-    min-height: 46px;
-    padding: 8px 10px;
-    gap: 6px;
+    min-height: 42px;
+    padding: 7px 8px;
+    gap: 4px;
   }
 
   .instruction-card summary {
@@ -3480,6 +3524,18 @@ select {
 
   .instruction-card__body p {
     font-size: 0.78rem;
+  }
+
+  .score-panel--compact .score-panel__controls {
+    gap: 4px;
+  }
+
+  .score-panel--compact .timer-mode-row {
+    padding: 6px;
+  }
+
+  .score-panel--compact .stat-grid {
+    gap: 5px;
   }
 
   .app-shell--game .hero-utility-row {
@@ -3794,29 +3850,29 @@ select {
   }
 
   .app-shell--touch .hero {
-    padding: 7px 8px;
+    padding: 4px 5px;
   }
 
   .app-shell--touch .brand-mark {
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
   }
 
   .app-shell--touch .hero-copy h1 {
-    font-size: clamp(1.25rem, 8vw, 1.55rem);
+    font-size: clamp(1.12rem, 7vw, 1.42rem);
   }
 
   .mobile-quick-button {
-    padding: 8px 8px;
-    border-radius: 14px;
+    padding: 7px 7px;
+    border-radius: 12px;
   }
 
   .mobile-quick-button span {
-    font-size: 0.58rem;
+    font-size: 0.54rem;
   }
 
   .mobile-quick-button strong {
-    font-size: 0.78rem;
+    font-size: 0.72rem;
   }
 
   .app-shell--touch .hero-utility-row .toggle-row {
@@ -3897,6 +3953,15 @@ select {
 
   .mode-card__eyebrow {
     display: none;
+  }
+
+  .hero-progress-chip--touch {
+    padding: 7px 10px;
+    border-radius: 14px;
+  }
+
+  .hero-progress-chip--touch strong {
+    font-size: 0.96rem;
   }
 
   .game-stage,

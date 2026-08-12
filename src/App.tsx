@@ -1828,6 +1828,7 @@ function App() {
   const showMobileLessonCard =
     isTouchLayout &&
     !isStudioMode &&
+    !isNarrowTouchLayout &&
     (Boolean(lesson) || Boolean(feedback));
   const mobileDrawerTitle =
     mobileDrawer === "progress"
@@ -1995,7 +1996,7 @@ function App() {
       <div className="ambient ambient--right" />
 
       <header className={`hero ${isTouchGameLayout ? "hero--touch" : ""}`}>
-        <div className="hero-copy">
+        <div className={`hero-copy ${isTouchGameLayout ? "hero-copy--touch-shell" : ""}`}>
           <div className="hero-brand">
             <BrandMark />
             <div className="hero-brand__text">
@@ -2004,17 +2005,34 @@ function App() {
             </div>
           </div>
           {!isTouchGameLayout ? <p>{t("subtitle", language)}</p> : null}
-          {!isStudioMode && !isTouchGameLayout ? (
-            <div className="hero-progress-chip">
-              <span className="panel-kicker">
-                {language === "sa"
-                  ? "अभियानप्रगति:"
-                  : language === "te"
-                    ? "ప్రచార ప్రగతి"
-                    : "Campaign progress"}
-              </span>
-              <strong>{campaignSummary.overallPercent}%</strong>
-            </div>
+          {!isStudioMode ? (
+            isTouchGameLayout ? (
+              <button
+                className="hero-progress-chip hero-progress-chip--touch"
+                onClick={() => setMobileDrawer("progress")}
+                type="button"
+              >
+                <span className="panel-kicker">
+                  {language === "sa"
+                    ? "प्रगति"
+                    : language === "te"
+                      ? "ప్రగతి"
+                      : "Progress"}
+                </span>
+                <strong>{campaignSummary.overallPercent}%</strong>
+              </button>
+            ) : (
+              <div className="hero-progress-chip">
+                <span className="panel-kicker">
+                  {language === "sa"
+                    ? "अभियानप्रगति:"
+                    : language === "te"
+                      ? "ప్రచార ప్రగతి"
+                      : "Campaign progress"}
+                </span>
+                <strong>{campaignSummary.overallPercent}%</strong>
+              </div>
+            )
           ) : null}
         </div>
 
@@ -2432,13 +2450,15 @@ function App() {
                           </strong>
                         </div>
                         <div className="mobile-action-rail__chips">
-                          <button
-                            className="pill-button mobile-action-rail__session-button"
-                            onClick={() => setMobileDrawer("progress")}
-                            type="button"
-                          >
-                            {mobileSessionButtonLabel}
-                          </button>
+                          {!isNarrowTouchLayout ? (
+                            <button
+                              className="pill-button mobile-action-rail__session-button"
+                              onClick={() => setMobileDrawer("progress")}
+                              type="button"
+                            >
+                              {mobileSessionButtonLabel}
+                            </button>
+                          ) : null}
                           {isNinjaMode ? (
                             <button
                               className={`pill-button ${ninjaHelpOpen ? "active" : ""}`}
@@ -2518,6 +2538,7 @@ function App() {
                   answerRevealDelayMs={answerRevealDelayMs}
                   campaign={campaignSummary}
                   clockEnabled={clockEnabled}
+                  compact
                   currentWordLabel={
                     isNinjaMode ? currentTargetNode.devanagari : currentWord.devanagari
                   }
